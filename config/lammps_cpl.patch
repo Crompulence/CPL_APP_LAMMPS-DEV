@@ -1,0 +1,59 @@
+diff --git a/src/lammps.h b/src/lammps.h
+index c432784..abfc8f4 100644
+--- a/src/lammps.h
++++ b/src/lammps.h
+@@ -16,6 +16,9 @@
+ 
+ #include <stdio.h>
+ 
++// Global variable, makes life easier here
++extern class CPLSocketLAMMPS cplsocket;
++
+ namespace LAMMPS_NS {
+ 
+ class LAMMPS {
+diff --git a/src/main.cpp b/src/main.cpp
+index cc8f8be..5ee702e 100644
+--- a/src/main.cpp
++++ b/src/main.cpp
+@@ -17,12 +17,14 @@
+ #include "error.h"
+ #include <stdio.h>
+ #include <stdlib.h>
++#include "CPLSocketLAMMPS.h"
+ 
+ using namespace LAMMPS_NS;
+ 
+ /* ----------------------------------------------------------------------
+    main program to drive LAMMPS
+ ------------------------------------------------------------------------- */
++CPLSocketLAMMPS cplsocket;
+ 
+ int main(int argc, char **argv)
+ {
+@@ -31,6 +33,10 @@ int main(int argc, char **argv)
+ #ifdef LAMMPS_EXCEPTIONS
+   try {
+     LAMMPS *lammps = new LAMMPS(argc,argv,MPI_COMM_WORLD);
++    delete lammps;
++  	cplsocket.initComms();
++  	MPI_Comm comm = cplsocket.realmCommunicator();
++    lammps = new LAMMPS(argc,argv,comm);
+     lammps->input->file();
+     delete lammps;
+   } catch(LAMMPSAbortException & ae) {
+@@ -41,9 +47,13 @@ int main(int argc, char **argv)
+   }
+ #else
+   LAMMPS *lammps = new LAMMPS(argc,argv,MPI_COMM_WORLD);
++  delete lammps;
++  cplsocket.initComms();
++  MPI_Comm comm = cplsocket.realmCommunicator();
++  lammps = new LAMMPS(argc,argv,comm);
+   lammps->input->file();
+   delete lammps;
+ #endif
+-  MPI_Barrier(MPI_COMM_WORLD);
++  MPI_Barrier(comm);
+   MPI_Finalize();
+ }
