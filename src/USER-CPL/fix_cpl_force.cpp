@@ -236,7 +236,6 @@ double FixCPLForce::flekkoyGWeight(double y, double ymin, double ymax) {
     double g = 0.0;
 
 
-//   if (yhat > 0.5*L) {
     if (yhat > (1/K * L)) {
         error->all(FLERR, "Position argument y to flekkoyGWeight "
                           "(y, ymin, ymax) is greater than ymax. ");

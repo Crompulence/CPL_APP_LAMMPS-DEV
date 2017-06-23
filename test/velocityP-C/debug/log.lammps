@@ -1,0 +1,146 @@
+LAMMPS (17 Nov 2016)
+# LAMMPS
+
+variable	xx equal 300
+variable	yy equal 300
+variable	zz equal 300
+
+
+units		real
+atom_style	atomic
+
+lattice		fcc 10
+Lattice spacing in x,y,z = 10 10 10
+region		box block 0 ${xx} 0 ${yy} 0 ${zz} units box
+region		box block 0 300 0 ${yy} 0 ${zz} units box
+region		box block 0 300 0 300 0 ${zz} units box
+region		box block 0 300 0 300 0 300 units box
+boundary p p p
+create_box	1 box
+Created orthogonal box = (0 0 0) to (300 300 300)
+  3 by 3 by 3 MPI processor grid
+
+region fluidregion block 0 ${xx} 0 ${yy} 0 ${zz} units box
+region fluidregion block 0 300 0 ${yy} 0 ${zz} units box
+region fluidregion block 0 300 0 300 0 ${zz} units box
+region fluidregion block 0 300 0 300 0 300 units box
+region constrainreg block 0 ${xx} 200 220  0 ${zz} units box
+region constrainreg block 0 300 200 220  0 ${zz} units box
+region constrainreg block 0 300 200 220  0 300 units box
+
+create_atoms 1 region fluidregion units box
+Created 108000 atoms
+
+mass		1 1.0
+
+velocity	all create 1000.0 87287 loop geom
+
+pair_style	lj/cut 10
+pair_coeff	1 1 2.5 3.4
+
+neighbor	2.0 bin
+neigh_modify delay 0 every 1 check yes
+
+variable dx equal 20
+variable dy equal 20
+variable dz equal 20
+variable timestep_ratio equal 5
+
+
+thermo 10
+
+fix		1 all nve
+
+# Equilibrate before coupling
+run 10
+Neighbor list info ...
+  1 neighbor list requests
+  update every 1 steps, delay 0 steps, check yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 12
+  ghost atom cutoff = 12
+  binsize = 6 -> bins = 50 50 50
+Memory usage per processor = 2.64967 Mbytes
+Step Temp E_pair E_mol TotEng Press 
+       0         1000   -79092.965            0    242831.54    148.33583 
+      10    1013.9826   -86035.742            0     240390.1     122.0072 
+Loop time of 3.99118 on 27 procs for 10 steps with 108000 atoms
+
+Performance: 0.216 ns/day, 110.866 hours/ns, 2.506 timesteps/s
+12.7% CPU use with 27 MPI tasks x no OpenMP threads
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 0.0077128  | 0.011521   | 0.024321   |   4.2 |  0.29
+Neigh   | 0          | 0          | 0          |   0.0 |  0.00
+Comm    | 1.8206     | 2.1238     | 2.5792     |  11.8 | 53.21
+Output  | 0.61665    | 0.64819    | 0.7051     |   2.8 | 16.24
+Modify  | 0.00059199 | 0.0013636  | 0.011078   |   5.6 |  0.03
+Other   |            | 1.206      |            |       | 30.22
+
+Nlocal:    4000 ave 4000 max 4000 min
+Histogram: 27 0 0 0 0 0 0 0 0 0
+Nghost:    3813 ave 3813 max 3813 min
+Histogram: 27 0 0 0 0 0 0 0 0 0
+Neighs:    36000 ave 36000 max 36000 min
+Histogram: 27 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 972000
+Ave neighs/atom = 9
+Neighbor list builds = 0
+Dangerous builds = 0
+
+# IMPORTANT for not messing the internal average for BCs in the CPLSocket for LAMMPS
+reset_timestep 0
+
+compute vfieldcompute all chunk/atom bin/3d x lower ${dx} y  lower ${dy} z  lower ${dz} ids every region constrainreg units box
+compute vfieldcompute all chunk/atom bin/3d x lower 20 y  lower ${dy} z  lower ${dz} ids every region constrainreg units box
+compute vfieldcompute all chunk/atom bin/3d x lower 20 y  lower 20 z  lower ${dz} ids every region constrainreg units box
+compute vfieldcompute all chunk/atom bin/3d x lower 20 y  lower 20 z  lower 20 ids every region constrainreg units box
+# The output shows the middle coordinate of each box (10, 10, 10) for the first box in this case
+fix vfieldfix all ave/chunk ${timestep_ratio} 1 ${timestep_ratio} vfieldcompute vx vy vz norm all file lammps_vels.dat
+fix vfieldfix all ave/chunk 5 1 ${timestep_ratio} vfieldcompute vx vy vz norm all file lammps_vels.dat
+fix vfieldfix all ave/chunk 5 1 5 vfieldcompute vx vy vz norm all file lammps_vels.dat
+
+# cplifx set variable CPLSTEPS to the total number of steps
+print "---RUN COUPLED---"
+---RUN COUPLED---
+
+fix cplfix all cpl/init above momentumc fleckoy
+variable CPLSTEPS equal 10
+run ${CPLSTEPS}
+run 10
+group cplforcegroup dynamic all region cplforceregion every 1
+dynamic group cplforcegroup defined
+Memory usage per processor = 3.17433 Mbytes
+Step Temp E_pair E_mol TotEng Press 
+       0    1013.9826   -86035.742            0     240390.1     122.0072 
+      10    1060.9352   -101086.86            0    240454.16     78.90004 
+Loop time of 6.10588 on 27 procs for 10 steps with 108000 atoms
+
+Performance: 0.142 ns/day, 169.608 hours/ns, 1.638 timesteps/s
+12.5% CPU use with 27 MPI tasks x no OpenMP threads
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 0.0098157  | 0.015444   | 0.032703   |   5.5 |  0.25
+Neigh   | 0          | 0          | 0          |   0.0 |  0.00
+Comm    | 1.8424     | 2.1073     | 2.351      |   8.7 | 34.51
+Output  | 0.53227    | 0.61475    | 0.69592    |   5.1 | 10.07
+Modify  | 2.0303     | 2.1577     | 2.2756     |   4.7 | 35.34
+Other   |            | 1.211      |            |       | 19.83
+
+Nlocal:    4000 ave 4044 max 3966 min
+Histogram: 1 2 3 11 2 3 2 0 0 3
+Nghost:    3813 ave 3847 max 3769 min
+Histogram: 3 0 0 2 3 2 11 3 2 1
+Neighs:    48869.2 ave 49707 max 48392 min
+Histogram: 3 3 6 5 3 3 1 2 0 1
+
+Total # of neighbors = 1319468
+Ave neighs/atom = 12.2173
+Neighbor list builds = 0
+Dangerous builds = 0
+Total wall time: 0:00:31

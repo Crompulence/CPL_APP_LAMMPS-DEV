@@ -73,7 +73,8 @@ velBCPortion = cpllib.my_proc_portion(velBCRegion)
 [velBCncx, velBCncy, velBCncz] = cpllib.get_no_cells(velBCPortion)
 
 # Send dummy random stress distribution (constant value of stress = 0) to MD
-send_array = 10*np.ones((9, cnstncx, cnstncy, cnstncz), order='F', dtype=np.float64)
+np.random.seed(1000)
+send_array = 5 * np.array(np.random.rand(9, cnstncx, cnstncy, cnstncz), order='F', dtype=np.float64)
 
 # Receive averaged velocities from LAMMPS socket
 recv_array = np.zeros((4, velBCncx, velBCncy, velBCncz), order='F',

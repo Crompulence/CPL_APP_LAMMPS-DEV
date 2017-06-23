@@ -110,11 +110,6 @@ void CPLSocketLAMMPS::getCellTopology() {
     dy = CPL::get<double> ("dy");
     dz = CPL::get<double> ("dz");
    
-    // Averaging region height below and above the boundary condition plane 
-	// TODO: THis is for testing!!!!
-    VELBC_BELOW = 0.0;//dy/2.0;
-    VELBC_ABOVE = dy;///2.0;
-
     // Cell bounds for the overlap region
     //CPL::get_bnry_limits(velBCRegion.data());
 	 CPL::get_olap_limits(olapRegion.data());
@@ -138,30 +133,43 @@ void CPLSocketLAMMPS::getCellTopology() {
 void CPLSocketLAMMPS::allocateBuffers() {
     
     // Received stress field
-    int zeroShapeStress[4] = {9, 0, 0, 0};
     int recvShape[4] = {9, cnstFCells[0], cnstFCells[1], cnstFCells[2]};
-    sendStressBuff.resize(4, zeroShapeStress);
     recvStressBuff.resize(4, recvShape);
 
     // LAMMPS computed velocity field
     int sendShape[4] = {4, velBCCells[0], velBCCells[1], velBCCells[2]};
-    int zeroShapeVel[4] = {4, 0, 0, 0};
-    recvVelocityBuff.resize (4, zeroShapeVel);
     sendVelocityBuff.resize (4, sendShape);
 }
 
+void CPLSocketLAMMPS::setBndryAvgMode(int mode) {
+	if (mode == AVG_MODE_ABOVE) {
+		std::cout << "MODE ABOVE" << std::endl;
+		bndry_shift_above = dy;
+		bndry_shift_below = 0.0;
+	}
+	else if (mode == AVG_MODE_BELOW) {
+		std::cout << "MODE BELOW" << std::endl;
+		bndry_shift_above = 0.0;
+		bndry_shift_below = dy;
+	}
+	else {
+		std::cout << "MODE MIDPLANE" << std::endl;
+		bndry_shift_above = dy/2.0;
+		bndry_shift_below = dy/2.0;
+	}
+}
 
 
 void CPLSocketLAMMPS::setupFixMDtoCFD(LAMMPS_NS::LAMMPS *lammps) {
 
     double botLeft[3];
     CPL::map_cell2coord(velBCRegion[0] , velBCRegion[2], velBCRegion[4], botLeft);
-    botLeft[1] -= VELBC_BELOW;
+    botLeft[1] -= bndry_shift_below;
 
     double topRight[3];
     CPL::map_cell2coord(velBCRegion[1] , velBCRegion[3], velBCRegion[5], topRight);
     topRight[0] += dx;
-    topRight[1] += VELBC_ABOVE;
+    topRight[1] += bndry_shift_above;
     topRight[2] += dz;
 
     // Cell sizes

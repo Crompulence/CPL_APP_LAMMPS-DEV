@@ -56,6 +56,10 @@ Author(s)
 typedef CPL::ndArray<double> arrayDoub;
 
 
+const int AVG_MODE_ABOVE = 0;
+const int AVG_MODE_BELOW = 1;
+const int AVG_MODE_MIDPLANE = 2;
+
 class CPLSocketLAMMPS
 {
 
@@ -91,14 +95,15 @@ public:
 
     void setupFixMDtoCFD(LAMMPS_NS::LAMMPS *lammps); 
     void setupFixCFDtoMD(LAMMPS_NS::LAMMPS *lammps); 
+	void setBndryAvgMode(int mode);
     FixCPLForce* cplfix;
 
 
 
 private:
     
-    double VELBC_BELOW = 0.0;
-    double VELBC_ABOVE = 0.0;
+    double bndry_shift_above = 0.0;
+    double bndry_shift_below = 0.0;
 
     // Cartesian coordinates of the processor
     std::vector<int> myCoords;
@@ -126,8 +131,6 @@ private:
 
     // Data to be sent/received with CPL-Library
     arrayDoub sendVelocityBuff;
-    arrayDoub sendStressBuff;
-    arrayDoub recvVelocityBuff;
     arrayDoub recvStressBuff;
 
 

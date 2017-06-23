@@ -1,13 +1,30 @@
 #include "fix_cpl_init.h"
 #include<iostream>
+#include <string.h>
+#include "error.h"
+#include <stdlib.h>
+
 
 
 fixCPLInit::fixCPLInit(LAMMPS_NS::LAMMPS *lammps, int narg, char **arg)
     		: Fix (lammps, narg, arg) {
-   class LAMMPS_NS::LAMMPS *lmp=lammps;
-   cplsocket.initMD(lammps);
-   nevery = cplsocket.timestep_ratio;
-   std::cout << "LAMMPS NEVERY: " << nevery <<std::endl;
+
+	if (narg < 6) error->all(FLERR,"Illegal fix cplinit command");
+	int bndry_avg_mode;
+	if (strcmp(arg[3],"below") == 0)
+		bndry_avg_mode = AVG_MODE_BELOW;
+	else if (strcmp(arg[3],"above") == 0)
+		bndry_avg_mode = AVG_MODE_ABOVE;
+	else if (strcmp(arg[3],"midplane") == 0)
+		bndry_avg_mode = AVG_MODE_MIDPLANE;
+	else
+		error->all(FLERR,"Illegal fix cplinit command - averaging method should \
+				   be 'below', 'above' or 'midplane' ");
+   	class LAMMPS_NS::LAMMPS *lmp=lammps;
+   	cplsocket.initMD(lammps);
+	cplsocket.setBndryAvgMode(bndry_avg_mode);
+   	nevery = cplsocket.timestep_ratio;
+   	std::cout << "LAMMPS NEVERY: " << nevery <<std::endl;
 }
 
 int fixCPLInit::setmask() {
@@ -36,7 +53,7 @@ void fixCPLInit::post_force(int vflag) {
 void fixCPLInit::end_of_step() {
 	static int c = 0;
     // Communications
-	std::cout << "SEND: " <<  c << std::endl;
+	//std::cout << "SEND: " <<  c << std::endl;
 	c++;
     cplsocket.recvStress();
 	cplsocket.packVelocity(lmp);
