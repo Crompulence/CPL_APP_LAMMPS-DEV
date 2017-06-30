@@ -31,10 +31,6 @@ int FixCPLForce::setmask() {
 //void FixCPLForce::post_force(int vflag) {
 void FixCPLForce::apply() {
 
-	static int c = 0;
-	std::cout << "APLYING FORCE: " << c << std::endl;
-	c++;
-
     double **x = atom->x;
     double **v = atom->v;
     double **f = atom->f;
@@ -138,8 +134,6 @@ void FixCPLForce::apply() {
                 << " " << cplforceregion->extent_yhi << " " << x[i][1]<< std::endl;
         }
     }
-
-	std::cout << "Checkpoint 1" << std::endl;
 
 
     // Calculate force and apply
