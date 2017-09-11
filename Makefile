@@ -9,7 +9,7 @@ all:
 	cd $(LAMMPS_SRC_DIR) && $(MAKE) yes-USER-CPL
 	cd $(LAMMPS_SRC_DIR) && $(MAKE) cpl
 	mkdir bin
-	cp $(LAMMPS_SRC_DIR)/lmp_cpl ./bin
+	cp -f $(LAMMPS_SRC_DIR)/lmp_cpl ./bin
 
 patch-lammps:
 	cp ./config/lammps_cpl.patch $(LAMMPS_DIR)
@@ -26,4 +26,4 @@ clean-all:
 	cd $(LAMMPS_SRC_DIR) && $(MAKE) clean-all
 
 test:
-	py.test -v ./test
+	py.test2 -v ./test

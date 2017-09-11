@@ -26,7 +26,7 @@ public:
     int setmask();
     void apply(); //todo add override <=== es205 17/01/17 WTF does this mean?
 //	void post_force(int vflag);
-	void setup (CPL::ndArray<double>& stress, std::vector<int>& portion);
+	void setup (CPL::ndArray<double>& stress, std::vector<int>& portion, int units);
     void updateProcPortion (std::vector<int>& portion);
 
 private:
@@ -34,6 +34,7 @@ private:
 	CPL::ndArray<double>* cfdStress;
     std::vector<int> procPortion;
     double flekkoyGWeight (double y, double ymin, double ymax);
+    double units_factor;
 
 };
 

@@ -1,3 +1,4 @@
+#!/usr/bin/env python2
 import pytest
 import numpy as np
 from cplpy import run_test, prepare_config, get_test_dir
@@ -12,7 +13,7 @@ MD_ARGS = "-in " + MD_FNAME
 MD_EXEC = "lmp_cpl"
 CFD_FNAME = "dummyCFD_forces.py"
 CFD_ARGS = CFD_FNAME
-CFD_EXEC = "python"
+CFD_EXEC = "python2"
 TEST_TEMPLATE_DIR = os.path.join(get_test_dir(), "templates")
 TEST_DIR = os.path.dirname(os.path.realpath(__file__))
 

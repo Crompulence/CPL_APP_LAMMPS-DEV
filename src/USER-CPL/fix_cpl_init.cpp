@@ -9,7 +9,7 @@
 fixCPLInit::fixCPLInit(LAMMPS_NS::LAMMPS *lammps, int narg, char **arg)
     		: Fix (lammps, narg, arg) {
 
-	if (narg < 6) error->all(FLERR,"Illegal fix cplinit command");
+	if (narg < 8) error->all(FLERR,"Illegal fix cplinit command");
 	int bndry_avg_mode;
 	if (strcmp(arg[3],"below") == 0)
 		bndry_avg_mode = AVG_MODE_BELOW;
@@ -20,6 +20,13 @@ fixCPLInit::fixCPLInit(LAMMPS_NS::LAMMPS *lammps, int narg, char **arg)
 	else
 		error->all(FLERR,"Illegal fix cplinit command - averaging method should \
 				   be 'below', 'above' or 'midplane' ");
+    int units;
+	if (strcmp(arg[5],"real") == 0)
+        cplsocket.units = REAL_UNITS;
+    else if (strcmp(arg[5],"lj") == 0)
+        cplsocket.units = LJ_UNITS;
+	else
+		error->all(FLERR,"Illegal fix cplinit command - units should be 'real' or 'lj'");
    	class LAMMPS_NS::LAMMPS *lmp=lammps;
    	cplsocket.initMD(lammps);
 	cplsocket.setBndryAvgMode(bndry_avg_mode);

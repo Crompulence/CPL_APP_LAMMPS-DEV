@@ -59,6 +59,8 @@ typedef CPL::ndArray<double> arrayDoub;
 const int AVG_MODE_ABOVE = 0;
 const int AVG_MODE_BELOW = 1;
 const int AVG_MODE_MIDPLANE = 2;
+const int REAL_UNITS = 0;
+const int LJ_UNITS = 1;
 
 class CPLSocketLAMMPS
 {
@@ -69,10 +71,10 @@ public:
     CPLSocketLAMMPS() : myCoords(3), olapRegion(6), velBCRegion(6), cnstFRegion(6),
                      velBCPortion(6), cnstFPortion(6) {}
     //~CPLSocketLAMMPS();
-
     // Timesteps and timestep ratio
     int nsteps;
     int timestep_ratio;
+    int units;
     
     // Initialisation routines 
     void initComms ();
@@ -101,7 +103,6 @@ public:
 
 
 private:
-    
     double bndry_shift_above = 0.0;
     double bndry_shift_below = 0.0;
 

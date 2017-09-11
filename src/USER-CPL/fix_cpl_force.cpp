@@ -193,16 +193,16 @@ void FixCPLForce::apply() {
    //                 double fz = rmass[i]*cfdStress->operator()(2, icell, jcell, kcell);
 
                     //fi = fxyz.get_force(xi, vi, ai);
-					/**
-                    std::cout << "Force " << i << " " << icell <<  " " << jcell << " " << kcell
-                                  << " " << cfdStress->operator()(2, icell, jcell, kcell) << " " 
+                    /**
+                    std::cout << "Force " << units_factor << " " << icell <<  " " << jcell << " " << kcell
                                   << f[i][0] << " " << f[i][1] << " " << f[i][2] << " "
-                                  << fx << " " << fy << " " << fz << std::endl;
-								  **/
+                                  << fx*units_factor << " " << fy*units_factor << " " << fz*units_factor << std::endl;
                     //TEMP, set to values from array directly
-                    f[i][0] += fx;
-                    f[i][1] += fy;
-                    f[i][2] += fz;
+                    **/
+                    f[i][0] += fx * units_factor;
+                    f[i][1] += fy * units_factor;
+                    f[i][2] += fz * units_factor;
+                    
     
                     //ofs << x[i][1] << "\t" << 
                     //       jcell << "\t" << 
@@ -244,11 +244,14 @@ double FixCPLForce::flekkoyGWeight(double y, double ymin, double ymax) {
 
 //TODO:Various setup(vel, portion), etc
 
-void FixCPLForce::setup (CPL::ndArray<double>& stress, std::vector<int>& portion) {
+void FixCPLForce::setup (CPL::ndArray<double>& stress, std::vector<int>& portion, int units_fact) {
 
     cfdStress = &stress;
 	updateProcPortion(portion);
+    units_factor = units_fact;
 }
+
+    
 
 void FixCPLForce::updateProcPortion (std::vector<int>& portion) {
 

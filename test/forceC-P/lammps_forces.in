@@ -62,5 +62,5 @@ fix ffieldfix all ave/chunk 1 1 1 ffieldcompute fx fy fz norm none file lammps_f
 
 print "---RUN COUPLED---"
 
-fix cplfix all cpl/init region all
+fix cplfix all cpl/init midplane units lj momentumc fleckoy
 run ${CPLSTEPS}
