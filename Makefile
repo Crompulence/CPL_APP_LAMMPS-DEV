@@ -19,15 +19,15 @@ patch-lammps:
 yes-all:
 	bash config/enable-packages.sh $(MAKE)
 
-clean: clean-tests
-	rm -rf bin
-
 clean-tests:
 	cd test/forceC-P/debug && ./clean.sh
 	cd test/velocityP-C/debug && ./clean.sh
+
+clean: clean-tests
+	rm -rf bin
 
 clean-all: clean
 	cd $(LAMMPS_SRC_DIR) && $(MAKE) clean-all
 
 test:
-	py.test -v ./test
+	py.test2 -v ./test
