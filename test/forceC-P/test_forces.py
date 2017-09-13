@@ -60,9 +60,7 @@ def compare_forces(tol, cfd_fname="cfd_forces.dat",
         try:
             diff_forces = abs(cfd_cells[k] - lammps_cells[k])
             if (np.any(diff_forces > tol)):
-                print cfd_cells[k]
-                print lammps_cells[k]
-                assert False
+                print "Cell %s value differs in md : %s and cfd: %s" % (str(k), str(lammps_cells[k]), str(cfd_cells[k]))
         except KeyError:
             print "Cell not found: cell " + k
             assert False

@@ -20,7 +20,7 @@ def check_forces(tol, cfd_fname="cfd_forces.dat", lammps_fname="lammps_forces.da
         lammps_lines = lammps_file.readlines()
     skip = int(lammps_lines[3].split(" ")[1])
     lammps_lines = lammps_lines[4:]
-    lammps_lines = lammps_lines[skip+1:]
+    lammps_lines = lammps_lines[-skip:]
     lammps_lines = [l[:-1].split(" ") for l in lammps_lines]
     lammps_cells = {}
     for l in lammps_lines:

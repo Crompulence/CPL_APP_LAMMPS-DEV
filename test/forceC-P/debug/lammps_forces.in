@@ -54,7 +54,7 @@ velocity all set 0 0 0 units box
 # IMPORTANT for not messing the internal average for BCs in the CPLSocket for LAMMPS
 reset_timestep 0
 
-compute ffieldcompute all chunk/atom bin/3d x lower ${dx} y lower ${dy} z  lower ${dz} region constrainreg ids every units box
+compute ffieldcompute all chunk/atom bin/3d x lower ${dx} y lower ${dy} z  lower ${dz} bound y $(v_yy-3*v_dy) ${yy} region constrainreg ids every units box
 
 # The output shows the middle coordinate of each box (10, 10, 10) for the first box in this case
 # The dumped forces should be the ones imposed by the constrained region.

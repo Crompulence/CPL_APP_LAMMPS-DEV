@@ -6,7 +6,7 @@ LAMMPS_SRC_DIR=$(LAMMPS_DIR)/src
 all:
 	cp -R src/USER-CPL $(LAMMPS_SRC_DIR)
 	cp ./config/Makefile.cpl $(LAMMPS_SRC_DIR)/MAKE
-	cd $(LAMMPS_SRC_DIR) && $(MAKE) yes-USER-CPL
+	cd $(LAMMPS_SRC_DIR) && $(MAKE) no-USER-CPL && $(MAKE) yes-USER-CPL
 	cd $(LAMMPS_SRC_DIR) && $(MAKE) cpl
 	rm -rf bin > /dev/null
 	mkdir bin
@@ -19,12 +19,15 @@ patch-lammps:
 yes-all:
 	bash config/enable-packages.sh $(MAKE)
 
-clean:
+clean: clean-tests
 	rm -rf bin
 
-clean-all:
-	rm -rf bin
+clean-tests:
+	cd test/forceC-P/debug && ./clean.sh
+	cd test/velocityP-C/debug && ./clean.sh
+
+clean-all: clean
 	cd $(LAMMPS_SRC_DIR) && $(MAKE) clean-all
 
 test:
-	py.test2 -v ./test
+	py.test -v ./test

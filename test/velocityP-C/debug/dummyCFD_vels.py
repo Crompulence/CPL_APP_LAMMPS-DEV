@@ -84,12 +84,15 @@ recv_array = np.zeros((4, velBCncx, velBCncy, velBCncz), order='F',
 cpllib.send(send_array, cnstFRegion)
 cpllib.recv(recv_array, velBCRegion)
 
+
 for step in xrange(nsteps):
     print("CFD step: ", step)
     cpllib.send(send_array, cnstFRegion)
     cpllib.recv(recv_array, velBCRegion)
+# TODO: Make this multistep
+#    cpllib.dump_region(velBCRegion, recv_array, "cfd_vels%d.dat"%step, realm_comm,                                                                                                                                                            
+#            components={0:None, 1:None, 2:None}, coords="other")
 
-cpllib.dump_region(velBCRegion, recv_array, "cfd_vels.dat", realm_comm,                                                                                                                                                            
+cpllib.dump_region(velBCRegion, recv_array, "cfd_vels%d.dat"%step, realm_comm,                                                                                                                                                            
         components={0:None, 1:None, 2:None}, coords="other")
-
 cpllib.finalize()

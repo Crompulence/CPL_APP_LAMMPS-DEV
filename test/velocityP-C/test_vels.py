@@ -41,7 +41,8 @@ def compare_vels(tol, lammps_fname="lammps_vels.dat",
         lammps_lines = lammps_file.readlines()
     skip = int(lammps_lines[3].split(" ")[1])
     lammps_lines = lammps_lines[4:]
-    lammps_lines = lammps_lines[:skip]
+    #NOTE: We pick the last timestep
+    lammps_lines = lammps_lines[-skip:]
     lammps_lines = [l[:-1].split(" ") for l in lammps_lines]
     lammps_cells = {}
     for l in lammps_lines:
@@ -55,9 +56,7 @@ def compare_vels(tol, lammps_fname="lammps_vels.dat",
         try:
             diff_vel = abs(cfd_cells[cell] - lammps_cells[cell])
             if (np.any(diff_vel > tol)):
-                print "Cell value disagreement:"
-                print cfd_cells[cell]
-                print lammps_cells[cell]
+                print "Cell %s value differs in md : %s and cfd: %s" % (str(cell), str(lammps_cells[cell]), str(cfd_cells[cell]))
                 assert False
         except KeyError:
             print "Cell not found: " + str(cell)

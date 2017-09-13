@@ -181,12 +181,12 @@ void CPLSocketLAMMPS::setupFixMDtoCFD(LAMMPS_NS::LAMMPS *lammps) {
     int ret;
     char topRight0str[20], topRight1str[20], topRight2str[20];
     char botLeft0str[20], botLeft1str[20], botLeft2str[20];
-    ret = sprintf(topRight0str, "%f6", topRight[0]);
-    ret = sprintf(topRight1str, "%f6", topRight[1]);
-    ret = sprintf(topRight2str, "%f6", topRight[2]);
-    ret = sprintf(botLeft0str, "%f6", botLeft[0]);
-    ret = sprintf(botLeft1str, "%f6", botLeft[1]);
-    ret = sprintf(botLeft2str, "%f6", botLeft[2]);
+    ret = sprintf(topRight0str, "%f", topRight[0]);
+    ret = sprintf(topRight1str, "%f", topRight[1]);
+    ret = sprintf(topRight2str, "%f", topRight[2]);
+    ret = sprintf(botLeft0str, "%f", botLeft[0]);
+    ret = sprintf(botLeft1str, "%f", botLeft[1]);
+    ret = sprintf(botLeft2str, "%f", botLeft[2]);
 
     char **regionarg = new char*[10];
     regionarg[0] = (char *) "cfdbcregion";
@@ -217,22 +217,16 @@ void CPLSocketLAMMPS::setupFixMDtoCFD(LAMMPS_NS::LAMMPS *lammps) {
     if (iregion < 0) lammps->error->all(FLERR,"Fix ID for iregion cfdbcregion does not exist");
     cfdbcregion = lammps->domain->regions[iregion];
 
-    std::cout << "setupFixMDtoCFD Region " << iregion << " " << cfdbcregion->dynamic_check()
-              << " " << cfdbcregion->extent_xhi << " " 
-              << " " << cfdbcregion->extent_yhi << " " 
-              << " " << cfdbcregion->extent_zhi << " " 
-                     << cfdbcregion->varshape << std::endl;
-
-
     //////////////////////////////////////////
     //This is the code that would set the compute
     //////////////////////////////////////////
     char dxstr[20], dystr[20], dzstr[20], low_y[20], hi_y[20];
-    ret = sprintf(dxstr, "%f6", dx);
-    ret = sprintf(dystr, "%f6", dy);
-    ret = sprintf(dzstr, "%f6", dz);
-    ret = sprintf(low_y, "%f6", botLeft[1]);
-    ret = sprintf(hi_y, "%f6", topRight[1]);
+    ret = sprintf(dxstr, "%f", dx);
+    ret = sprintf(dystr, "%f", dy);
+    ret = sprintf(dzstr, "%f", dz);
+    ret = sprintf(low_y, "%f", botLeft[1]);
+    ret = sprintf(hi_y, "%f", topRight[1]);
+
 
 
 
@@ -269,10 +263,16 @@ void CPLSocketLAMMPS::setupFixMDtoCFD(LAMMPS_NS::LAMMPS *lammps) {
     cfdbccompute = lammps->modify->compute[icompute];
     delete [] computearg;
 
-//    std::cout << "Region " << iregion 
-//              << " " << cfdbccompute->extent_xhi << " " 
-//              << " " << cfdbccompute->extent_yhi << " " 
-//              << " " << cfdbccompute->extent_zhi << std::endl;
+    std::cout << "setupFixMDtoCFD Region " << iregion << " " << cfdbcregion->dynamic_check()
+              << " " << cfdbcregion->extent_xlo << " " 
+              << " " << cfdbcregion->extent_xhi << " " 
+              << " " << cfdbcregion->extent_ylo << " " 
+              << " " << cfdbcregion->extent_yhi << " " 
+              << " " << cfdbcregion->extent_zlo << " " 
+              << " " << cfdbcregion->extent_zhi << " " 
+			  << " " << "bounds" << botLeft[1] << " " << topRight[1] << " "
+                     << cfdbcregion->varshape << std::endl;
+
 
 //    cmd = "compute cfdbccompute all chunk/atom bin/3d";
 //    cmd += " x lower " + std::to_string(dx);
@@ -376,12 +376,12 @@ void CPLSocketLAMMPS::setupFixCFDtoMD(LAMMPS_NS::LAMMPS *lammps) {
     int ret;
     char topRight0str[20], topRight1str[20], topRight2str[20];
     char botLeft0str[20], botLeft1str[20], botLeft2str[20];
-    ret = sprintf(topRight0str, "%f6", topRight[0]);
-    ret = sprintf(topRight1str, "%f6", topRight[1]);
-    ret = sprintf(topRight2str, "%f6", topRight[2]);
-    ret = sprintf(botLeft0str, "%f6", botLeft[0]);
-    ret = sprintf(botLeft1str, "%f6", botLeft[1]);
-    ret = sprintf(botLeft2str, "%f6", botLeft[2]);
+    ret = sprintf(topRight0str, "%f", topRight[0]);
+    ret = sprintf(topRight1str, "%f", topRight[1]);
+    ret = sprintf(topRight2str, "%f", topRight[2]);
+    ret = sprintf(botLeft0str, "%f", botLeft[0]);
+    ret = sprintf(botLeft1str, "%f", botLeft[1]);
+    ret = sprintf(botLeft2str, "%f", botLeft[2]);
 
     char **regionarg = new char*[10];
     regionarg[0] = (char *) "cplforceregion";
