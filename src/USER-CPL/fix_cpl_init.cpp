@@ -43,8 +43,9 @@ int fixCPLInit::setmask() {
 
 
 void fixCPLInit::init() {
-   cplsocket.setupFixMDtoCFD(lmp);
+	
    cplsocket.setupFixCFDtoMD(lmp);
+   cplsocket.setupFixMDtoCFD(lmp);
 }
 
 
@@ -63,6 +64,7 @@ void fixCPLInit::end_of_step() {
 	//std::cout << "SEND: " <<  c << std::endl;
 	c++;
     cplsocket.recvStress();
+	cplsocket.cfdbcfix->end_of_step();
 	cplsocket.packVelocity(lmp);
     cplsocket.sendVelocity();
 }

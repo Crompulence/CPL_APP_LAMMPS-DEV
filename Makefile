@@ -8,6 +8,7 @@ all:
 	cp ./config/Makefile.cpl $(LAMMPS_SRC_DIR)/MAKE
 	cd $(LAMMPS_SRC_DIR) && $(MAKE) yes-USER-CPL
 	cd $(LAMMPS_SRC_DIR) && $(MAKE) cpl
+	rm -rf bin > /dev/null
 	mkdir bin
 	cp -f $(LAMMPS_SRC_DIR)/lmp_cpl ./bin
 
