@@ -6,8 +6,9 @@ LAMMPS_SRC_DIR=$(LAMMPS_DIR)/src
 all:
 	cp -R src/USER-CPL $(LAMMPS_SRC_DIR)
 	cp ./config/Makefile.cpl $(LAMMPS_SRC_DIR)/MAKE
-	cd $(LAMMPS_SRC_DIR) && $(MAKE) yes-USER-CPL
+	cd $(LAMMPS_SRC_DIR) && $(MAKE) no-USER-CPL && $(MAKE) yes-USER-CPL
 	cd $(LAMMPS_SRC_DIR) && $(MAKE) cpl
+	rm -rf bin > /dev/null
 	mkdir bin
 	cp -f $(LAMMPS_SRC_DIR)/lmp_cpl ./bin
 
@@ -18,11 +19,14 @@ patch-lammps:
 yes-all:
 	bash config/enable-packages.sh $(MAKE)
 
-clean:
+clean-tests:
+	cd test/forceC-P/debug && ./clean.sh
+	cd test/velocityP-C/debug && ./clean.sh
+
+clean: clean-tests
 	rm -rf bin
 
-clean-all:
-	rm -rf bin
+clean-all: clean
 	cd $(LAMMPS_SRC_DIR) && $(MAKE) clean-all
 
 test:

@@ -9,7 +9,7 @@ units		real
 atom_style	atomic
 
 lattice		fcc 10
-region		box block 0 ${xx} 0 ${yy} 0 ${zz} units box
+region		box block 0.0 ${xx} 0.0 ${yy} 0.0 ${zz} units box
 boundary p p p
 create_box	1 box
 
@@ -44,7 +44,7 @@ run 10
 # IMPORTANT for not messing the internal average for BCs in the CPLSocket for LAMMPS
 reset_timestep 0
 
-compute vfieldcompute all chunk/atom bin/3d x lower ${dx} y  lower ${dy} z  lower ${dz} ids every region constrainreg units box
+compute vfieldcompute all chunk/atom bin/3d x lower ${dx} y  lower ${dy} z  lower ${dz} bound y 200 220 ids every region constrainreg units box
 # The output shows the middle coordinate of each box (10, 10, 10) for the first box in this case
 fix vfieldfix all ave/chunk ${timestep_ratio} 1 ${timestep_ratio} vfieldcompute vx vy vz norm all file lammps_vels.dat
 

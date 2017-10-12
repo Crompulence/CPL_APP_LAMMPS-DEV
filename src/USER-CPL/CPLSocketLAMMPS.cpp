@@ -246,22 +246,16 @@ void CPLSocketLAMMPS::setupFixMDtoCFD(LAMMPS_NS::LAMMPS *lammps, int sendtype)
     if (iregion < 0) lammps->error->all(FLERR,"Fix ID for iregion cfdbcregion does not exist");
     cfdbcregion = lammps->domain->regions[iregion];
 
-    std::cout << "setupFixMDtoCFD Region " << iregion << " " << cfdbcregion->dynamic_check()
-              << " " << cfdbcregion->extent_xhi << " " 
-              << " " << cfdbcregion->extent_yhi << " " 
-              << " " << cfdbcregion->extent_zhi << " " 
-                     << cfdbcregion->varshape << std::endl;
-
-
     //////////////////////////////////////////
     //This code sets the compute
     //////////////////////////////////////////
     char dxstr[20], dystr[20], dzstr[20], low_y[20], hi_y[20];
-    ret = sprintf(dxstr, "%f6", dx);
-    ret = sprintf(dystr, "%f6", dy);
-    ret = sprintf(dzstr, "%f6", dz);
-    ret = sprintf(low_y, "%f6", botLeft[1]);
-    ret = sprintf(hi_y, "%f6", topRight[1]);
+    ret = sprintf(dxstr, "%f", dx);
+    ret = sprintf(dystr, "%f", dy);
+    ret = sprintf(dzstr, "%f", dz);
+    ret = sprintf(low_y, "%f", botLeft[1]);
+    ret = sprintf(hi_y, "%f", topRight[1]);
+
 
 
 
@@ -298,10 +292,16 @@ void CPLSocketLAMMPS::setupFixMDtoCFD(LAMMPS_NS::LAMMPS *lammps, int sendtype)
     cfdbccompute = lammps->modify->compute[icompute];
     delete [] computearg;
 
-//    std::cout << "Region " << iregion 
-//              << " " << cfdbccompute->extent_xhi << " " 
-//              << " " << cfdbccompute->extent_yhi << " " 
-//              << " " << cfdbccompute->extent_zhi << std::endl;
+    std::cout << "setupFixMDtoCFD Region " << iregion << " " << cfdbcregion->dynamic_check()
+              << " " << cfdbcregion->extent_xlo << " " 
+              << " " << cfdbcregion->extent_xhi << " " 
+              << " " << cfdbcregion->extent_ylo << " " 
+              << " " << cfdbcregion->extent_yhi << " " 
+              << " " << cfdbcregion->extent_zlo << " " 
+              << " " << cfdbcregion->extent_zhi << " " 
+			  << " " << "bounds" << botLeft[1] << " " << topRight[1] << " "
+                     << cfdbcregion->varshape << std::endl;
+
 
 //    cmd = "compute cfdbccompute all chunk/atom bin/3d";
 //    cmd += " x lower " + std::to_string(dx);
@@ -485,8 +485,7 @@ void CPLSocketLAMMPS::setupFixCFDtoMD(LAMMPS_NS::LAMMPS *lammps) {
     cplfix = dynamic_cast<FixCPLForce*>(lammps->modify->fix[ifix]);
     double units_factor;
     if (units == REAL_UNITS)
-        //units_factor = 4.187e-4;
-        units_factor = 1.0;
+        units_factor = 4.187e-4;
     else if (units == LJ_UNITS)
         units_factor = 1.0;
 	cplfix->setup(recvStressBuff, cnstFPortion, units_factor);
@@ -526,7 +525,7 @@ void CPLSocketLAMMPS::packVelocity (const LAMMPS_NS::LAMMPS *lammps) {
 					double vy = cfdbcfix->compute_array(row, 5);  
 					double vz = cfdbcfix->compute_array(row, 6);  
 
-					//std::cout << i << " " << j << " " << k << " " << x << " " << y << " " << z 
+					//std::cout <<  x << " " << y << " " << z 
 					//               << " " << vx << " " << vy << " " << vz << "\n" << std::endl;
 					glob_cell[0] = i; glob_cell[1] = j; glob_cell[2] = k;
 					CPL::map_glob2loc_cell(velBCPortion.data(), glob_cell, loc_cell);

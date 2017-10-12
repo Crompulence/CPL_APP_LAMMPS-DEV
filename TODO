@@ -1,4 +1,2 @@
 [1] Add try-except to catch any python failure and do mpi_abort
-[2] Add cleaning of debug folder in tests. Add cleaning to makefile.
 [3] Improve make by removing only the package not lammps entirely
-[4] Remove cfdbcregion since it seems is useless for binning.

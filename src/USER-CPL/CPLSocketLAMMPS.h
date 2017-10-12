@@ -99,6 +99,7 @@ public:
     void setupFixCFDtoMD(LAMMPS_NS::LAMMPS *lammps); 
 	void setBndryAvgMode(int mode);
     FixCPLForce* cplfix;
+    class LAMMPS_NS::Fix *cfdbcfix, *cplforcefix;
 
 
 
@@ -140,7 +141,6 @@ private:
     //Appropriate region, compute and fix    
     class LAMMPS_NS::Region *cfdbcregion, *cplforceregion;
     class LAMMPS_NS::Compute *cfdbccompute;
-    class LAMMPS_NS::Fix *cfdbcfix, *cplforcefix;
     class LAMMPS_NS::Group *cplforcegroup;
     
     // Fix that applies the momentum constraint
