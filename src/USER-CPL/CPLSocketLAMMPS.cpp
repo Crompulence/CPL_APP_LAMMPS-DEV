@@ -38,7 +38,7 @@ Description
 
 Author(s)
 
-    David Trevelyan
+    David Trevelyan, Edward Smith, Eduardo Fernandez-Ramos
 
 */
 #include<iostream>
@@ -99,7 +99,6 @@ void CPLSocketLAMMPS::initMD(LAMMPS_NS::LAMMPS *lammps) {
     std::cout << cmd << std::endl;
     lammps->input->one(cmd.c_str());
     getCellTopology();
-    allocateBuffers();
 
 }
 
@@ -109,14 +108,9 @@ void CPLSocketLAMMPS::getCellTopology() {
     dx = CPL::get<double> ("dx");
     dy = CPL::get<double> ("dy");
     dz = CPL::get<double> ("dz");
-   
-    // Cell bounds for the overlap region
-    //CPL::get_bnry_limits(velBCRegion.data());
-	 CPL::get_olap_limits(olapRegion.data());
-    
+       
     // Cell bounds for velocity BCs region
-    velBCRegion = olapRegion;
-    velBCRegion[3] = velBCRegion[2];
+    CPL::get_bnry_limits(velBCRegion.data());
     CPL::my_proc_portion (velBCRegion.data(), velBCPortion.data());
 
     CPL::get_no_cells(velBCPortion.data(), velBCCells);
@@ -130,16 +124,47 @@ void CPLSocketLAMMPS::getCellTopology() {
 }
 
 
-void CPLSocketLAMMPS::allocateBuffers() {
-    
-    // Received stress field
+
+
+//Pack general using bitflag
+void CPLSocketLAMMPS::allocateBuffers(const LAMMPS_NS::LAMMPS *lammps, int sendtype) {
+
+    // Received Buf field
     int recvShape[4] = {9, cnstFCells[0], cnstFCells[1], cnstFCells[2]};
-    recvStressBuff.resize(4, recvShape);
+    recvBuf.resize(4, recvShape);
+
+    //Check what is to be packed and sent
+    int packsize=0;
+    if ((sendtype & VEL) == VEL){
+        packsize += VELSIZE;
+    }
+    if ((sendtype & NBIN) == NBIN){
+        packsize += NBINSIZE;
+    }
+    if ((sendtype & STRESS) == STRESS){
+        packsize += STRESSSIZE;
+        lammps->error->all(FLERR," sendtype stress not developed. Aborting.");
+    }
+    if ((sendtype & FORCE) == FORCE){
+        packsize += FORCESIZE;
+    }
+    if ((sendtype & FORCECOEFF) == FORCECOEFF){
+        packsize += FORCECOEFFSIZE;
+    }
+    if ((sendtype & VOIDRATIO) == VOIDRATIO){
+        packsize += VOIDRATIOSIZE;
+    }
 
     // LAMMPS computed velocity field
-    int sendShape[4] = {4, velBCCells[0], velBCCells[1], velBCCells[2]};
-    sendVelocityBuff.resize (4, sendShape);
+    int sendShape[4] = {packsize, velBCCells[0], velBCCells[1], velBCCells[2]};
+    sendBuf.resize(4, sendShape);
+
+    if (sendtype > 63)
+        lammps->error->all(FLERR," sendtype bit flag unknown type. Aborting.");
 }
+
+
+
 
 void CPLSocketLAMMPS::setBndryAvgMode(int mode) {
 	if (mode == AVG_MODE_ABOVE) {
@@ -159,8 +184,11 @@ void CPLSocketLAMMPS::setBndryAvgMode(int mode) {
 	}
 }
 
+void CPLSocketLAMMPS::setupFixMDtoCFD(LAMMPS_NS::LAMMPS *lammps, int sendtype)
+{
 
-void CPLSocketLAMMPS::setupFixMDtoCFD(LAMMPS_NS::LAMMPS *lammps) {
+    //Allocate buffers
+    allocateBuffers(lammps, sendtype);
 
     double botLeft[3];
     CPL::map_cell2coord(velBCRegion[0] , velBCRegion[2], velBCRegion[4], botLeft);
@@ -176,18 +204,19 @@ void CPLSocketLAMMPS::setupFixMDtoCFD(LAMMPS_NS::LAMMPS *lammps) {
     std::cout << "Cell size = " << dx <<  " " << dy << " " << dz << std::endl;
 
     //////////////////////////////////////////
-    //This is the code to try to set region
+    //This is the code sets the region
     //////////////////////////////////////////
     int ret;
     char topRight0str[20], topRight1str[20], topRight2str[20];
     char botLeft0str[20], botLeft1str[20], botLeft2str[20];
-    ret = sprintf(topRight0str, "%f6", topRight[0]);
-    ret = sprintf(topRight1str, "%f6", topRight[1]);
-    ret = sprintf(topRight2str, "%f6", topRight[2]);
-    ret = sprintf(botLeft0str, "%f6", botLeft[0]);
-    ret = sprintf(botLeft1str, "%f6", botLeft[1]);
-    ret = sprintf(botLeft2str, "%f6", botLeft[2]);
+    ret = sprintf(topRight0str, "%f", topRight[0]);
+    ret = sprintf(topRight1str, "%f", topRight[1]);
+    ret = sprintf(topRight2str, "%f", topRight[2]);
+    ret = sprintf(botLeft0str, "%f", botLeft[0]);
+    ret = sprintf(botLeft1str, "%f", botLeft[1]);
+    ret = sprintf(botLeft2str, "%f", botLeft[2]);
 
+    // CFD BC region 
     char **regionarg = new char*[10];
     regionarg[0] = (char *) "cfdbcregion";
     regionarg[1] = (char *) "block";
@@ -225,7 +254,7 @@ void CPLSocketLAMMPS::setupFixMDtoCFD(LAMMPS_NS::LAMMPS *lammps) {
 
 
     //////////////////////////////////////////
-    //This is the code that would set the compute
+    //This code sets the compute
     //////////////////////////////////////////
     char dxstr[20], dystr[20], dzstr[20], low_y[20], hi_y[20];
     ret = sprintf(dxstr, "%f6", dx);
@@ -298,7 +327,7 @@ void CPLSocketLAMMPS::setupFixMDtoCFD(LAMMPS_NS::LAMMPS *lammps) {
 
 
     //////////////////////////////////////////
-    //This is the code that would set the fix
+    //This code sets the fix
     //////////////////////////////////////////
     // CFD BC averaging fix 
     // Average values are generated every Nfreq time steps, taken
@@ -376,12 +405,12 @@ void CPLSocketLAMMPS::setupFixCFDtoMD(LAMMPS_NS::LAMMPS *lammps) {
     int ret;
     char topRight0str[20], topRight1str[20], topRight2str[20];
     char botLeft0str[20], botLeft1str[20], botLeft2str[20];
-    ret = sprintf(topRight0str, "%f6", topRight[0]);
-    ret = sprintf(topRight1str, "%f6", topRight[1]);
-    ret = sprintf(topRight2str, "%f6", topRight[2]);
-    ret = sprintf(botLeft0str, "%f6", botLeft[0]);
-    ret = sprintf(botLeft1str, "%f6", botLeft[1]);
-    ret = sprintf(botLeft2str, "%f6", botLeft[2]);
+    ret = sprintf(topRight0str, "%f", topRight[0]);
+    ret = sprintf(topRight1str, "%f", topRight[1]);
+    ret = sprintf(topRight2str, "%f", topRight[2]);
+    ret = sprintf(botLeft0str, "%f", botLeft[0]);
+    ret = sprintf(botLeft1str, "%f", botLeft[1]);
+    ret = sprintf(botLeft2str, "%f", botLeft[2]);
 
     char **regionarg = new char*[10];
     regionarg[0] = (char *) "cplforceregion";
@@ -452,7 +481,7 @@ void CPLSocketLAMMPS::setupFixCFDtoMD(LAMMPS_NS::LAMMPS *lammps) {
     if (ifix < 0) 
 		lammps->error->all(FLERR,"Fix ID for fix cplforcefix does not exist");
 
-    //Copy coupling fix object??
+    //Upcast Fix to child class FixCPLForce
     cplfix = dynamic_cast<FixCPLForce*>(lammps->modify->fix[ifix]);
     double units_factor;
     if (units == REAL_UNITS)

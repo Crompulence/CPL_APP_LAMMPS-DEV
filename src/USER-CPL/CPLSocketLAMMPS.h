@@ -143,7 +143,7 @@ private:
     class LAMMPS_NS::Fix *cfdbcfix, *cplforcefix;
     class LAMMPS_NS::Group *cplforcegroup;
     
-    // Fix that applies the momentum constrain
+    // Fix that applies the momentum constraint
     // Internal grid
     arrayDoub cfd_xg; 
     arrayDoub cfd_yg;
