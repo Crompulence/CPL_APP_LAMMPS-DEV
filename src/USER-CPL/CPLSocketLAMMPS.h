@@ -38,7 +38,7 @@ Description
 
 Author(s)
 
-    David Trevelyan
+    David Trevelyan, Edward Smith
 
 */
 #ifndef CPL_SOCKET_H_INCLUDED
@@ -48,19 +48,22 @@ Author(s)
 #include<memory>
 #include "mpi.h"
 #include "lammps.h"
-#include "fix_cpl_force.h"
-#include "cpl/cpl.h"
-#include "cpl/CPL_ndArray.h"
 #include "fix_ave_chunk.h"
 #include "region.h"
-typedef CPL::ndArray<double> arrayDoub;
 
+#include "cpl/cpl.h"
+#include "cpl/CPL_ndArray.h"
+#include "cpl/CPL_force.h"
+#include "fix_cpl_force.h"
 
 const int AVG_MODE_ABOVE = 0;
 const int AVG_MODE_BELOW = 1;
 const int AVG_MODE_MIDPLANE = 2;
 const int REAL_UNITS = 0;
 const int LJ_UNITS = 1;
+
+typedef CPL::ndArray<double> arrayDoub;
+typedef std::shared_ptr<arrayDoub> shaPtrArrayDoub;
 
 class CPLSocketLAMMPS
 {
@@ -82,10 +85,11 @@ public:
 
     // Data preparation and communication 
     void packVelocity(const LAMMPS_NS::LAMMPS *lammps);
-    void sendVelocity();
-    void updateStress(const LAMMPS_NS::LAMMPS *lammps);
-    void updateStress();
-    void recvStress();
+    void packGran (const LAMMPS_NS::LAMMPS *lammps);
+    void pack (const LAMMPS_NS::LAMMPS *lammps, int sendtype);
+    void send();
+    void unpackBuf(const LAMMPS_NS::LAMMPS *lammps);
+    void receive();
 
     // Useful information for main level program
     const MPI_Comm realmCommunicator() {return realmComm;}
@@ -95,13 +99,21 @@ public:
     // Clean up MPI/CPL communicators
     void finalizeComms();
 
-    void setupFixMDtoCFD(LAMMPS_NS::LAMMPS *lammps); 
-    void setupFixCFDtoMD(LAMMPS_NS::LAMMPS *lammps); 
+    void setupFixMDtoCFD(LAMMPS_NS::LAMMPS *lammps, int sendtype);
+    void setupFixCFDtoMD(LAMMPS_NS::LAMMPS *lammps, std::shared_ptr<std::string> forcetype);  
 	void setBndryAvgMode(int mode);
+
+    // Fix that applies the momentum constrain
     FixCPLForce* cplfix;
-    class LAMMPS_NS::Fix *cfdbcfix, *cplforcefix;
 
 
+    //Bitwise mask coefficients
+    int const VEL = 1; // 2^0, bit 0
+    int const NBIN = 2;  // 2^1, bit 1
+    int const FORCE = 4;  // 2^2, bit 2
+    int const STRESS = 8;  // 2^3, bit 3
+    int const FORCECOEFF = 16;  // 2^4, bit 4
+    int const VOIDRATIO = 32;  // 2^5, bit 5
 
 private:
     double bndry_shift_above = 0.0;
@@ -132,8 +144,8 @@ private:
     int cnstFCells[3];
 
     // Data to be sent/received with CPL-Library
-    arrayDoub sendVelocityBuff;
-    arrayDoub recvStressBuff;
+    arrayDoub sendBuf;
+    arrayDoub recvBuf;
 
 
     // Cell sizes
@@ -141,6 +153,7 @@ private:
     //Appropriate region, compute and fix    
     class LAMMPS_NS::Region *cfdbcregion, *cplforceregion;
     class LAMMPS_NS::Compute *cfdbccompute;
+    class LAMMPS_NS::Fix *cfdbcfix, *cplforcefix;
     class LAMMPS_NS::Group *cplforcegroup;
     
     // Fix that applies the momentum constraint
@@ -151,7 +164,15 @@ private:
 
     // Internal routines
     void getCellTopology();
-    void allocateBuffers();
+    void allocateBuffers(const LAMMPS_NS::LAMMPS *lammps, int sendtype);
+
+    //Size of different possible passing variables
+    int const VELSIZE = 3;  // 3 velocity components
+    int const NBINSIZE = 1;  // 1 Number of molecules per bin
+    int const FORCESIZE = 3;  // 3 Force components
+    int const STRESSSIZE = 9;  // 9 Nine stress components
+    int const FORCECOEFFSIZE = 1;  // 1 Sum of force coefficients
+    int const VOIDRATIOSIZE = 1;  // 1 Void ratio
 };
 
 #endif // CPL_SOCKET_H_INCLUDED

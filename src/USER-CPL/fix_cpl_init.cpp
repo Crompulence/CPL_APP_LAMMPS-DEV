@@ -50,69 +50,114 @@ Author(s)
 #include "error.h"
 #include <stdlib.h>
 
-
+#include<iostream>
+#include "fix_cpl_init.h"
+#include "update.h"
 
 fixCPLInit::fixCPLInit(LAMMPS_NS::LAMMPS *lammps, int narg, char **arg)
-    		: Fix (lammps, narg, arg) {
+    		: Fix (lammps, narg, arg) 
+{
+    class LAMMPS_NS::LAMMPS *lmp=lammps;
+    cplsocket.initComms();
+    cplsocket.initMD(lmp);
+    nevery = cplsocket.timestep_ratio;
 
-	if (narg < 8) error->all(FLERR,"Illegal fix cplinit command");
-	int bndry_avg_mode;
-	if (strcmp(arg[3],"below") == 0)
-		bndry_avg_mode = AVG_MODE_BELOW;
-	else if (strcmp(arg[3],"above") == 0)
-		bndry_avg_mode = AVG_MODE_ABOVE;
-	else if (strcmp(arg[3],"midplane") == 0)
-		bndry_avg_mode = AVG_MODE_MIDPLANE;
-	else
-		error->all(FLERR,"Illegal fix cplinit command - averaging method should \
-				   be 'below', 'above' or 'midplane' ");
-    int units;
-	if (strcmp(arg[5],"real") == 0)
-        cplsocket.units = REAL_UNITS;
-    else if (strcmp(arg[5],"lj") == 0)
-        cplsocket.units = LJ_UNITS;
-	else
-		error->all(FLERR,"Illegal fix cplinit command - units should be 'real' or 'lj'");
-   	class LAMMPS_NS::LAMMPS *lmp=lammps;
-   	cplsocket.initMD(lammps);
-	cplsocket.setBndryAvgMode(bndry_avg_mode);
-   	nevery = cplsocket.timestep_ratio;
-   	std::cout << "LAMMPS NEVERY: " << nevery <<std::endl;
+    forcetype = std::make_shared<std::string>("Undefined");
+    sendtype = std::make_shared<std::string>("velocity");
+    //Change from undefined to default of above if not specified
+    bndryavg = std::make_shared<std::string>("above");
+    for (int iarg=0; iarg<narg; iarg+=1){
+        std::cout << iarg << " " << arg[iarg] << std::endl;
+        std::string arguments(arg[iarg]);
+        if (arguments == "forcetype")
+            if (iarg+1<narg)
+                forcetype = std::make_shared<std::string>(arg[iarg+1]);
+
+        if (arguments == "sendtype")
+            if (iarg+1<narg)
+                sendtype = std::make_shared<std::string>(arg[iarg+1]);
+
+        if (arguments == "bndryavg")
+            if (iarg+1<narg)
+                bndryavg = std::make_shared<std::string>(arg[iarg+1]);
+
+    }
+    //Raise error if forcetype is not specified
+    std::string forceType(*forcetype);
+    if (forceType.compare("Undefined") == 0){
+        lammps->error->all(FLERR,"Must specify forcetype on cpl/init line in LAMMPS input file");
+    }
+
+    //Raise error if bndry_avg is not specified, otherwise set this
+    std::string BndryAvg(*bndryavg);
+    //if (BndryAvg.compare("Undefined") == 0){
+    //    lammps->error->all(FLERR,"Illegal fix cplinit command - bndryavg should be 'below', 'above' or 'midplane'");
+    //} else if (BndryAvg.compare("below") == 0) {
+    if (BndryAvg.compare("below") == 0) {
+        cplsocket.setBndryAvgMode(AVG_MODE_BELOW);
+    } else if (BndryAvg.compare("above") == 0) {
+        cplsocket.setBndryAvgMode(AVG_MODE_ABOVE);
+    } else if (BndryAvg.compare("midplane") == 0) {
+    	cplsocket.setBndryAvgMode(AVG_MODE_MIDPLANE);
+    }
+
+
+    //Create appropriate bitflag to determine what is sent
+    std::string sendType(*sendtype);
+    if (sendType.compare("velocity") == 0){
+        sendbitflag = cplsocket.VEL;
+    } else if (sendType.compare("gran") == 0) {
+        //cplsocket.packGran(lmp);
+        sendbitflag = cplsocket.FORCE | cplsocket.VOIDRATIO;
+    } else if (sendType.compare("granfull") == 0) {
+        sendbitflag = cplsocket.VEL | cplsocket.FORCE |
+                      cplsocket.FORCECOEFF | cplsocket.VOIDRATIO;
+    }
+
+
 }
 
 int fixCPLInit::setmask() {
   int mask = 0;
-  mask |= LAMMPS_NS::FixConst::END_OF_STEP;
   mask |= LAMMPS_NS::FixConst::POST_FORCE;
   return mask;
 }
 
 
-void fixCPLInit::init() {
+void fixCPLInit::init()
+{
 	
-   cplsocket.setupFixCFDtoMD(lmp);
-   cplsocket.setupFixMDtoCFD(lmp);
+    //Setup what to send and how to apply forces
+    cplsocket.setupFixMDtoCFD(lmp, sendbitflag);
+    cplsocket.setupFixCFDtoMD(lmp, forcetype);
+
 }
 
 
-void fixCPLInit::setup(int vflag) {
-  	end_of_step();
+void fixCPLInit::setup(int vflag)
+{
+  	post_force(vflag);
 }
 
 
-void fixCPLInit::post_force(int vflag) {
-	cplsocket.updateStress();
-}
 
-void fixCPLInit::end_of_step() {
-	static int c = 0;
-    // Communications
-	//std::cout << "SEND: " <<  c << std::endl;
-	c++;
-    cplsocket.recvStress();
-	cplsocket.cfdbcfix->end_of_step();
-	cplsocket.packVelocity(lmp);
-    cplsocket.sendVelocity();
+void fixCPLInit::post_force(int vflag)
+{
+
+    //std::cout << "fixCPLInit " << update->ntimestep << " " << update->ntimestep%nevery << std::endl;   
+
+    // Recieve and unpack from CFD
+    if (update->ntimestep%nevery == 0)
+        cplsocket.receive();
+	cplsocket.cplfix->apply();
+
+    //Pack and send to CFD
+    cplsocket.pack(lmp, sendbitflag);
+    if (update->ntimestep%nevery == 0){
+        cplsocket.send();
+    }
+
+
 }
 
 fixCPLInit::~fixCPLInit() {
