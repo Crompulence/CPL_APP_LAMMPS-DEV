@@ -398,103 +398,6 @@ void CPLSocketLAMMPS::setupFixCFDtoMD(LAMMPS_NS::LAMMPS *lammps,
 
 }
 
-// TODO develop a custom fix so that lammps doesn't need to do 
-// a global reduce (d.trevelyan@ic.ac.uk) ?
-void CPLSocketLAMMPS::packVelocity (const LAMMPS_NS::LAMMPS *lammps) {
-    // For some reason, this is not called as it should be as part of loop.
-    // Explictly called here to ensure velocity ready to be packed.
-    cfdbcfix->end_of_step();
-
-	if (CPL::is_proc_inside(velBCPortion.data())) 
-    {
-		int *npxyz_md = lammps->comm->procgrid;
-		int nc_velBCRegion[3];
-		CPL::get_no_cells(velBCRegion.data(), nc_velBCRegion);
-		int row;
-		int glob_cell[3], loc_cell[3];
-
-		for (int i = velBCPortion[0]; i <= velBCPortion[1]; i++)
-		{
-			for (int j = velBCPortion[2]; j <= velBCPortion[3]; j++)
-			{
-				for (int k = velBCPortion[4]; k <= velBCPortion[5]; k++)
-				{
-					row = i*nc_velBCRegion[1]*nc_velBCRegion[2] + j*nc_velBCRegion[2] + k;
-					 
-					double x = cfdbcfix->compute_array(row, 0);
-					double y = cfdbcfix->compute_array(row, 1);  
-					double z = cfdbcfix->compute_array(row, 2);  
-					double ncount = cfdbcfix->compute_array(row, 3);  
-
-					double vx = cfdbcfix->compute_array(row, 4);  
-					double vy = cfdbcfix->compute_array(row, 5);  
-					double vz = cfdbcfix->compute_array(row, 6);  
-
-					glob_cell[0] = i; glob_cell[1] = j; glob_cell[2] = k;
-					CPL::map_glob2loc_cell(velBCPortion.data(), glob_cell, loc_cell);
-
-                    sendBuf(0, loc_cell[0], loc_cell[1], loc_cell[2]) = vx;
-                    sendBuf(1, loc_cell[0], loc_cell[1], loc_cell[2]) = vy;
-                    sendBuf(2, loc_cell[0], loc_cell[1], loc_cell[2]) = vz; 
-                    sendBuf(3, loc_cell[0], loc_cell[1], loc_cell[2]) = ncount; 
-				}
-			}
-		}
-	}
-}
-
-
-//Pack porosity and forces
-void CPLSocketLAMMPS::packGran(const LAMMPS_NS::LAMMPS *lammps) {
-
-    // For some reason, this is not called as it should be as part of loop.
-    // Explictly called here to ensure velocity ready to be packed.
-    //cfdbcfix->end_of_step();
-	if (CPL::is_proc_inside(velBCPortion.data())) 
-    {
-        int *npxyz_md = lammps->comm->procgrid;
-	    int nc_velBCRegion[3];
-        CPL::get_no_cells(velBCRegion.data(), nc_velBCRegion);
-        int row;
-	    int glob_cell[3], loc_cell[3];
-        double Vcell = dx*dy*dz;
-
-        //Downcast to CPLForceDrag type here
-        CPLForceDrag& Granfxyz = dynamic_cast<CPLForceDrag&>(*cplfix->fxyz);
-
-        //Chosen arbitarily for now
-        for (int i = velBCPortion[0]; i <= velBCPortion[1]; i++) {
-        for (int j = velBCPortion[2]; j <= velBCPortion[3]; j++) {
-	    for (int k = velBCPortion[4]; k <= velBCPortion[5]; k++) {			                       
-
-		    glob_cell[0] = i; glob_cell[1] = j; glob_cell[2] = k;
-		    CPL::map_glob2loc_cell(velBCPortion.data(), glob_cell, loc_cell);
-
-            sendBuf(0, loc_cell[0], loc_cell[1], loc_cell[2]) = Granfxyz.FSums(0,i,j,k);
-            sendBuf(1, loc_cell[0], loc_cell[1], loc_cell[2]) = Granfxyz.FSums(1,i,j,k);
-            sendBuf(2, loc_cell[0], loc_cell[1], loc_cell[2]) = Granfxyz.FSums(2,i,j,k);
-
-            if (Granfxyz.eSums(i,j,k)/Vcell > 1.) {
-//                std::cout << "cell i,j,k = " << i << " " << j << " " << k << " " << 
-//                            " Particle Volume = " << Granfxyz.eSums(i,j,k) <<
-//                            " Particle No. = " << Granfxyz.nSums(i,j,k) <<
-//                            " Cell Volume = " << Vcell << 
-//                            " Ratio = " << Granfxyz.eSums(i,j,k)/Vcell << std::endl;
-                //lammps->error->all(FLERR,"Error packGran -- Particle Volume > Cell Volume");
-
-                std::cout << "Warning, eps = 0 so set to 0.1 in CPLSocketLAMMPS::packGran" << std::endl;
-                sendBuf(3, loc_cell[0], loc_cell[1], loc_cell[2]) = 0.1;
-            } else {
-                sendBuf(3, loc_cell[0], loc_cell[1], loc_cell[2]) = 1. - Granfxyz.eSums(i,j,k)/Vcell;
-            }
-            //if (Granfxyz.eSums(i,j,k) != 0.)
-            //    std::cout << "eSums " << i << " " << j << " " << k << " " << Granfxyz.eSums(i,j,k) 
-            //              << " " << Vcell << " " << sendBuf(3, loc_cell[0], loc_cell[1], loc_cell[2]) << std::endl;
-        } } }
-    }
-}
-
-
 
 //Pack general using bitflag
 void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendtype) {
@@ -562,38 +465,13 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendtype) {
                 npack += VOIDRATIOSIZE;
             }
 
-//            for (int n = 0; n < 8; n++) {
-//                if (i == 5 && k == 5) {
-//                    std::cout << "PACK " << i << " " << j << " " << k << " " << n << " " 
-//                              << loc_cell[0] << " " << loc_cell[1] << " " << loc_cell[2] << " " 
-//                              << sendBuf(n, i, j, k) << std::endl;
-//                }
-//            }
 
         }}}
 
 }
     
     
-
-
-//void CPLSocketLAMMPS::unpackBuf (const LAMMPS_NS::LAMMPS *lammps) {
-//    // Unpack buffer
-//    cplfix->updateBuf(recvBuf);
-//};
-
-
 void CPLSocketLAMMPS::send() {
-
-//    for (int i = velBCPortion[0]; i <= velBCPortion[1]; i++) {
-//    for (int j = velBCPortion[2]; j <= velBCPortion[3]; j++) {
-//    for (int k = velBCPortion[4]; k <= velBCPortion[5]; k++) {		
-//    for (int n = 0; n < 8; n++) {
-//        if (i == 5 && k == 5) {
-//            std::cout << "SEND " << i << " " << j << " " << k << " " << n << " " 
-//                      << sendBuf(n, i, j, k) << std::endl;
-//        }
-//    } } } }
 
     // Send the data to CFD
     CPL::send(sendBuf.data(), sendBuf.shapeData(), velBCRegion.data());
@@ -603,13 +481,4 @@ void CPLSocketLAMMPS::receive() {
     // Receive from CFD
     CPL::recv(recvBuf.data(), recvBuf.shapeData(), cnstFRegion.data());
 
-//    for (int i = velBCPortion[0]; i <= velBCPortion[1]; i++) {
-//    for (int j = velBCPortion[2]; j <= velBCPortion[3]; j++) {
-//    int i = 14; int j = 14; 
-//    for (int k = velBCPortion[4]; k <= velBCPortion[5]; k++) {			                       
-//        std::cout << "recv " << i << " " << j << " " << k  << " " << 
-//                  recvBuf(0,i,j,k) << " " << recvBuf(1,i,j,k) << " " << recvBuf(2,i,j,k) << " " << 
-//                  recvBuf(3,i,j,k) << " " << recvBuf(4,i,j,k) << " " << recvBuf(5,i,j,k) << " " << 
-//                  recvBuf(6,i,j,k) << " " << recvBuf(7,i,j,k) << " " << recvBuf(8,i,j,k) <<  std::endl;
-//    }//}}
 };
