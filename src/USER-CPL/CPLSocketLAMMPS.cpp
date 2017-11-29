@@ -53,6 +53,10 @@ Author(s)
 #include "CPLSocketLAMMPS.h"
 #include "cpl/CPL_cartCreate.h"
 
+#define sizeofarray(a, type) (sizeof(a) / sizeof(type))
+#define ARRAY2VECTOR(a, v, type) ({\
+    v.insert(v.end(), &a[0], &a[sizeofarray(a, type)]);})
+
 void CPLSocketLAMMPS::initComms() {
 
     // Split MPI_COMM_WORLD into realm communicators
@@ -82,15 +86,22 @@ void CPLSocketLAMMPS::initMD(LAMMPS_NS::LAMMPS *lammps) {
     // Set up new cartesian communicator with same coordinates as lammps
     // interal cartesian communicator (based on mycoords)
     MPI_Comm icomm_grid;
-    int periods[3] = {0, 0, 0};
-    CPL::Cart_create (lammps->world, 3, npxyz_md, periods, myCoords.data(),
-                      &icomm_grid);
+    CPL::IntVector periods({0, 0, 0});
+    CPL::IntVector proc_grid({npxyz_md[0], npxyz_md[1], npxyz_md[2]});
+    CPL::Cart_create (lammps->world, 3, proc_grid, periods, myCoords, &icomm_grid);
    
     //TODO: get the origin from LAMMPS 
-    double xyz_orig[3] = {0.0 ,0.0, 0.0};
+    CPL::DoubVector xyz_orig ({0.0, 0.0, 0.0});
     //NOTE: Make sure set_timing is called before setup_cfd due to a unfixed bug
     CPL::set_timing(initialstep, 0, 1.0);
-    CPL::setup_md (icomm_grid, globaldomain, xyz_orig);
+    CPL::DoubVector xyz_domain({globaldomain[0], globaldomain[1], globaldomain[2]});
+    //ARRAY2VECTOR(globaldomain, xyz_domain, double);
+    // xyz_domain[0] = globaldomain[0];
+    // xyz_domain[1] = globaldomain[1];
+    // xyz_domain[2] = globaldomain[2];
+    //std::cout << "Array: " << globaldomain[1] << globaldomain[1] << globaldomain[2] << std::endl;
+    //std::cout << "Vector: " << xyz_domain[0] << xyz_domain[1] << xyz_domain[2] << std::endl;
+    CPL::setup_md (icomm_grid, xyz_domain, xyz_orig);
 
     // Setup
     timestep_ratio = CPL::get<int> ("timestep_ratio");
@@ -112,20 +123,18 @@ void CPLSocketLAMMPS::getCellTopology() {
    
     // Cell bounds for the overlap region
     //CPL::get_bnry_limits(velBCRegion.data());
-	 CPL::get_olap_limits(olapRegion.data());
+	 CPL::get_olap_limits(olapRegion);
     
     // Cell bounds for velocity BCs region
     velBCRegion = olapRegion;
     velBCRegion[3] = velBCRegion[2];
-    CPL::my_proc_portion (velBCRegion.data(), velBCPortion.data());
-
-    CPL::get_no_cells(velBCPortion.data(), velBCCells);
+    CPL::my_proc_portion (velBCRegion, velBCPortion);
+    CPL::get_no_cells(velBCPortion, velBCCells);
 
     // Cell bounds for the constrained region
-    CPL::get_cnst_limits(cnstFRegion.data());
-    CPL::my_proc_portion (cnstFRegion.data(), cnstFPortion.data());
-
-    CPL::get_no_cells(cnstFPortion.data(), cnstFCells);
+    CPL::get_cnst_limits(cnstFRegion);
+    CPL::my_proc_portion (cnstFRegion, cnstFPortion);
+    CPL::get_no_cells(cnstFPortion, cnstFCells);
 
 }
 
@@ -133,12 +142,12 @@ void CPLSocketLAMMPS::getCellTopology() {
 void CPLSocketLAMMPS::allocateBuffers() {
     
     // Received stress field
-    int recvShape[4] = {9, cnstFCells[0], cnstFCells[1], cnstFCells[2]};
-    recvStressBuff.resize(4, recvShape);
+    CPL::IntVector recvShape({9, cnstFCells[0], cnstFCells[1], cnstFCells[2]});
+    recvStressBuff.resize(recvShape);
 
     // LAMMPS computed velocity field
-    int sendShape[4] = {4, velBCCells[0], velBCCells[1], velBCCells[2]};
-    sendVelocityBuff.resize (4, sendShape);
+    CPL::IntVector sendShape({4, velBCCells[0], velBCCells[1], velBCCells[2]});
+    sendVelocityBuff.resize (sendShape);
 }
 
 void CPLSocketLAMMPS::setBndryAvgMode(int mode) {
@@ -162,11 +171,11 @@ void CPLSocketLAMMPS::setBndryAvgMode(int mode) {
 
 void CPLSocketLAMMPS::setupFixMDtoCFD(LAMMPS_NS::LAMMPS *lammps) {
 
-    double botLeft[3];
+    CPL::DoubVector botLeft(3);
     CPL::map_cell2coord(velBCRegion[0] , velBCRegion[2], velBCRegion[4], botLeft);
     botLeft[1] -= bndry_shift_below;
 
-    double topRight[3];
+    CPL::DoubVector topRight(3);
     CPL::map_cell2coord(velBCRegion[1] , velBCRegion[3], velBCRegion[5], topRight);
     topRight[0] += dx;
     topRight[1] += bndry_shift_above;
@@ -363,14 +372,17 @@ void CPLSocketLAMMPS::setupFixMDtoCFD(LAMMPS_NS::LAMMPS *lammps) {
 
 void CPLSocketLAMMPS::setupFixCFDtoMD(LAMMPS_NS::LAMMPS *lammps) {
 
-    double botLeft[3];
+    CPL::DoubVector botLeft(3);
     CPL::map_cell2coord(cnstFRegion[0] , cnstFRegion[2], cnstFRegion[4], botLeft);
+    std::cout << "HOLA1: " << cnstFRegion[0] << " " << cnstFRegion[2] << " " << cnstFRegion[4] << " " << botLeft[0] << " " << botLeft[1] << " "<< botLeft[2] << std::endl;
 
-    double topRight[3];
+    CPL::DoubVector topRight(3);
     CPL::map_cell2coord(cnstFRegion[1], cnstFRegion[3], cnstFRegion[5], topRight);
+    std::cout << "HOLA2: " << cnstFRegion[1] << " " << cnstFRegion[3] << " " << cnstFRegion[5] << " " << topRight[0] << " " << topRight[1] << " "<< topRight[2] << std::endl;
     topRight[0] += dx;
     topRight[1] += dy;
     topRight[2] += dz;
+
 
     // Tell LAMMPS to keep track of atoms in constrained region
     int ret;
@@ -401,22 +413,16 @@ void CPLSocketLAMMPS::setupFixCFDtoMD(LAMMPS_NS::LAMMPS *lammps) {
     if (iregion < 0) lammps->error->all(FLERR,"Fix ID for iregion cplforceregion does not exist");
     cplforceregion = lammps->domain->regions[iregion];
 
-    std::cout << "setupFixCFDtoMD Region " << iregion << " " << cplforceregion->dynamic_check()
-              << " " << cplforceregion->extent_xhi << " " 
-              << " " << cplforceregion->extent_yhi << " " 
-              << " " << cplforceregion->extent_zhi << " " 
-                     << cplforceregion->varshape << std::endl;
-
-//    std::string cmd = "region cplforceregion block ";
-//    cmd += std::to_string(botLeft[0]) + " " + std::to_string(topRight[0]) + " ";
-//    cmd += std::to_string(botLeft[1]) + " " + std::to_string(topRight[1]) + " ";
-//    cmd += std::to_string(botLeft[2]) + " " + std::to_string(topRight[2]) + " ";
-//    cmd += "units box"; 
-//    std::cout << cmd << std::endl;
+    std::string cmd = "region cplforceregion block ";
+    cmd += std::to_string(botLeft[0]) + " " + std::to_string(topRight[0]) + " ";
+    cmd += std::to_string(botLeft[1]) + " " + std::to_string(topRight[1]) + " ";
+    cmd += std::to_string(botLeft[2]) + " " + std::to_string(topRight[2]) + " ";
+    cmd += "units box"; 
+    std::cout << cmd << std::endl;
     //lammps->input->one (cmd.c_str());
 
     // CFD BC compute chunk 3d bins in y slice
-    std::string cmd = "group cplforcegroup dynamic all region cplforceregion every 1";
+    cmd = "group cplforcegroup dynamic all region cplforceregion every 1";
     std::cout << cmd << std::endl;
     lammps->input->one (cmd.c_str());
 
@@ -456,7 +462,7 @@ void CPLSocketLAMMPS::setupFixCFDtoMD(LAMMPS_NS::LAMMPS *lammps) {
     cplfix = dynamic_cast<FixCPLForce*>(lammps->modify->fix[ifix]);
     double units_factor;
     if (units == REAL_UNITS)
-        units_factor = 4.187e-4;
+        units_factor = 1.0/(4.187e-4);
     else if (units == LJ_UNITS)
         units_factor = 1.0;
 	cplfix->setup(recvStressBuff, cnstFPortion, units_factor);
@@ -466,12 +472,12 @@ void CPLSocketLAMMPS::setupFixCFDtoMD(LAMMPS_NS::LAMMPS *lammps) {
 // TODO develop a custom fix so that lammps doesn't need to do 
 // a global reduce (d.trevelyan@ic.ac.uk) ?
 void CPLSocketLAMMPS::packVelocity (const LAMMPS_NS::LAMMPS *lammps) {
-	if (CPL::is_proc_inside(velBCPortion.data())) {
-		int *npxyz_md = lammps->comm->procgrid;
-		int nc_velBCRegion[3];
-		CPL::get_no_cells(velBCRegion.data(), nc_velBCRegion);
+	if (CPL::is_proc_inside(velBCPortion)) {
+        CPL::IntVector nc_velBCRegion(3);
+		CPL::get_no_cells(velBCRegion, nc_velBCRegion);
 		int row;
-		int glob_cell[3], loc_cell[3];
+        CPL::IntVector glob_cell(3);
+        CPL::IntVector loc_cell(3);
 		//std::cout << nx << " " << ny << " " << nz << "\n" << std::endl;
 		//std::cout << "test cfdbcfix " << cfdbcfix->style << " " << cfdbcfix->compute_array(0, 0) << std::endl;
 		for (int i = velBCPortion[0]; i <= velBCPortion[1]; i++)
@@ -499,7 +505,7 @@ void CPLSocketLAMMPS::packVelocity (const LAMMPS_NS::LAMMPS *lammps) {
 					//std::cout <<  x << " " << y << " " << z 
 					//               << " " << vx << " " << vy << " " << vz << "\n" << std::endl;
 					glob_cell[0] = i; glob_cell[1] = j; glob_cell[2] = k;
-					CPL::map_glob2loc_cell(velBCPortion.data(), glob_cell, loc_cell);
+					CPL::map_glob2loc_cell(velBCPortion, glob_cell, loc_cell);
 
 					sendVelocityBuff(0, loc_cell[0], loc_cell[1], loc_cell[2]) = vx;
 					sendVelocityBuff(1, loc_cell[0], loc_cell[1], loc_cell[2]) = vy;
@@ -518,15 +524,14 @@ void CPLSocketLAMMPS::updateStress () {
 
 void CPLSocketLAMMPS::sendVelocity() {
 
-    // Send the data to CFD
-    CPL::send(sendVelocityBuff.data(), sendVelocityBuff.shapeData(), velBCRegion.data());
+    CPL::send(sendVelocityBuff, sendVelocityBuff.shape(), velBCRegion);
 
 };
 
 void CPLSocketLAMMPS::recvStress() {
 
     // Receive from CFD
-    CPL::recv(recvStressBuff.data(), recvStressBuff.shapeData(), cnstFRegion.data());
+    CPL::recv(recvStressBuff, recvStressBuff.shape(), cnstFRegion);
 
 };
 

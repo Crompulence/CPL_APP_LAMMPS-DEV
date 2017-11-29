@@ -3,6 +3,7 @@ import pytest
 import numpy as np
 from cplpy import run_test, prepare_config, get_test_dir
 import os
+import re
 
 # -----Velocities TESTS-----
 
@@ -22,45 +23,57 @@ TEST_DIR = os.path.dirname(os.path.realpath(__file__))
 def prepare_config_fix(tmpdir):
     prepare_config(tmpdir, TEST_DIR, MD_FNAME, CFD_FNAME)
 
+def name_with_step(fname, step):
+    split_fname = re.split('(\W)', fname)
+    dot_pos = split_fname.index(".")
+    split_fname.insert(dot_pos , str(step))
+    return "".join(split_fname)
+
 
 def compare_vels(tol, lammps_fname="lammps_vels.dat",
-                 cfd_fname="cfd_vels.dat"):
+                 cfd_fname="cfd_vels.dat", steps=1):
 
-    # Line format of CFD script file -- > x y z vx vy vz
-    with open(cfd_fname, "r") as cfd_file:
-        cfd_lines = cfd_file.readlines()
-    cfd_lines = [l[:-1].split(" ") for l in cfd_lines]
-    cfd_cells = {}
-    for l in cfd_lines:
-        cfd_cells[(float(l[0]), float(l[1]), float(l[2]))] = np.array([float(l[3]),
-                                                        	       float(l[4]),
-                                                         	       float(l[5])])
+    for s in xrange(steps):
+        # Line format of CFD script file -- > x y z vx vy vz
+        with open(name_with_step(cfd_fname, s), "r") as cfd_file:
+            cfd_lines = cfd_file.readlines()
+        cfd_lines = [l[:-1].split(" ") for l in cfd_lines]
+        cfd_cells = {}
+        for l in cfd_lines:
+            cfd_cells[(float(l[0]), float(l[1]), float(l[2]))] = np.array([float(l[3]),
+                                                                           float(l[4]),
+                                                                           float(l[5])])
 
-    # Line format of LAMMPS file -- > chunk x y z ncount vx vy vz
-    with open(lammps_fname, "r") as lammps_file:
-        lammps_lines = lammps_file.readlines()
-    skip = int(lammps_lines[3].split(" ")[1])
-    lammps_lines = lammps_lines[4:]
-    #NOTE: We pick the last timestep
-    lammps_lines = lammps_lines[-skip:]
-    lammps_lines = [l[:-1].split(" ") for l in lammps_lines]
-    lammps_cells = {}
-    for l in lammps_lines:
-        l = filter(None, l)
-        lammps_cells[(float(l[1]), float(l[2]), float(l[3]))] = np.array([float(l[5]),
-                                                            		  float(l[6]),
-                                                            		  float(l[7])])
+        # Line format of LAMMPS file -- > chunk x y z ncount vx vy vz
+        with open(lammps_fname, "r") as lammps_file:
+            lammps_lines = lammps_file.readlines()
+        header = 3
+        step_header = 1
+        per_step = int(lammps_lines[3].split(" ")[1])
+        #NOTE: Jump the first time-step. Initial state.
+        begin = header + (step_header + per_step) * (s+1) + 1
+        end = begin + per_step
+        lammps_lines = lammps_lines[begin:end]
+        lammps_lines = [l[:-1].split(" ") for l in lammps_lines]
+        lammps_cells = {}
+        for l in lammps_lines:
+            l = filter(None, l)
+            lammps_cells[(float(l[1]), float(l[2]), float(l[3]))] = np.array([float(l[5]),
+                                                                              float(l[6]),
+                                                                              float(l[7])])
 
-    # Compare each cell velocity up to a certain tolerance
-    for cell in cfd_cells.keys():
-        try:
-            diff_vel = abs(cfd_cells[cell] - lammps_cells[cell])
-            if (np.any(diff_vel > tol)):
-                print "Cell %s value differs in md : %s and cfd: %s" % (str(cell), str(lammps_cells[cell]), str(cfd_cells[cell]))
+        # Compare each cell velocity up to a certain tolerance
+        for cell in cfd_cells.keys():
+            try:
+                diff_vel = abs(cfd_cells[cell] - lammps_cells[cell])
+                if (np.any(diff_vel > tol)):
+                    print "Step: %s" % s
+                    print "Cell %s value differs in md : %s and cfd: %s" % (str(cell), str(lammps_cells[cell]), str(cfd_cells[cell]))
+                    assert False
+            except KeyError:
+                print "Step: %s" % s
+                print "Cell not found: " + str(cell)
                 assert False
-        except KeyError:
-            print "Cell not found: " + str(cell)
-            assert False
 
 # -----VELOCITY TESTS-----
 

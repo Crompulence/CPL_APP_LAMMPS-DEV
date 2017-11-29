@@ -17,22 +17,17 @@ class FixCPLForce : public LAMMPS_NS::Fix {
 
 public:
 
-    FixCPLForce 
-    (
-        class LAMMPS_NS::LAMMPS *lammps,
-        int narg,
-        char **arg
-    );
+    FixCPLForce ( class LAMMPS_NS::LAMMPS *lammps, int narg, char **arg);
     int setmask();
     void apply(); //todo add override <=== es205 17/01/17 WTF does this mean?
 //	void post_force(int vflag);
-	void setup (CPL::ndArray<double>& stress, std::vector<int>& portion, int units);
-    void updateProcPortion (std::vector<int>& portion);
+	void setup (const CPL::DoubNdArray& stress, const CPL::IntVector& portion, double units);
+    void updateProcPortion (const CPL::IntVector& portion);
 
 private:
 
-	CPL::ndArray<double>* cfdStress;
-    std::vector<int> procPortion;
+	const CPL::DoubNdArray* cfdStress;
+    CPL::IntVector procPortion;
     double flekkoyGWeight (double y, double ymin, double ymax);
     double units_factor;
 

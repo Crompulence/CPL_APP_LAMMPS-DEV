@@ -69,7 +69,7 @@ public:
     
     // Construct from no arguments
     CPLSocketLAMMPS() : myCoords(3), olapRegion(6), velBCRegion(6), cnstFRegion(6),
-                     velBCPortion(6), cnstFPortion(6) {}
+                     velBCPortion(6), cnstFPortion(6), velBCCells(3), cnstFCells(3) {}
     //~CPLSocketLAMMPS();
     // Timesteps and timestep ratio
     int nsteps;
@@ -108,7 +108,7 @@ private:
     double bndry_shift_below = 0.0;
 
     // Cartesian coordinates of the processor
-    std::vector<int> myCoords;
+    CPL::IntVector myCoords;
 
     // Communicators for use with CPL_Library
     MPI_Comm realmComm;
@@ -119,17 +119,17 @@ private:
     int rankCart;
 
     // Communication regions in the overlap
-    std::vector<int> olapRegion;
-    std::vector<int> velBCRegion;
-    std::vector<int> cnstFRegion;
+    CPL::IntVector olapRegion;
+    CPL::IntVector velBCRegion;
+    CPL::IntVector cnstFRegion;
 
     // Portions of the regions in the local processor
-    std::vector<int> velBCPortion;
-    std::vector<int> cnstFPortion;
+    CPL::IntVector velBCPortion;
+    CPL::IntVector cnstFPortion;
 
     // Number of cells in the portion for each region
-    int velBCCells[3];
-    int cnstFCells[3];
+    CPL::IntVector velBCCells;
+    CPL::IntVector cnstFCells;
 
     // Data to be sent/received with CPL-Library
     arrayDoub sendVelocityBuff;
