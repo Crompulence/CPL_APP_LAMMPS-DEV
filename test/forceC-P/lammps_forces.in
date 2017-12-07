@@ -9,6 +9,8 @@ variable dx equal 20
 variable dy equal 20
 variable dz equal 20 
 
+variable no_cnst_cells equal 1
+
 
 units		real
 atom_style	atomic
@@ -21,7 +23,7 @@ create_box	1 box
 region fluidregion block 0 ${xx} 0 ${yy} 0 ${zz} units box
 
 # The force constrain fix is acting in a x-y slab of one cell big in y
-region constrainreg block 0 ${xx} $(v_yy - 3*v_dy) ${yy}  0 ${zz} units box
+region constrainreg block 0 ${xx} $(v_yy - v_no_cnst_cells*v_dy) ${yy}  0 ${zz} units box
 
 create_atoms 1 region fluidregion units box
 
@@ -54,7 +56,7 @@ velocity all set 0 0 0 units box
 # IMPORTANT for not messing the internal average for BCs in the CPLSocket for LAMMPS
 reset_timestep 0
 
-compute ffieldcompute all chunk/atom bin/3d x lower ${dx} y lower ${dy} z  lower ${dz} bound y $(v_yy-3*v_dy) ${yy} region constrainreg ids every units box
+compute ffieldcompute all chunk/atom bin/3d x lower ${dx} y lower ${dy} z  lower ${dz} bound y $(v_yy-v_no_cnst_cells*v_dy) ${yy} region constrainreg ids every units box
 
 # The output shows the middle coordinate of each box (10, 10, 10) for the first box in this case
 # The dumped forces should be the ones imposed by the constrained region.

@@ -38,120 +38,48 @@ Description
 
 Author(s)
 
-    David Trevelyan
+    Eduardo Ramos
 
 */
-#ifndef CPL_SOCKET_H_INCLUDED
-#define CPL_SOCKET_H_INCLUDED
+#ifndef CPL_SOCKET_LAMMPS_H_INCLUDED
+#define CPL_SOCKET_LAMMPS_H_INCLUDED
 
-#include<vector>
-#include<memory>
+#include <vector>
+#include <valarray>
 #include "mpi.h"
 #include "lammps.h"
 #include "fix_cpl_force.h"
 #include "cpl/cpl.h"
 #include "cpl/CPL_ndArray.h"
-#include "fix_ave_chunk.h"
-#include "region.h"
-typedef CPL::ndArray<double> arrayDoub;
+#include "cpl/CPL_field.h"
+#include "cpl/CPLSocket.h"
 
 
 const int AVG_MODE_ABOVE = 0;
 const int AVG_MODE_BELOW = 1;
 const int AVG_MODE_MIDPLANE = 2;
-const int REAL_UNITS = 0;
-const int LJ_UNITS = 1;
 
-class CPLSocketLAMMPS
+class CPLSocketLAMMPS : public CPLSocket
 {
 
 public:
     
     // Construct from no arguments
-    CPLSocketLAMMPS() : myCoords(3), olapRegion(6), velBCRegion(6), cnstFRegion(6),
-                     velBCPortion(6), cnstFPortion(6) {}
-    //~CPLSocketLAMMPS();
-    // Timesteps and timestep ratio
-    int nsteps;
-    int timestep_ratio;
-    int units;
-    
-    // Initialisation routines 
-    void initComms ();
-    void initMD (LAMMPS_NS::LAMMPS *lammps);
+    CPLSocketLAMMPS() : CPLSocket(CPL::md_realm){}; 
+    virtual ~CPLSocketLAMMPS(){};
+    void init();
 
     // Data preparation and communication 
-    void packVelocity(const LAMMPS_NS::LAMMPS *lammps);
-    void sendVelocity();
-    void updateStress(const LAMMPS_NS::LAMMPS *lammps);
-    void updateStress();
-    void recvStress();
+    void configureBc(int mode);
+    void setTimingInfo();
+    void setCartCommInfo();
+    void setRealmDomainInfo();
+    void setLammps(LAMMPS_NS::LAMMPS* lammps) {lmp = lammps;}
 
-    // Useful information for main level program
-    const MPI_Comm realmCommunicator() {return realmComm;}
-    const MPI_Comm cartCommunicator() {return cartComm;}
-    const bool isRootProcess() {return (rankRealm == 0);}
-
-    // Clean up MPI/CPL communicators
-    void finalizeComms();
-
-    void setupFixMDtoCFD(LAMMPS_NS::LAMMPS *lammps); 
-    void setupFixCFDtoMD(LAMMPS_NS::LAMMPS *lammps); 
-	void setBndryAvgMode(int mode);
+    //Specific attributes
     FixCPLForce* cplfix;
-    class LAMMPS_NS::Fix *cfdbcfix, *cplforcefix;
+    LAMMPS_NS::LAMMPS* lmp;
 
-
-
-private:
-    double bndry_shift_above = 0.0;
-    double bndry_shift_below = 0.0;
-
-    // Cartesian coordinates of the processor
-    std::vector<int> myCoords;
-
-    // Communicators for use with CPL_Library
-    MPI_Comm realmComm;
-    MPI_Comm cartComm;
-
-    // Rank of this processor in realm and cartComm
-    int rankRealm;
-    int rankCart;
-
-    // Communication regions in the overlap
-    std::vector<int> olapRegion;
-    std::vector<int> velBCRegion;
-    std::vector<int> cnstFRegion;
-
-    // Portions of the regions in the local processor
-    std::vector<int> velBCPortion;
-    std::vector<int> cnstFPortion;
-
-    // Number of cells in the portion for each region
-    int velBCCells[3];
-    int cnstFCells[3];
-
-    // Data to be sent/received with CPL-Library
-    arrayDoub sendVelocityBuff;
-    arrayDoub recvStressBuff;
-
-
-    // Cell sizes
-    double dx, dy, dz;
-    //Appropriate region, compute and fix    
-    class LAMMPS_NS::Region *cfdbcregion, *cplforceregion;
-    class LAMMPS_NS::Compute *cfdbccompute;
-    class LAMMPS_NS::Group *cplforcegroup;
-    
-    // Fix that applies the momentum constrain
-    // Internal grid
-    arrayDoub cfd_xg; 
-    arrayDoub cfd_yg;
-    arrayDoub cfd_zg;
-
-    // Internal routines
-    void getCellTopology();
-    void allocateBuffers();
 };
 
-#endif // CPL_SOCKET_H_INCLUDED
+#endif // CPL_SOCKET_LAMMPS_H_INCLUDED

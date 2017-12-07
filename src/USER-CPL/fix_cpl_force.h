@@ -11,6 +11,7 @@ FixStyle(cpl/force, FixCPLForce)
 #include "cpl/cpl.h"
 #include "cpl/CPL_ndArray.h"
 //#include "cpl/CPL_force.h"
+#include "cpl/TransmittingField.h"
 #include <memory>
 
 class FixCPLForce : public LAMMPS_NS::Fix {
@@ -24,17 +25,15 @@ public:
         char **arg
     );
     int setmask();
-    void apply(); //todo add override <=== es205 17/01/17 WTF does this mean?
-//	void post_force(int vflag);
-	void setup (CPL::ndArray<double>& stress, std::vector<int>& portion, int units);
-    void updateProcPortion (std::vector<int>& portion);
+    void setup(int vflag);
+    //TODO: Make this const
+    void setup(CPL::TransmittingField& field) {cplField=&field;};
+    CPL::TransmittingField* cplField;
+    void post_force(int vflag);
+    CPL::Field* portionField; 
 
 private:
-
-	CPL::ndArray<double>* cfdStress;
-    std::vector<int> procPortion;
     double flekkoyGWeight (double y, double ymin, double ymax);
-    double units_factor;
 
 };
 

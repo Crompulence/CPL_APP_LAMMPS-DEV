@@ -38,495 +38,67 @@ Description
 
 Author(s)
 
-    David Trevelyan
+    Eduardo Ramos
 
 */
-#include<iostream>
-#include "update.h"
+
+#include <iostream>
 #include "modify.h"
-#include "fix_ave_chunk.h"
 #include "domain.h"
 #include "universe.h"
 #include "input.h"
 #include "comm.h"
-#include "error.h"
+#include "update.h"
 #include "CPLSocketLAMMPS.h"
-#include "cpl/CPL_cartCreate.h"
 
-void CPLSocketLAMMPS::initComms() {
 
-    // Split MPI_COMM_WORLD into realm communicators
-    CPL::init(CPL::md_realm, realmComm);
-    MPI_Comm_rank(realmComm, &rankRealm);
-
-};
-
-void CPLSocketLAMMPS::finalizeComms() {
-    CPL::finalize();
-};
-
-void CPLSocketLAMMPS::initMD(LAMMPS_NS::LAMMPS *lammps) {
-
-    // Store my own coordinates for later
-    myCoords[0] = lammps->comm->myloc[0];
-    myCoords[1] = lammps->comm->myloc[1];
-    myCoords[2] = lammps->comm->myloc[2];
-
-    // Parameters for coupler_md_init
-    int initialstep = lammps->update->firststep;
-    double dt = lammps->update->dt;
-    int *npxyz_md = lammps->comm->procgrid;
-    double *globaldomain = lammps->domain->prd;
-    double dummydensity = -666.0;
-
-    // Set up new cartesian communicator with same coordinates as lammps
-    // interal cartesian communicator (based on mycoords)
-    MPI_Comm icomm_grid;
-    int periods[3] = {0, 0, 0};
-    CPL::Cart_create (lammps->world, 3, npxyz_md, periods, myCoords.data(),
-                      &icomm_grid);
-   
-    //TODO: get the origin from LAMMPS 
-    double xyz_orig[3] = {0.0 ,0.0, 0.0};
-    //NOTE: Make sure set_timing is called before setup_cfd due to a unfixed bug
-    CPL::set_timing(initialstep, 0, 1.0);
-    CPL::setup_md (icomm_grid, globaldomain, xyz_orig);
-
-    // Setup
-    timestep_ratio = CPL::get<int> ("timestep_ratio");
-	int nsteps_md = CPL::get<int> ("nsteps_coupled") * timestep_ratio;
-	std::string cmd =  "variable CPLSTEPS equal " + std::to_string(nsteps_md);
-    std::cout << cmd << std::endl;
-    lammps->input->one(cmd.c_str());
-    getCellTopology();
-    allocateBuffers();
-
+void CPLSocketLAMMPS::setTimingInfo() {
+    initialStep = lmp->update->firststep;
+    dt = lmp->update->dt;
 }
 
-void CPLSocketLAMMPS::getCellTopology() {
+void CPLSocketLAMMPS::setCartCommInfo() {
+    int *npxyz = lmp->comm->procgrid;
+    procGrid = std::vector<int>({npxyz[0], npxyz[1], npxyz[2]});
+    myProcCoords = std::vector<int>({lmp->comm->myloc[0],
+                                     lmp->comm->myloc[1],
+                                     lmp->comm->myloc[2]});
+}
 
-    // Cell sizes
-    dx = CPL::get<double> ("dx");
-    dy = CPL::get<double> ("dy");
-    dz = CPL::get<double> ("dz");
-   
-    // Cell bounds for the overlap region
-    //CPL::get_bnry_limits(velBCRegion.data());
-	 CPL::get_olap_limits(olapRegion.data());
-    
-    // Cell bounds for velocity BCs region
-    velBCRegion = olapRegion;
-    velBCRegion[3] = velBCRegion[2];
-    CPL::my_proc_portion (velBCRegion.data(), velBCPortion.data());
-
-    CPL::get_no_cells(velBCPortion.data(), velBCCells);
-
-    // Cell bounds for the constrained region
-    CPL::get_cnst_limits(cnstFRegion.data());
-    CPL::my_proc_portion (cnstFRegion.data(), cnstFPortion.data());
-
-    CPL::get_no_cells(cnstFPortion.data(), cnstFCells);
-
+void CPLSocketLAMMPS::setRealmDomainInfo() {
+    double *global_domain = lmp->domain->prd;
+    std::valarray<double> domain_orig({0.0 ,0.0, 0.0});
+    std::valarray<double> domain_length({global_domain[0], 
+                                         global_domain[1], 
+                                         global_domain[2]});
+    realmDomain = CPL::Domain(domain_orig, domain_length);
 }
 
 
-void CPLSocketLAMMPS::allocateBuffers() {
-    
-    // Received stress field
-    int recvShape[4] = {9, cnstFCells[0], cnstFCells[1], cnstFCells[2]};
-    recvStressBuff.resize(4, recvShape);
-
-    // LAMMPS computed velocity field
-    int sendShape[4] = {4, velBCCells[0], velBCCells[1], velBCCells[2]};
-    sendVelocityBuff.resize (4, sendShape);
+void CPLSocketLAMMPS::init() {
+    CPLSocket::init();
+	std::string cmd =  "variable CPLSTEPS equal " + std::to_string(nSteps);
+    lmp->input->one(cmd.c_str());
 }
 
-void CPLSocketLAMMPS::setBndryAvgMode(int mode) {
-	if (mode == AVG_MODE_ABOVE) {
-		std::cout << "MODE ABOVE" << std::endl;
-		bndry_shift_above = dy;
-		bndry_shift_below = 0.0;
+
+void CPLSocketLAMMPS::configureBc(int mode) {
+    double shift;
+	if (mode == AVG_MODE_MIDPLANE) {
+		shift = -(bcRegion.ly)/2.0;
 	}
 	else if (mode == AVG_MODE_BELOW) {
-		std::cout << "MODE BELOW" << std::endl;
-		bndry_shift_above = 0.0;
-		bndry_shift_below = dy;
+		shift = -bcRegion.ly;
 	}
-	else {
-		std::cout << "MODE MIDPLANE" << std::endl;
-		bndry_shift_above = dy/2.0;
-		bndry_shift_below = dy/2.0;
-	}
+    // Create a new field with the corrected BC domain 
+    std::valarray<double> domain_bounds = bcRegion.bounds;
+    domain_bounds[2] += shift;
+    domain_bounds[3] += shift;
+    bcRegion = CPL::PortionField(CPL::Domain(domain_bounds), bcRegion.nCells,
+                                 bcRegion.cellBounds);
+    domain_bounds = bcPortionRegion.bounds;
+    domain_bounds[2] += shift;
+    domain_bounds[3] += shift;
+    bcPortionRegion = CPL::PortionField(CPL::Domain(domain_bounds),
+                                        bcPortionRegion.nCells, bcPortionRegion.cellBounds);
 }
-
-
-void CPLSocketLAMMPS::setupFixMDtoCFD(LAMMPS_NS::LAMMPS *lammps) {
-
-    double botLeft[3];
-    CPL::map_cell2coord(velBCRegion[0] , velBCRegion[2], velBCRegion[4], botLeft);
-    botLeft[1] -= bndry_shift_below;
-
-    double topRight[3];
-    CPL::map_cell2coord(velBCRegion[1] , velBCRegion[3], velBCRegion[5], topRight);
-    topRight[0] += dx;
-    topRight[1] += bndry_shift_above;
-    topRight[2] += dz;
-
-    // Cell sizes
-    std::cout << "Cell size = " << dx <<  " " << dy << " " << dz << std::endl;
-
-    //////////////////////////////////////////
-    //This is the code to try to set region
-    //////////////////////////////////////////
-    int ret;
-    char topRight0str[20], topRight1str[20], topRight2str[20];
-    char botLeft0str[20], botLeft1str[20], botLeft2str[20];
-    ret = sprintf(topRight0str, "%f", topRight[0]);
-    ret = sprintf(topRight1str, "%f", topRight[1]);
-    ret = sprintf(topRight2str, "%f", topRight[2]);
-    ret = sprintf(botLeft0str, "%f", botLeft[0]);
-    ret = sprintf(botLeft1str, "%f", botLeft[1]);
-    ret = sprintf(botLeft2str, "%f", botLeft[2]);
-
-    char **regionarg = new char*[10];
-    regionarg[0] = (char *) "cfdbcregion";
-    regionarg[1] = (char *) "block";
-    regionarg[2] = (char *) botLeft0str;
-    regionarg[3] = (char *) topRight0str;
-    regionarg[4] = (char *) botLeft1str;
-    regionarg[5] = (char *) topRight1str;
-    regionarg[6] = (char *) botLeft2str;
-    regionarg[7] = (char *) topRight2str;
-    regionarg[8] = (char *) "units";
-    regionarg[9] = (char *) "box";
-    lammps->domain->add_region(10, regionarg);
-    delete [] regionarg;
-
-    // CFD BC region 
-//    std::string cmd = "region cfdbcregion block ";
-//    cmd += std::to_string(botLeft[0]) + " ";
-//    cmd += std::to_string(topRight[0]) + " ";
-//    cmd += std::to_string(botLeft[1]) + " ";
-//    cmd += std::to_string(topRight[1]) + " ";
-//    cmd += std::to_string(botLeft[2]) + " ";
-//    cmd += std::to_string(topRight[2]) + " ";
-//    cmd += "units box";
-//    std::cout << cmd << std::endl;
-    //lammps->input->one(cmd.c_str());
-    int iregion = lammps->domain->find_region("cfdbcregion");
-    if (iregion < 0) lammps->error->all(FLERR,"Fix ID for iregion cfdbcregion does not exist");
-    cfdbcregion = lammps->domain->regions[iregion];
-
-    //////////////////////////////////////////
-    //This is the code that would set the compute
-    //////////////////////////////////////////
-    char dxstr[20], dystr[20], dzstr[20], low_y[20], hi_y[20];
-    ret = sprintf(dxstr, "%f", dx);
-    ret = sprintf(dystr, "%f", dy);
-    ret = sprintf(dzstr, "%f", dz);
-    ret = sprintf(low_y, "%f", botLeft[1]);
-    ret = sprintf(hi_y, "%f", topRight[1]);
-
-
-
-
-    // CFD BC compute chunk 3d bins in y slice
-    char **computearg = new char*[23];
-    computearg[0] = (char *) "cfdbccompute";
-    computearg[1] = (char *) "all";
-    computearg[2] = (char *) "chunk/atom";
-    computearg[3] = (char *) "bin/3d";
-    computearg[4] = (char *) "x";
-    computearg[5] = (char *) "lower";
-    computearg[6] = (char *) dxstr;
-    computearg[7] = (char *) "y";
-    computearg[8] = (char *) "lower";
-    computearg[9] = (char *) dystr;
-    computearg[10] = (char *) "z";
-    computearg[11] = (char *) "lower";
-    computearg[12] = (char *) dzstr;
-    computearg[13] = (char *) "ids";
-    computearg[14] = (char *) "every";
-    computearg[15] = (char *) "region";
-    computearg[16] = (char *) "cfdbcregion";
-    computearg[17] = (char *) "units";
-    computearg[18] = (char *) "box";
-    computearg[19] = (char *) "bound";
-    computearg[20] = (char *) "y";
-    computearg[21] = (char *) low_y;
-    computearg[22] = (char *) hi_y;
-    lammps->modify->add_compute(23, computearg);
-    //Get handle for compute
-    int icompute = lammps->modify->find_compute("cfdbccompute");
-    if (icompute < 0)
-		lammps->error->all(FLERR,"Fix ID for compute cfdbccompute does not exist");
-    cfdbccompute = lammps->modify->compute[icompute];
-    delete [] computearg;
-
-    std::cout << "setupFixMDtoCFD Region " << iregion << " " << cfdbcregion->dynamic_check()
-              << " " << cfdbcregion->extent_xlo << " " 
-              << " " << cfdbcregion->extent_xhi << " " 
-              << " " << cfdbcregion->extent_ylo << " " 
-              << " " << cfdbcregion->extent_yhi << " " 
-              << " " << cfdbcregion->extent_zlo << " " 
-              << " " << cfdbcregion->extent_zhi << " " 
-			  << " " << "bounds" << botLeft[1] << " " << topRight[1] << " "
-                     << cfdbcregion->varshape << std::endl;
-
-
-//    cmd = "compute cfdbccompute all chunk/atom bin/3d";
-//    cmd += " x lower " + std::to_string(dx);
-//    cmd += " y lower " + std::to_string(dy);
-//    cmd += " z lower " + std::to_string(dz);
-//    cmd += " ids every";
-//    cmd += " region cfdbcregion"; 
-//    cmd += " units box";
-//    std::cout << cmd << std::endl;
-    //lammps->input->one(cmd.c_str());
-
-//    int Nfreq = 1; //timestep_ratio;
-//    int Nrepeat = 1;
-//    int Nevery = 1;
-//    cmd = "fix cfdbcfix all ave/chunk ";
-//    cmd += std::to_string(Nevery) + " "; 
-//    cmd += std::to_string(Nrepeat) + " "; 
-//    cmd += std::to_string(Nfreq) + " "; 
-//    cmd += "cfdbccompute vx vy vz ";
-//    cmd += "norm all";
-//    std::cout << cmd << std::endl;
-//    lammps->input->one(cmd.c_str());
-
-
-    //////////////////////////////////////////
-    //This is the code that would set the fix
-    //////////////////////////////////////////
-    // CFD BC averaging fix 
-    // Average values are generated every Nfreq time steps, taken
-    // from the average of the Nrepeat preceeding timesteps separated
-    // by Nevery. For example, consider 
-    // 
-    //       Nfreq = 100;   Nrepeat = 6;   Nevery = 2;
-    //
-    // The average here would be taken over instantaneous snapshots at
-    // timesteps 90, 92, 94, 96, 98, and 100 for the first value. The
-    // next output would be an average from 190, 192, 194, 196, 198 and
-    // 200 (and so on).
-    int Nfreq = timestep_ratio;
-    int Nrepeat = 1;
-    int Nevery = 1;
-
-    char Neverystr[20], Nrepeatstr[20], Nfreqstr[20];
-    ret = sprintf(Neverystr, "%d", Nevery);
-    ret = sprintf(Nrepeatstr, "%d", Nrepeat);
-    ret = sprintf(Nfreqstr, "%d", Nfreq);
-
-    char **fixarg = new char*[14];
-    fixarg[0] = (char *) "cfdbcfix";
-    fixarg[1] = (char *) "all";
-    fixarg[2] = (char *) "ave/chunk";
-    fixarg[3] = (char *) Neverystr;
-    fixarg[4] = (char *) Nrepeatstr; 
-    fixarg[5] = (char *) Nfreqstr; 
-    fixarg[6] = (char *) "cfdbccompute";
-    fixarg[7] = (char *) "vx";
-    fixarg[8] = (char *) "vy";
-    fixarg[9] = (char *) "vz";
-    fixarg[10] = (char *) "norm";
-    fixarg[11] = (char *) "all";
-    fixarg[12] = (char *) "file";
-    fixarg[13] = (char *) "debug.vels";
-    lammps->modify->add_fix(14, fixarg);
-    delete [] fixarg;
-
-    //~ Set pointers for this newly-created fix
-    int ifix = lammps->modify->find_fix("cfdbcfix");
-    if (ifix < 0) lammps->error->all(FLERR,"Fix ID for fix cfdbcfix does not exist");
-    cfdbcfix = lammps->modify->fix[ifix];
-
-
-//    std::cout << "Fix " << ifix 
-//              << " " << cfdbcfix->extent_xhi << " " 
-//              << " " << cfdbcfix->extent_yhi << " " 
-//              << " " << cfdbcfix->extent_zhi << std::endl;
-
-    //cfdbcfix->init();
-    // Work around what SEEMS to be a LAMMPS bug in allocation
-    // of fix ave/chunk's internal data during construction. This forces
-    // allocation.
-    //lammps->input->one ("run 0");
-
-
-    //int fixindex = lammps->modify->find_fix("cfdbcfix");
-    //lammps->modify->fix[fixindex]->init();
-    
-};
-
-void CPLSocketLAMMPS::setupFixCFDtoMD(LAMMPS_NS::LAMMPS *lammps) {
-
-    double botLeft[3];
-    CPL::map_cell2coord(cnstFRegion[0] , cnstFRegion[2], cnstFRegion[4], botLeft);
-
-    double topRight[3];
-    CPL::map_cell2coord(cnstFRegion[1], cnstFRegion[3], cnstFRegion[5], topRight);
-    topRight[0] += dx;
-    topRight[1] += dy;
-    topRight[2] += dz;
-
-    // Tell LAMMPS to keep track of atoms in constrained region
-    int ret;
-    char topRight0str[20], topRight1str[20], topRight2str[20];
-    char botLeft0str[20], botLeft1str[20], botLeft2str[20];
-    ret = sprintf(topRight0str, "%f", topRight[0]);
-    ret = sprintf(topRight1str, "%f", topRight[1]);
-    ret = sprintf(topRight2str, "%f", topRight[2]);
-    ret = sprintf(botLeft0str, "%f", botLeft[0]);
-    ret = sprintf(botLeft1str, "%f", botLeft[1]);
-    ret = sprintf(botLeft2str, "%f", botLeft[2]);
-
-    char **regionarg = new char*[10];
-    regionarg[0] = (char *) "cplforceregion";
-    regionarg[1] = (char *) "block";
-    regionarg[2] = (char *) botLeft0str;
-    regionarg[3] = (char *) topRight0str;
-    regionarg[4] = (char *) botLeft1str;
-    regionarg[5] = (char *) topRight1str;
-    regionarg[6] = (char *) botLeft2str;
-    regionarg[7] = (char *) topRight2str;
-    regionarg[8] = (char *) "units";
-    regionarg[9] = (char *) "box";
-    lammps->domain->add_region(10, regionarg);
-    delete [] regionarg;
-
-    int iregion = lammps->domain->find_region("cplforceregion");
-    if (iregion < 0) lammps->error->all(FLERR,"Fix ID for iregion cplforceregion does not exist");
-    cplforceregion = lammps->domain->regions[iregion];
-
-    std::cout << "setupFixCFDtoMD Region " << iregion << " " << cplforceregion->dynamic_check()
-              << " " << cplforceregion->extent_xhi << " " 
-              << " " << cplforceregion->extent_yhi << " " 
-              << " " << cplforceregion->extent_zhi << " " 
-                     << cplforceregion->varshape << std::endl;
-
-//    std::string cmd = "region cplforceregion block ";
-//    cmd += std::to_string(botLeft[0]) + " " + std::to_string(topRight[0]) + " ";
-//    cmd += std::to_string(botLeft[1]) + " " + std::to_string(topRight[1]) + " ";
-//    cmd += std::to_string(botLeft[2]) + " " + std::to_string(topRight[2]) + " ";
-//    cmd += "units box"; 
-//    std::cout << cmd << std::endl;
-    //lammps->input->one (cmd.c_str());
-
-    // CFD BC compute chunk 3d bins in y slice
-    std::string cmd = "group cplforcegroup dynamic all region cplforceregion every 1";
-    std::cout << cmd << std::endl;
-    lammps->input->one (cmd.c_str());
-
-//    char **grouparg = new char*[7];
-//    grouparg[0] = (char *) "cplforcegroup";
-//    grouparg[1] = (char *) "dynamic";
-//    grouparg[2] = (char *) "all";
-//    grouparg[3] = (char *) "region";
-//    grouparg[4] = (char *) "cplforceregion";
-//    grouparg[5] = (char *) "every";
-//    grouparg[6] = (char *) "1";
-//    lammps->input->group->assign(7, grouparg);
-//    //Get handle for compute
-//    int igroup = lammps->modify->group->find("cplforcegroup");
-//    if (igroup < 0) lammps->error->all(FLERR,"Fix ID for group cplforcegroup does not exist");
-//    cplforcegroup = lammps->modify->group[igroup];
-//    delete [] grouparg;
-
-    // Create a FixCPLForce instance
-    //cmd = "fix cplforcefix all cpl/force region cplforceregion";
-    //std::cout << cmd << std::endl;
-    //lammps->input->one (cmd.c_str());
-    char **fixarg = new char*[5];
-    fixarg[0] = (char *) "cplforcefix";
-    fixarg[1] = (char *) "all";
-    fixarg[2] = (char *) "cpl/force";
-    fixarg[3] = (char *) "region";
-    fixarg[4] = (char *) "cplforceregion"; 
-    lammps->modify->add_fix(5, fixarg);
-    delete [] fixarg;
-
-    int ifix = lammps->modify->find_fix("cplforcefix");
-    if (ifix < 0) 
-		lammps->error->all(FLERR,"Fix ID for fix cplforcefix does not exist");
-
-    //Copy coupling fix object??
-    cplfix = dynamic_cast<FixCPLForce*>(lammps->modify->fix[ifix]);
-    double units_factor;
-    if (units == REAL_UNITS)
-        units_factor = 4.187e-4;
-    else if (units == LJ_UNITS)
-        units_factor = 1.0;
-	cplfix->setup(recvStressBuff, cnstFPortion, units_factor);
-
-}
-
-// TODO develop a custom fix so that lammps doesn't need to do 
-// a global reduce (d.trevelyan@ic.ac.uk) ?
-void CPLSocketLAMMPS::packVelocity (const LAMMPS_NS::LAMMPS *lammps) {
-	if (CPL::is_proc_inside(velBCPortion.data())) {
-		int *npxyz_md = lammps->comm->procgrid;
-		int nc_velBCRegion[3];
-		CPL::get_no_cells(velBCRegion.data(), nc_velBCRegion);
-		int row;
-		int glob_cell[3], loc_cell[3];
-		//std::cout << nx << " " << ny << " " << nz << "\n" << std::endl;
-		//std::cout << "test cfdbcfix " << cfdbcfix->style << " " << cfdbcfix->compute_array(0, 0) << std::endl;
-		for (int i = velBCPortion[0]; i <= velBCPortion[1]; i++)
-		{
-			for (int j = velBCPortion[2]; j <= velBCPortion[3]; j++)
-			{
-				for (int k = velBCPortion[4]; k <= velBCPortion[5]; k++)
-				{
-					row = i*nc_velBCRegion[1]*nc_velBCRegion[2] + j*nc_velBCRegion[2] + k;
-					 
-//					std::cout << "Row: " << row << std::endl;
-//					std::cout << "porx :" << velBCPortion[0] << " pory: " << velBCPortion[1] << " i: " << i << "ncy: " << nc_velBCRegion[1] << " ncz: " << nc_velBCRegion[2] << std::endl;
-
-					// v v v Not needed v v v 
-					double x = cfdbcfix->compute_array(row, 0);
-					double y = cfdbcfix->compute_array(row, 1);  
-					double z = cfdbcfix->compute_array(row, 2);  
-					double ncount = cfdbcfix->compute_array(row, 3);  
-					// ^ ^ ^ Not needed ^ ^ ^
-
-					double vx = cfdbcfix->compute_array(row, 4);  
-					double vy = cfdbcfix->compute_array(row, 5);  
-					double vz = cfdbcfix->compute_array(row, 6);  
-
-					//std::cout <<  x << " " << y << " " << z 
-					//               << " " << vx << " " << vy << " " << vz << "\n" << std::endl;
-					glob_cell[0] = i; glob_cell[1] = j; glob_cell[2] = k;
-					CPL::map_glob2loc_cell(velBCPortion.data(), glob_cell, loc_cell);
-
-					sendVelocityBuff(0, loc_cell[0], loc_cell[1], loc_cell[2]) = vx;
-					sendVelocityBuff(1, loc_cell[0], loc_cell[1], loc_cell[2]) = vy;
-					sendVelocityBuff(2, loc_cell[0], loc_cell[1], loc_cell[2]) = vz; 
-					sendVelocityBuff(3, loc_cell[0], loc_cell[1], loc_cell[2]) = ncount; 
-				}
-			}
-		}
-	}
-}
-
-void CPLSocketLAMMPS::updateStress () {
-    cplfix->apply();
-};
-
-
-void CPLSocketLAMMPS::sendVelocity() {
-
-    // Send the data to CFD
-    CPL::send(sendVelocityBuff.data(), sendVelocityBuff.shapeData(), velBCRegion.data());
-
-};
-
-void CPLSocketLAMMPS::recvStress() {
-
-    // Receive from CFD
-    CPL::recv(recvStressBuff.data(), recvStressBuff.shapeData(), cnstFRegion.data());
-
-};
-
