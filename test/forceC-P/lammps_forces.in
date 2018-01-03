@@ -9,7 +9,7 @@ variable dx equal 20
 variable dy equal 20
 variable dz equal 20 
 
-variable no_cnst_cells equal 1
+variable no_cnst_cells equal 3
 
 
 units		real
@@ -64,5 +64,5 @@ fix ffieldfix all ave/chunk 1 1 1 ffieldcompute fx fy fz norm none file lammps_f
 
 print "---RUN COUPLED---"
 
-fix cplfix all cpl/init midplane units lj momentumc fleckoy
+fix cplfix all cpl/init forcetype Flekkoy sendtype velocity bndryavg above
 run ${CPLSTEPS}

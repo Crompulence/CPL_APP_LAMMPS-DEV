@@ -1,5 +1,5 @@
 diff --git a/src/lammps.h b/src/lammps.h
-index c432784..abfc8f4 100644
+index c432784a0..abfc8f488 100644
 --- a/src/lammps.h
 +++ b/src/lammps.h
 @@ -16,6 +16,9 @@
@@ -13,17 +13,18 @@ index c432784..abfc8f4 100644
  
  class LAMMPS {
 diff --git a/src/main.cpp b/src/main.cpp
-index cc8f8be..5ee702e 100644
+index 7401183fe..ced922350 100644
 --- a/src/main.cpp
 +++ b/src/main.cpp
-@@ -17,12 +17,14 @@
+@@ -17,6 +17,7 @@
  #include "error.h"
  #include <stdio.h>
  #include <stdlib.h>
 +#include "CPLSocketLAMMPS.h"
  
- using namespace LAMMPS_NS;
- 
+ #if defined(LAMMPS_TRAP_FPE) && defined(_GNU_SOURCE)
+ #include <fenv.h>
+@@ -27,6 +28,7 @@ using namespace LAMMPS_NS;
  /* ----------------------------------------------------------------------
     main program to drive LAMMPS
  ------------------------------------------------------------------------- */
@@ -31,7 +32,7 @@ index cc8f8be..5ee702e 100644
  
  int main(int argc, char **argv)
  {
-@@ -31,6 +33,10 @@ int main(int argc, char **argv)
+@@ -47,6 +49,10 @@ int main(int argc, char **argv)
  #ifdef LAMMPS_EXCEPTIONS
    try {
      LAMMPS *lammps = new LAMMPS(argc,argv,MPI_COMM_WORLD);
@@ -42,7 +43,7 @@ index cc8f8be..5ee702e 100644
      lammps->input->file();
      delete lammps;
    } catch(LAMMPSAbortException & ae) {
-@@ -41,9 +47,13 @@ int main(int argc, char **argv)
+@@ -57,9 +63,13 @@ int main(int argc, char **argv)
    }
  #else
    LAMMPS *lammps = new LAMMPS(argc,argv,MPI_COMM_WORLD);

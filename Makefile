@@ -4,7 +4,7 @@ LAMMPS_SRC_DIR=$(LAMMPS_DIR)/src
 .PHONY: all test clean clean-all yes-all patch-lammps
 
 all:
-	rm -R $(LAMMPS_SRC_DIR)/USER-CPL
+	rm -Rf $(LAMMPS_SRC_DIR)/USER-CPL &> /dev/null
 	cp -R src/USER-CPL $(LAMMPS_SRC_DIR)
 	cp ./config/Makefile.cpl $(LAMMPS_SRC_DIR)/MAKE
 	cd $(LAMMPS_SRC_DIR) && $(MAKE) no-USER-CPL && $(MAKE) yes-USER-CPL

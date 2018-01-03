@@ -86,7 +86,6 @@ cpllib.recv(recv_array, velBCRegion)
 
 
 for step in xrange(nsteps):
-    print("CFD step: ", step)
     cpllib.send(send_array, cnstFRegion)
     cpllib.recv(recv_array, velBCRegion)
     cpllib.dump_region(velBCRegion, recv_array, "cfd_vels%d.dat"%step, realm_comm,                                                                                                                                                            

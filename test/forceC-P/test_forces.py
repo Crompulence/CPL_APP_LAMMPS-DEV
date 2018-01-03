@@ -1,8 +1,8 @@
 #!/usr/bin/env python2
 import pytest
-import numpy as np
 from cplpy import run_test, prepare_config, get_test_dir
 import os
+from testutils import check_forces
 
 # -----Forces TESTS-----
 
@@ -20,51 +20,6 @@ TEST_DIR = os.path.dirname(os.path.realpath(__file__))
 @pytest.fixture()
 def prepare_config_fix(tmpdir):
     prepare_config(tmpdir, TEST_DIR, MD_FNAME, CFD_FNAME)
-
-
-def compare_forces(tol, cfd_fname="cfd_forces.dat",
-                   lammps_fname="lammps_forces.dat"):
-
-    # Line format of dummy CFD forces file -- > x y z fx fy fz
-    with open(cfd_fname, "r") as cfd_file:
-        cfd_lines = cfd_file.readlines()
-    cfd_lines = [l[:-1].split(" ") for l in cfd_lines]
-    cfd_cells = {}
-    for l in cfd_lines:
-        cfd_cells[(float(l[0]),
-                   float(l[1]),
-                   float(l[2]))] = np.array([float(l[3]), float(l[4]),
-                                             float(l[5])])
-
-    # Line format of LAMMPS forces file -- > chunk x y z ncount fx fy fz
-    with open(lammps_fname, "r") as lammps_file:
-        lammps_lines = lammps_file.readlines()
-    skip = int(lammps_lines[3].split(" ")[1])
-    lammps_lines = lammps_lines[4:]
-    lammps_lines = lammps_lines[-skip:]
-    lammps_lines = [l[:-1].split(" ") for l in lammps_lines]
-    lammps_cells = {}
-    for l in lammps_lines:
-        l = filter(None, l)
-        if (float(l[5]) + float(l[6]) + float(l[7])) > 0.0:
-            lammps_cells[(float(l[1]), float(l[2]), float(l[3]))] = \
-                        np.array([float(l[5]), float(l[6]), float(l[7])])
-
-    # Number of cells do not match for lammps and dummy socket
-    if len(lammps_cells) != len(cfd_cells):
-        print "Number of cells LAMMPS: ", len(lammps_cells), "\n",\
-              "Number of cells dummy CFD: ", len(cfd_cells)
-        assert False
-
-    for k in lammps_cells.keys():
-        try:
-            diff_forces = abs(cfd_cells[k] - lammps_cells[k])
-            if (np.any(diff_forces > tol)):
-                print "Cell %s value differs in md : %s and cfd: %s" % (str(k), str(lammps_cells[k]), str(cfd_cells[k]))
-                assert False
-        except KeyError:
-            print "Cell not found: cell " + k
-            assert False
 
 
 # -----FORCES TESTS-----
@@ -89,9 +44,13 @@ def test_forcesC2P(prepare_config_fix, cfdprocs, mdprocs, err_msg):
                      "cnst_xlo": 1, "cnst_xhi": 15,
                      "cnst_ylo": 5, "cnst_yhi": 5,
                      "cnst_zlo": 1, "cnst_zhi": 15,
+                     "bndry_xlo": 1, "bndry_xhi": 15,
+                     "bndry_ylo": 1, "bndry_yhi": 1,
+                     "bndry_zlo": 1, "bndry_zhi": 15,
+         
                      "tstep_ratio": 1, }
 
     correct = run_test(TEST_TEMPLATE_DIR, CONFIG_PARAMS, MD_EXEC, MD_FNAME, MD_ARGS,
                        CFD_EXEC, CFD_FNAME, CFD_ARGS, MD_PARAMS, CFD_PARAMS, err_msg, True)
     if correct:
-        compare_forces(1e-6)
+        check_forces(1e-6)

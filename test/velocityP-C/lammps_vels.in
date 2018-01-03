@@ -51,5 +51,5 @@ fix vfieldfix all ave/chunk ${timestep_ratio} 1 ${timestep_ratio} vfieldcompute 
 # cplifx set variable CPLSTEPS to the total number of steps
 print "---RUN COUPLED---"
 
-fix cplfix all cpl/init above units lj momentumc fleckoy
+fix cplfix all cpl/init forcetype Flekkoy sendtype velocity bndryavg above
 run ${CPLSTEPS}
