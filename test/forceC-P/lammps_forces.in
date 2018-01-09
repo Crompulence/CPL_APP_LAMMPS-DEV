@@ -64,5 +64,7 @@ fix ffieldfix all ave/chunk 1 1 1 ffieldcompute fx fy fz norm none file lammps_f
 
 print "---RUN COUPLED---"
 
-fix cplfix all cpl/init forcetype Flekkoy sendtype velocity bndryavg above
+fix cplfix all cpl/init
+fix cplconstrain all cpl/constrain forcetype Flekkoy
+fix cplbc all cpl/bc sendtype velocity bndryavg above
 run ${CPLSTEPS}

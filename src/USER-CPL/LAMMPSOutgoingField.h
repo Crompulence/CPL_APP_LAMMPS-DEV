@@ -11,9 +11,9 @@ class LAMMPSOutgoingField : public CPL::OutgoingField, public DepLoader {
         LAMMPSOutgoingField() : OutgoingField() {}
         LAMMPSOutgoingField(std::string name, const PortionField& portion_field,
                             const PortionField& field, const DepListT& dep_list,
-                            DepPoolT& dep_pool, LAMMPS_NS::LAMMPS* lammps) :
+                            DepPoolT* dep_pool, LAMMPS_NS::LAMMPS* lammps) :
                             CPL::OutgoingField(name, portion_field, field), 
-                            lmp(lammps), depPool(&dep_pool),
+                            lmp(lammps), depPool(dep_pool),
                             depList(dep_list) {}
 
         LAMMPS_NS::LAMMPS* lmp;

@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 import sys, os
 sys.path.append(os.path.abspath('..'))
-from testutils import check_vels
+from test_vels import check_vels
        
 
 if __name__ == "__main__":

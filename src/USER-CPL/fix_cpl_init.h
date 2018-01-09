@@ -1,6 +1,6 @@
 #ifdef FIX_CLASS
 
-FixStyle(cpl/init, fixCPLInit)
+FixStyle(cpl/init, FixCPLInit)
 
 #else
 
@@ -13,12 +13,12 @@ FixStyle(cpl/init, fixCPLInit)
 #include <memory>
 #include "LAMMPSDep.h"
 
-class fixCPLInit : public LAMMPS_NS::Fix {
+class FixCPLInit : public LAMMPS_NS::Fix {
 
 public:
 
-    fixCPLInit(class LAMMPS_NS::LAMMPS *lammps, int narg, char **arg);
-	~fixCPLInit();
+    FixCPLInit(class LAMMPS_NS::LAMMPS *lammps, int narg, char **arg);
+	~FixCPLInit();
     int setmask();
     void setup (int vflag); 
     void end_of_step();
@@ -34,21 +34,13 @@ public:
     std::string sendType;
     std::string bndryAvg;
     DepPoolT depPool;
+    bool cnstFixDefined, bcFixDefined;
 
 private:
     LAMMPS_NS::LAMMPS* lmp;
     void setupDeps();
-    void setupBcs();
-
 
 };
-
-DEPFUNC_DEF(cfdbcregion_depfunc);
-DEPFUNC_DEF(cfdbccompute_depfunc);
-DEPFUNC_DEF(cfdbcfix_depfunc);
-DEPFUNC_DEF(cplforceregion_depfunc);
-DEPFUNC_DEF(cplforcegroup_depfunc);
-DEPFUNC_DEF(cplforcefix_depfunc);
 
 #endif
 #endif

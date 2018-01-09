@@ -20,7 +20,7 @@ patch-lammps:
 yes-all:
 	bash config/enable-packages.sh $(MAKE)
 
-clean-tests:
+clean-test:
 	cd test/forceC-P/debug && ./clean.sh
 	cd test/velocityP-C/debug && ./clean.sh
 
