@@ -36,6 +36,7 @@ pair_coeff	1 1 2.5 3.4
 
 neighbor	2.0 bin
 neigh_modify delay 0 every 1 check yes
+thermo 10
 
 fix 1 all nve
 
@@ -43,8 +44,15 @@ fix 1 all nve
 # modified from lammps forece fix.
 neigh_modify exclude type 1 1
 
+variable timestep_ratio equal 5
+
+# This has to be set before equilibration in a real coupled simulation
+fix cplfix all cpl/init constrain 
+fix cplconstrain all cpl/constrain 
+
 # Move a bit the atoms so there is no lattice arrangement anymore
-run 10
+# (timestep not multiple of timestep-ratio should work)
+run $(2*v_timestep_ratio+1)
 
 # Do not integrate
 unfix 1
@@ -64,7 +72,5 @@ fix ffieldfix all ave/chunk 1 1 1 ffieldcompute fx fy fz norm none file lammps_f
 
 print "---RUN COUPLED---"
 
-fix cplfix all cpl/init
-fix cplconstrain all cpl/constrain forcetype Flekkoy
-fix cplbc all cpl/bc sendtype velocity bndryavg above
+fix cplbc all cpl/bc 
 run ${CPLSTEPS}

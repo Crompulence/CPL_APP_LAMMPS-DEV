@@ -10,4 +10,5 @@ void StressIncomingField::setup() {
     cplforcefix->setup(*this);
 }
 
-
+// NOTE: NO unpack is necessary as post_force() is being called
+// in fix_cpl_force at the each time-step.

@@ -13,6 +13,10 @@
 FixCPLInit::FixCPLInit(LAMMPS_NS::LAMMPS *lammps, int narg, char **arg)
     		: Fix (lammps, narg, arg), cnstFixDefined(false), bcFixDefined(false) {
 
+    cplsocket.loadParamFile();
+    CPL::get_file_param("constrain", "enabled", cplsocket.recvEnabled);
+    CPL::get_file_param("bc", "enabled", cplsocket.sendEnabled);
+
    	lmp = lammps;
     cplsocket.setLammps(lmp);
    	cplsocket.init();
@@ -41,18 +45,25 @@ int FixCPLInit::setmask() {
 }
 
 void FixCPLInit::init() {
-    if (cnstFixDefined && bcFixDefined)
-        cplsocket.allocateBuffers(bcPool, cnstPool);
+    if (bcFixDefined && !cplsocket.sendBuffAllocated)
+        cplsocket.allocateSendBuffer(bcPool);
+    if (cnstFixDefined && !cplsocket.recvBuffAllocated)
+        cplsocket.allocateRecvBuffer(cnstPool);
 }
 
 void FixCPLInit::setup(int vflag) {
-    if (cnstFixDefined && bcFixDefined)
-        end_of_step();
+    end_of_step();
 }
 
 void FixCPLInit::end_of_step() {
-    if (cnstFixDefined && bcFixDefined)
+    // By default cpl/bc and cpl/constrain had to be both
+    // defined to start pack/unpack and send/recv.
+    // std::cout << "ENTRO ENDSOUSTEP" << std::endl;
+    if (cnstFixDefined && bcFixDefined ||\
+        !cplsocket.sendEnabled ||\
+        !cplsocket.recvEnabled) {
         cplsocket.communicate(bcPool, cnstPool);
+    }
 }
 
 FixCPLInit::~FixCPLInit() {

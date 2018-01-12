@@ -90,5 +90,5 @@ for step in xrange(nsteps):
     cpllib.recv(recv_array, velBCRegion)
     cpllib.dump_region(velBCRegion, recv_array, "cfd_vels%d.dat"%step, realm_comm,                                                                                                                                                            
                        components={0:None, 1:None, 2:None}, coords="other")
-
+    
 cpllib.finalize()

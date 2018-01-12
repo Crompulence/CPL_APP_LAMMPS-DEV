@@ -38,7 +38,6 @@ public:
 
 private:
     LAMMPS_NS::LAMMPS* lmp;
-    void setupDeps();
 
 };
 

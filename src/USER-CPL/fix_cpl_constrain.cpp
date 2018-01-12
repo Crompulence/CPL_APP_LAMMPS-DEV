@@ -13,34 +13,24 @@
 FixCPLConstrain::FixCPLConstrain(LAMMPS_NS::LAMMPS *lammps, int narg, char **arg)
     		: Fix (lammps, narg, arg) {
 
-    forceType = "Undefined";
-
-    //TODO: Improve line parsing
-    for (int iarg=0; iarg<narg; iarg+=1){
-        //std::cout << iarg << " " << arg[iarg] << std::endl;
-        std::string arguments(arg[iarg]);
-        if (arguments == "forcetype")
-            if (iarg+1<narg)
-                forceType = std::string(arg[iarg+1]);
-
-    }
-
-
-    cplsocket.configureCnst(-1);
-     int ifix = lammps->modify->find_fix("cplfix");
+    int ifix = lammps->modify->find_fix("cplfix");
+    if (ifix == -1)
+        error->all(FLERR, "Fix cpl/constrain has been called before cpl/init.");
     fixCPLInit = static_cast<FixCPLInit*>(lmp->modify->fix[ifix]);
     fixCPLInit->cnstPool = CPL::IncomingFieldPool(cplsocket.cnstPortionRegion, cplsocket.cnstRegion);
     cnstPool = &(fixCPLInit->cnstPool);
     depPool = &(fixCPLInit->depPool);
     
     //Instantiate pools
-    if (forceType == "Undefined")
+    std::string force_type;
+    CPL::get_file_param("constrain.momentum", "type", force_type);
+    if (force_type== "Undefined")
         lammps->error->all(FLERR,"Missing forcetype option in cpl/init.");
     else {
-        if (forceType !="Flekkoy")
+        if (force_type !="Flekkoy")
             lammps->error->all(FLERR,"Missing or invalid argument in forcetype option in cpl/init.");
         else {
-            (new StressIncomingField("stresscnst", cplsocket.cnstPortionRegion, cplsocket.cnstRegion, DepListT({"cplforcefix"}), depPool, lammps))->addToPool(cnstPool);
+            (new StressIncomingField("stresscnst", DepListT({"cplforcefix"}), depPool, lammps))->addToPool(cnstPool);
         }
     }
 }

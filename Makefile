@@ -24,7 +24,7 @@ clean-test:
 	cd test/forceC-P/debug && ./clean.sh
 	cd test/velocityP-C/debug && ./clean.sh
 
-clean: clean-tests
+clean: clean-test
 	rm -rf bin
 
 clean-all: clean

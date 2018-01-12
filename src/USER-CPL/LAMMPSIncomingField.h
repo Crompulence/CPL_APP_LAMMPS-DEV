@@ -9,12 +9,18 @@
 class LAMMPSIncomingField : public CPL::IncomingField, public DepLoader {
     public:
         LAMMPSIncomingField() : IncomingField() {}
+        LAMMPSIncomingField(std::string name,
+                            const DepListT& dep_list, DepPoolT* dep_pool, 
+                            LAMMPS_NS::LAMMPS* lammps) :
+                            CPL::IncomingField(name), lmp(lammps),
+                            depPool(dep_pool), depList(dep_list) {}
+
+
         LAMMPSIncomingField(std::string name, const PortionField& portion_field,
                             const PortionField& field, const DepListT& dep_list,
                             DepPoolT* dep_pool, LAMMPS_NS::LAMMPS* lammps) :
-                            CPL::IncomingField(name, portion_field, field), 
-                            lmp(lammps), depPool(dep_pool),
-                            depList(dep_list) {}
+                            CPL::IncomingField(name, portion_field, field),
+                            lmp(lammps), depPool(dep_pool), depList(dep_list) {}
 
         LAMMPS_NS::LAMMPS* lmp;
         DepListT depList;

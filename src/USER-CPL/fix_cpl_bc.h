@@ -26,8 +26,6 @@ public:
     // Pool of boundary conditions for CFD
     CPL::OutgoingFieldPool* bcPool;
     DepPoolT* depPool;
-    std::string sendType;
-    std::string bndryAvg;
 
 private:
     FixCPLInit* fixCPLInit;

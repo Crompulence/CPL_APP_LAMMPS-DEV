@@ -8,65 +8,57 @@
 #include "LAMMPSDep.h"
 #include "LAMMPSOutgoingField.h"
 
+CPL::PortionField shiftBc(const CPL::PortionField& region_in) {
+    double shift = 0.0;
+    std::string avg_mode;
+    CPL::get_file_param("bc", "averagetype", avg_mode);
+	if (avg_mode == "midplane") {
+		shift = -(cplsocket.bcRegion.ly)/2.0;
+	}
+	else if (avg_mode == "above") {
+        // Do nothing
+    }
+	else if (avg_mode == "below") {
+		shift = -cplsocket.bcRegion.ly;
+	}
+    // Create a new field with the corrected BC domain 
+    std::valarray<double> domain_bounds = region_in.bounds;
+    domain_bounds[2] += shift;
+    domain_bounds[3] += shift;
+    return CPL::PortionField(CPL::Domain(domain_bounds), 
+                             region_in.nCells,
+                             region_in.cellBounds);
+}
+
+
 
 
 FixCPLBc::FixCPLBc(LAMMPS_NS::LAMMPS *lammps, int narg, char **arg)
     		: Fix (lammps, narg, arg) {
 
-    sendType = "Undefined";
-    bndryAvg = "Undefined";
-
-    //TODO: Improve line parsing
-    for (int iarg=0; iarg<narg; iarg+=1){
-        //std::cout << iarg << " " << arg[iarg] << std::endl;
-        std::string arguments(arg[iarg]);
-
-        if (arguments == "sendtype")
-            if (iarg+1<narg)
-                sendType = std::string(arg[iarg+1]);
-
-        if (arguments == "bndryavg")
-            if (iarg+1<narg)
-                bndryAvg = std::string(arg[iarg+1]);
-    }
-
-
-    int bndry_avg_mode = -1;
-    if (bndryAvg == "Undefined")
-        lammps->error->all(FLERR,"Missing bndryavg option in cpl/init.");
-    else {
-        if (bndryAvg == "below")
-            bndry_avg_mode = AVG_MODE_BELOW;
-        else if (bndryAvg  == "above")
-            bndry_avg_mode = AVG_MODE_ABOVE;
-        else if (bndryAvg == "midplane")
-            bndry_avg_mode = AVG_MODE_MIDPLANE;
-        else
-            lammps->error->all(FLERR,"Missing or invalid argument in bndryavg option in cpl/init.");
-    }
-
-
-    cplsocket.configureBc(bndry_avg_mode);
     //Instantiate pools
-    //TODO: Find fix_cpl_init
     int ifix = lammps->modify->find_fix("cplfix");
+    if (ifix == -1)
+        error->all(FLERR, "Fix cpl/bc has been called before cpl/init.");
     fixCPLInit = static_cast<FixCPLInit*>(lmp->modify->fix[ifix]);
     fixCPLInit->bcPool = CPL::OutgoingFieldPool(cplsocket.bcPortionRegion, cplsocket.bcRegion);
     bcPool = &(fixCPLInit->bcPool);
     depPool = &(fixCPLInit->depPool);
-    if (sendType == "Undefined")
-        lammps->error->all(FLERR,"Missing sendtype option in cpl/init.");
+    std::string send_type;
+    CPL::get_file_param("bc", "sendtype", send_type);
+    if (send_type == "Undefined")
+        lammps->error->all(FLERR,"Missing send_type option in cpl/init.");
     else {
-        if (sendType == "velocity") {
-            (new VelOutgoingField("1velbc", cplsocket.bcPortionRegion,cplsocket.bcRegion, DepListT({"cfdbcfix"}), depPool, lammps))->addToPool(bcPool);
-            (new NbinOutgoingField("2nbinbc", cplsocket.bcPortionRegion, cplsocket.bcRegion, DepListT({"cfdbcfix"}), depPool, lammps))->addToPool(bcPool);
+        if (send_type == "velocity") {
+            (new VelOutgoingField("1velbc", DepListT({"cfdbcfix"}), depPool, lammps))->addToPool(bcPool);
+            (new NbinOutgoingField("2nbinbc", DepListT({"cfdbcfix"}), depPool, lammps))->addToPool(bcPool);
         }
-        else if (sendType == "gran") {
+        else if (send_type == "gran") {
         }
-        else if (sendType == "granfull") {
+        else if (send_type == "granfull") {
         }
         else
-            lammps->error->all(FLERR,"Missing or invalid argument in sendtype option in cpl/init.");
+            lammps->error->all(FLERR,"Missing or invalid argument in send_type option in cpl/init.");
     }
 }
 
@@ -87,9 +79,8 @@ void FixCPLBc::post_constructor() {
 }
 
 
-
 DEPFUNC_IMP(cfdbcregion_depfunc) {
-    std::valarray<double> bounds = cplsocket.bcRegion.bounds;
+    std::valarray<double> bounds = shiftBc(cplsocket.bcRegion).bounds;
     std::stringstream str_out;
     str_out << "region " << dep_name << " block "\
             << bounds[0] << " " << bounds[1] << " "\
@@ -100,7 +91,7 @@ DEPFUNC_IMP(cfdbcregion_depfunc) {
 }
 
 DEPFUNC_IMP(cfdbccompute_depfunc) {
-    std::valarray<double> bounds = cplsocket.bcRegion.bounds;
+    std::valarray<double> bounds = shiftBc(cplsocket.bcRegion).bounds;
     std::stringstream str_out;
     str_out << "compute "  << "cfdbccompute "\
             << "all " << "chunk/atom bin/3d "\

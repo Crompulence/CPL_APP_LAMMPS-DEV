@@ -1,0 +1,38 @@
+{
+"constrain" : {
+    "string" : "Holaa",
+    "enabled": true,
+    "momentum": {
+        "type": "Flekkoy",
+        "unit-conversion": "disabled"
+    },
+    "mass": {
+        "type": ""
+    },
+    "energy": { 
+        "type": ""
+    }
+},
+
+"bc": {
+    "enabled": true,
+    "sendtype": "velocity", 
+    "averagetype": "above"
+},
+
+"initial-conditions" : {
+    "temperature" : 300.0,
+    "pressure": 0.0,
+    "density": 83.2
+},
+
+"cfd" : {
+    "name": "Python script",
+    "bin": "dummyCFD.py"
+},
+
+"md" : {
+    "name": "lammps-stable",
+    "bin" : "lmp_cpl"
+}
+}

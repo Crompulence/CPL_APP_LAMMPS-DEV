@@ -18,19 +18,15 @@ class FixCPLForce : public LAMMPS_NS::Fix {
 
 public:
 
-    FixCPLForce 
-    (
-        class LAMMPS_NS::LAMMPS *lammps,
-        int narg,
-        char **arg
-    );
+    FixCPLForce (class LAMMPS_NS::LAMMPS *lammps,
+                 int narg, char **arg);
     int setmask();
     void setup(int vflag);
     //TODO: Make this const
     void setup(CPL::TransmittingField& field) {cplField=&field;};
     CPL::TransmittingField* cplField;
     void post_force(int vflag);
-    CPL::Field* portionField; 
+    bool conversionDisabled;
 
 private:
     double flekkoyGWeight (double y, double ymin, double ymax);

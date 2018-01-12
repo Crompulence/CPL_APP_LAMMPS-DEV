@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 import pytest
 from cplpy import run_test, prepare_config, get_test_dir
-import os
+import os, sys
 import numpy as np
 
 # -----Forces TESTS-----
@@ -19,7 +19,7 @@ TEST_DIR = os.path.dirname(os.path.realpath(__file__))
 
 @pytest.fixture()
 def prepare_config_fix(tmpdir):
-    prepare_config(tmpdir, TEST_DIR, MD_FNAME, CFD_FNAME)
+    prepare_config(tmpdir, TEST_DIR, [MD_FNAME, CFD_FNAME, "config.cpl"])
 
 
 # -----FORCES TESTS-----

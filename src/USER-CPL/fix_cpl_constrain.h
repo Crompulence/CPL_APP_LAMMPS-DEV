@@ -26,7 +26,6 @@ public:
     // Pool of constrains for MD
     CPL::IncomingFieldPool* cnstPool;
     DepPoolT* depPool;
-    std::string forceType;
 
 private:
     FixCPLInit* fixCPLInit;

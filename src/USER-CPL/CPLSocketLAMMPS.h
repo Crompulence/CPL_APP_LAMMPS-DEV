@@ -55,10 +55,6 @@ Author(s)
 #include "cpl/CPLSocket.h"
 
 
-const int AVG_MODE_ABOVE = 0;
-const int AVG_MODE_BELOW = 1;
-const int AVG_MODE_MIDPLANE = 2;
-
 class CPLSocketLAMMPS : public CPLSocket
 {
 
@@ -70,7 +66,6 @@ public:
     void init();
 
     // Data preparation and communication 
-    void configureBc(int mode);
     void setTimingInfo();
     void setCartCommInfo();
     void setRealmDomainInfo();

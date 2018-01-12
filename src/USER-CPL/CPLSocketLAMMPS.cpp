@@ -80,25 +80,3 @@ void CPLSocketLAMMPS::init() {
 	std::string cmd =  "variable CPLSTEPS equal " + std::to_string(nSteps);
     lmp->input->one(cmd.c_str());
 }
-
-
-void CPLSocketLAMMPS::configureBc(int mode) {
-    double shift;
-	if (mode == AVG_MODE_MIDPLANE) {
-		shift = -(bcRegion.ly)/2.0;
-	}
-	else if (mode == AVG_MODE_BELOW) {
-		shift = -bcRegion.ly;
-	}
-    // Create a new field with the corrected BC domain 
-    std::valarray<double> domain_bounds = bcRegion.bounds;
-    domain_bounds[2] += shift;
-    domain_bounds[3] += shift;
-    bcRegion = CPL::PortionField(CPL::Domain(domain_bounds), bcRegion.nCells,
-                                 bcRegion.cellBounds);
-    domain_bounds = bcPortionRegion.bounds;
-    domain_bounds[2] += shift;
-    domain_bounds[3] += shift;
-    bcPortionRegion = CPL::PortionField(CPL::Domain(domain_bounds),
-                                        bcPortionRegion.nCells, bcPortionRegion.cellBounds);
-}

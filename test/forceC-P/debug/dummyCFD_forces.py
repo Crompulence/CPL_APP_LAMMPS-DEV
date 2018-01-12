@@ -85,13 +85,11 @@ cpllib.send(send_array, cnstFRegion)
 cpllib.recv(recv_array, velBCRegion)
 
 for step in xrange(nsteps):
-    print("CFD step: ", step)
     cpllib.send(send_array, cnstFRegion)
     cpllib.recv(recv_array, velBCRegion)
 
 dx, dy, dz = (Lx / NCx, Ly / NCy, Lz / NCz)
 dA = dx * dz
-
 # Dump 1, 4 an 7 components of the stress tensor multiplied by the area of the cell
 func = lambda x: x*dA
 cpllib.dump_region(cnstFRegion, send_array, "cfd_forces.dat", realm_comm,                                                                                                                                                            

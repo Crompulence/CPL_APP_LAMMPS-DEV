@@ -38,8 +38,12 @@ thermo 10
 
 fix		1 all nve
 
-# Equilibrate before coupling
-#run 10
+# This has to be set before equilibration in a real coupled simulation
+fix cplfix all cpl/init
+fix cplfixconstrain all cpl/constrain
+
+# Equilibrate before coupling (timestep not multiple of timestep-ratio should work)
+run $(2*v_timestep_ratio+1)
 
 # IMPORTANT for not messing the internal average for BCs in the CPLSocket for LAMMPS
 reset_timestep 0
@@ -51,7 +55,5 @@ fix vfieldfix all ave/chunk ${timestep_ratio} 1 ${timestep_ratio} vfieldcompute 
 # cplifx set variable CPLSTEPS to the total number of steps
 print "---RUN COUPLED---"
 
-fix cplfix all cpl/init
-fix cplfixconstrain all cpl/constrain forcetype Flekkoy
-fix cplbcfix all cpl/bc sendtype velocity bndryavg above
+fix cplbcfix all cpl/bc
 run ${CPLSTEPS}
