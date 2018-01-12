@@ -68,8 +68,7 @@ cnstFPortion = cpllib.my_proc_portion(cnstFRegion)
 [cnstncx, cnstncy, cnstncz] = cpllib.get_no_cells(cnstFPortion)
 
 # Velocity averaging region cell limits and number of cells
-velBCRegion = np.copy(olap_limits)
-velBCRegion[3] = velBCRegion[2]
+velBCRegion = cpllib.get_bnry_limits()
 velBCPortion = cpllib.my_proc_portion(velBCRegion)
 [velBCncx, velBCncy, velBCncz] = cpllib.get_no_cells(velBCPortion)
 
@@ -85,13 +84,11 @@ cpllib.send(send_array, cnstFRegion)
 cpllib.recv(recv_array, velBCRegion)
 
 for step in xrange(nsteps):
-    print("CFD step: ", step)
     cpllib.send(send_array, cnstFRegion)
     cpllib.recv(recv_array, velBCRegion)
 
 dx, dy, dz = (Lx / NCx, Ly / NCy, Lz / NCz)
 dA = dx * dz
-
 # Dump 1, 4 an 7 components of the stress tensor multiplied by the area of the cell
 func = lambda x: x*dA
 cpllib.dump_region(cnstFRegion, send_array, "cfd_forces.dat", realm_comm,                                                                                                                                                            

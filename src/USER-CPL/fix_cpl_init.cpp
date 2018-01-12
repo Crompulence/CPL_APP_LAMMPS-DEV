@@ -14,8 +14,8 @@ FixCPLInit::FixCPLInit(LAMMPS_NS::LAMMPS *lammps, int narg, char **arg)
     		: Fix (lammps, narg, arg), cnstFixDefined(false), bcFixDefined(false) {
 
     cplsocket.loadParamFile();
-    CPL::get_file_param("constrain", "enabled", cplsocket.recvEnabled);
-    CPL::get_file_param("bc", "enabled", cplsocket.sendEnabled);
+    CPL::get_file_param("constrain-enabled", "", cplsocket.recvEnabled);
+    CPL::get_file_param("bc-enabled", "", cplsocket.sendEnabled);
 
    	lmp = lammps;
     cplsocket.setLammps(lmp);

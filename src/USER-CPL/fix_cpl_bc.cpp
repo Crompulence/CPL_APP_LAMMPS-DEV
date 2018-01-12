@@ -11,7 +11,7 @@
 CPL::PortionField shiftBc(const CPL::PortionField& region_in) {
     double shift = 0.0;
     std::string avg_mode;
-    CPL::get_file_param("bc", "averagetype", avg_mode);
+    CPL::get_file_param("bc.velocity", "compute-mode", avg_mode);
 	if (avg_mode == "midplane") {
 		shift = -(cplsocket.bcRegion.ly)/2.0;
 	}
@@ -50,7 +50,7 @@ FixCPLBc::FixCPLBc(LAMMPS_NS::LAMMPS *lammps, int narg, char **arg)
         lammps->error->all(FLERR,"Missing send_type option in cpl/init.");
     else {
         if (send_type == "velocity") {
-            (new VelOutgoingField("1velbc", DepListT({"cfdbcfix"}), depPool, lammps))->addToPool(bcPool);
+            (new VelOutgoingField("1velocity", DepListT({"cfdbcfix"}), depPool, lammps))->addToPool(bcPool);
             (new NbinOutgoingField("2nbinbc", DepListT({"cfdbcfix"}), depPool, lammps))->addToPool(bcPool);
         }
         else if (send_type == "gran") {

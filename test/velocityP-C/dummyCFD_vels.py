@@ -69,8 +69,7 @@ cnstFPortion = cpllib.my_proc_portion(cnstFRegion)
 [cnstncx, cnstncy, cnstncz] = cpllib.get_no_cells(cnstFPortion)
 
 # Velocity averaging region cell limits and number of cells
-velBCRegion = np.copy(olap_limits)
-velBCRegion[3] = velBCRegion[2]
+velBCRegion = cpllib.get_bnry_limits()
 velBCPortion = cpllib.my_proc_portion(velBCRegion)
 [velBCncx, velBCncy, velBCncz] = cpllib.get_no_cells(velBCPortion)
 
@@ -90,5 +89,5 @@ for step in xrange(nsteps):
     cpllib.recv(recv_array, velBCRegion)
     cpllib.dump_region(velBCRegion, recv_array, "cfd_vels%d.dat"%step, realm_comm,                                                                                                                                                            
                        components={0:None, 1:None, 2:None}, coords="other")
-
+    
 cpllib.finalize()

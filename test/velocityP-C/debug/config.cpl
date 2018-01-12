@@ -1,7 +1,8 @@
 {
+"constrain-enabled" : true,
+"bc-enabled": true,
+
 "constrain" : {
-    "string" : "Holaa",
-    "enabled": true,
     "momentum": {
         "type": "Flekkoy",
         "unit-conversion": "disabled"
@@ -15,9 +16,11 @@
 },
 
 "bc": {
-    "enabled": true,
-    "sendtype": "velocity", 
-    "averagetype": "above"
+    "sendtype" : "velocity",
+    "velocity" : {
+        "compute-mode": "above",
+        "components": [1, 1, 1]
+    }
 },
 
 "initial-conditions" : {
