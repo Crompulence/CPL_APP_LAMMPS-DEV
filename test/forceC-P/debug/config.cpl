@@ -19,7 +19,8 @@
     "sendtype" : "velocity",
     "velocity" : {
         "compute-mode": "above",
-        "components": [1, 1, 1]
+        "components": [1, 1, 1],
+        "average-vels": false
     }
 },
 

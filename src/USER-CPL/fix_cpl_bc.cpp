@@ -99,8 +99,10 @@ DEPFUNC_IMP(cfdbccompute_depfunc) {
             << "y lower " << cplsocket.dy << " "\
             << "z lower " << cplsocket.dz << " "\
             << "ids every region " << "cfdbcregion "\
-            << "units box bound y " << bounds[2] << " "\
-            << bounds[3];
+            << "units box " << " "\
+            << "bound x " << bounds[0] << " " << bounds[1] << " "\
+            << "bound y " << bounds[2] << " " << bounds[3] << " "\
+            << "bound z " << bounds[4] << " " << bounds[5];
     return str_out.str();
 }
 
@@ -109,6 +111,6 @@ DEPFUNC_IMP(cfdbcfix_depfunc) {
     str_out << "fix "  << "cfdbcfix "\
             << "all " << "ave/chunk "\
             << "1 1 " << cplsocket.timestepRatio << " "\
-            << "cfdbccompute vx vy vz norm all";
+            << "cfdbccompute vx vy vz norm all file vels.debug";
     return str_out.str();
 }

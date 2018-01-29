@@ -38,6 +38,9 @@ class VelOutgoingField:  public LAMMPSOutgoingField {
                    const std::vector<int>& loc_cell,
                    const std::valarray<double>& coord);
         void setup();
+        void update();
+        std::valarray<double> vAvg;
+        bool averageVels;
 };
 
 class NbinOutgoingField:  public LAMMPSOutgoingField {
