@@ -396,6 +396,10 @@ void CPLSocketLAMMPS::setupFixCFDtoMD(LAMMPS_NS::LAMMPS *lammps,
 	//Setup pointer to recieve buffer
 	cplfix->setupBuf(recvBuf, cnstFPortion);
 
+    //Again, no idea why this isn't automatically called by LAMMPS
+    int vflag = 0;
+    cplfix->setup(vflag);
+
 }
 
 
@@ -409,11 +413,13 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendtype) {
 	    int glob_cell[3], loc_cell[3];
         double Vcell = dx*dy*dz;
 
+        //int checksum=0;
         //Allocate buffers to send
-        allocateBuffers(lammps, sendtype);
+        //allocateBuffers(lammps, sendtype);
 
         //Downcast to CPLForceDrag type here
         CPLForceDrag& Granfxyz = dynamic_cast<CPLForceDrag&>(*cplfix->fxyz);
+        Granfxyz.calc_preforce = true;
 
         //Chosen arbitarily for now
         for (int i = velBCPortion[0]; i <= velBCPortion[1]; i++) {
@@ -446,26 +452,27 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendtype) {
                 npack += STRESSSIZE;
             }
             if ((sendtype & FORCE) == FORCE){
-                sendBuf(npack+0, loc_cell[0], loc_cell[1], loc_cell[2]) = Granfxyz.FSums(0,i,j,k);
-                sendBuf(npack+1, loc_cell[0], loc_cell[1], loc_cell[2]) = Granfxyz.FSums(1,i,j,k);
-                sendBuf(npack+2, loc_cell[0], loc_cell[1], loc_cell[2]) = Granfxyz.FSums(2,i,j,k);
+                sendBuf(npack+0, loc_cell[0], loc_cell[1], loc_cell[2]) = Granfxyz.FSums(0,loc_cell[0], loc_cell[1], loc_cell[2]);
+                sendBuf(npack+1, loc_cell[0], loc_cell[1], loc_cell[2]) = Granfxyz.FSums(1,loc_cell[0], loc_cell[1], loc_cell[2]);
+                sendBuf(npack+2, loc_cell[0], loc_cell[1], loc_cell[2]) = Granfxyz.FSums(2,loc_cell[0], loc_cell[1], loc_cell[2]);
                 npack += FORCESIZE;
             }
             if ((sendtype & FORCECOEFF) == FORCECOEFF){
-                sendBuf(npack+0, loc_cell[0], loc_cell[1], loc_cell[2]) = Granfxyz.FcoeffSums(i,j,k);
+                sendBuf(npack+0, loc_cell[0], loc_cell[1], loc_cell[2]) = Granfxyz.FcoeffSums(loc_cell[0], loc_cell[1], loc_cell[2]);
                 npack += FORCECOEFFSIZE;
             }
             if ((sendtype & VOIDRATIO) == VOIDRATIO){
-                if (Granfxyz.eSums(i,j,k)/Vcell > 1.) {
-                    std::cout << "Warning, eps = 0 so set to 0.1 in CPLSocketLAMMPS::packGran" << std::endl;
-                    sendBuf(npack, loc_cell[0], loc_cell[1], loc_cell[2]) = 0.1;
+                //sendBuf(npack, loc_cell[0], loc_cell[1], loc_cell[2]) = Granfxyz.nSums(loc_cell[0], loc_cell[1], loc_cell[2]);
+                //checksum += Granfxyz.nSums(loc_cell[0], loc_cell[1], loc_cell[2]);
+                if (Granfxyz.eSums(loc_cell[0], loc_cell[1], loc_cell[2])/Vcell > 1.) {
+                    //std::cout << "Warning, eps = 0 so set to 0.1 in CPLSocketLAMMPS::packGran" << std::endl;
+                    sendBuf(npack, loc_cell[0], loc_cell[1], loc_cell[2]) = 0.0;
                 } else {
-                    sendBuf(npack, loc_cell[0], loc_cell[1], loc_cell[2]) = 1. - Granfxyz.eSums(i,j,k)/Vcell;
+                    sendBuf(npack, loc_cell[0], loc_cell[1], loc_cell[2]) = 1.0 - Granfxyz.eSums(loc_cell[0], loc_cell[1], loc_cell[2])/Vcell;
                 }
+                //std::cout << i << " " << j << " " << k << " " << 1. - Granfxyz.eSums(i,j,k)/Vcell << std::endl;
                 npack += VOIDRATIOSIZE;
             }
-
-
         }}}
 
 }
