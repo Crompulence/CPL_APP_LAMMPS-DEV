@@ -101,7 +101,6 @@ fixCPLInit::fixCPLInit(LAMMPS_NS::LAMMPS *lammps, int narg, char **arg)
     	cplsocket.setBndryAvgMode(AVG_MODE_MIDPLANE);
     }
 
-
     //Create appropriate bitflag to determine what is sent
     std::string sendType(*sendtype);
     if (sendType.compare("velocity") == 0){
@@ -113,7 +112,6 @@ fixCPLInit::fixCPLInit(LAMMPS_NS::LAMMPS *lammps, int narg, char **arg)
         sendbitflag = cplsocket.VEL | cplsocket.FORCE |
                       cplsocket.FORCECOEFF | cplsocket.VOIDRATIO;
     }
-
 
 }
 
@@ -147,13 +145,14 @@ void fixCPLInit::post_force(int vflag)
     //std::cout << "fixCPLInit " << update->ntimestep << " " << update->ntimestep%nevery << std::endl;   
 
     // Recieve and unpack from CFD
-    if (update->ntimestep%nevery == 0)
+    if (update->ntimestep%nevery == 0){
         cplsocket.receive();
-	cplsocket.cplfix->apply();
+    }
+    cplsocket.cplfix->apply();
 
     //Pack and send to CFD
-    cplsocket.pack(lmp, sendbitflag);
     if (update->ntimestep%nevery == 0){
+        cplsocket.pack(lmp, sendbitflag);
         cplsocket.send();
     }
 
