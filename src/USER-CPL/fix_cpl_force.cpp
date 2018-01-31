@@ -2,6 +2,7 @@
 #include<memory>
 #include<fstream>
 #include <cmath>
+#include <chrono>
 
 #include "atom.h"
 #include "universe.h"
@@ -12,17 +13,24 @@
 #include "force.h"
 
 #include "fix_cpl_force.h"
-
 #include "cpl/CPL_ndArray.h"
+
+using namespace std::chrono;
 
 FixCPLForce::FixCPLForce ( LAMMPS_NS::LAMMPS *lammps, int narg, char **arg) 
     : Fix (lammps, narg, arg)
 {
+    class LAMMPS_NS::LAMMPS *lmp=lammps;
     for (int iarg=0; iarg<narg; iarg+=1){
         std::string arguments(arg[iarg]);
         if (arguments == "forcetype")
             forcetype = std::make_shared<std::string>(arg[iarg+1]);
     }
+
+    int ifix = lammps->modify->find_fix("clumps");
+
+    std::vector<double> fi{3};
+
 }
 
 //NOTE: It is called from fixCPLInit initial_integrate() now.
@@ -38,45 +46,20 @@ int FixCPLForce::setmask() {
 
 void FixCPLForce::setup(int vflag)
 {
-    apply();
-}
-
-//NOTE -- Not actually called post force, for some reason
-// this no longer works reliabley in LAMMPS, instead call
-// explicitly in CPLInit!
-void FixCPLForce::apply() {
-
-    double **x = atom->x;
-    double **v = atom->v;
-    double **f = atom->f;
-    double *rmass = atom->rmass;
-    double *radius = atom->radius;
-    int *mask = atom->mask;
-    int nlocal = atom->nlocal;
-
-    double dx = CPL::get<double> ("dx");     
-    double dy = CPL::get<double> ("dy");     
-    double dz = CPL::get<double> ("dz");     
-    double dA = dx*dz;
-    double dV = dx*dy*dz;
-    
-    char* groupstr = "cplforcegroup";
-    char* regionstr = "cplforceregion";
-
-    int cplforcegroup = group->find (groupstr);
-    int groupbit = group->bitmask[cplforcegroup];
-
-    int rid = domain->find_region (regionstr);
-    auto cplforceregion = domain->regions[rid];
 
     // Preliminary summation, only 1 value per cell so can slice
     // away cfdBuf->shape(0)
     std::string fxyzType(*forcetype);
+
+    //This should be replaced by a factory class/method I think!
+    // std::unique_ptr<CPLForce> CPLForce_factory( fxyzType );
+
     // std::unique_ptr<CPLForce>  fxyz(nullptr); //Moved to header
     if (fxyzType.compare("Flekkoy") == 0) {
         fxyz.reset(new CPLForceFlekkoy(9, cfdBuf->shape(1), 
                                           cfdBuf->shape(2), 
                                           cfdBuf->shape(3)));
+        fxyz->calc_preforce = true;
     } else if (fxyzType.compare("test") == 0) {
         fxyz.reset(new CPLForceTest(3, cfdBuf->shape(1), 
                                        cfdBuf->shape(2), 
@@ -86,19 +69,20 @@ void FixCPLForce::apply() {
                                            cfdBuf->shape(2), 
                                            cfdBuf->shape(3)));
     } else if (fxyzType.compare("Drag") == 0) {
-        fxyz.reset(new CPLForceDrag(3, cfdBuf->shape(1), 
+        fxyz.reset(new CPLForceDrag(9, cfdBuf->shape(1), 
                                        cfdBuf->shape(2), 
-                                       cfdBuf->shape(3))); 
+                                       cfdBuf->shape(3),
+                                       false)); 
         fxyz->calc_preforce = true;
 
+    } else if (fxyzType.compare("Di_Felice") == 0) {
+        fxyz.reset(new CPLForceGranular(9, cfdBuf->shape(1), 
+                                           cfdBuf->shape(2), 
+                                           cfdBuf->shape(3))); 
 //    } else if (fxyzType.compare("Ergun") == 0) {
 //        fxyz.reset(new CPLForceGranular(3, cfdBuf->shape(1), 
 //                                           cfdBuf->shape(2), 
 //                                           cfdBuf->shape(3))); 
-    } else if (fxyzType.compare("Di_Felice") == 0) {
-        fxyz.reset(new CPLForceGranular(3, cfdBuf->shape(1), 
-                                           cfdBuf->shape(2), 
-                                           cfdBuf->shape(3))); 
 //    } else if (fxyzType.compare("Tang_et_al") == 0) {
 //        fxyz.reset(new CPLForceGranular(3, cfdBuf->shape(1), 
 //                                           cfdBuf->shape(2), 
@@ -110,9 +94,6 @@ void FixCPLForce::apply() {
         throw std::runtime_error(cmd);
     }
 
-    //std::cout << "CPL Force type  " << fxyzType << fxyz->calc_preforce << std::endl;
-
-
     //Set CPLForce min/max to local processor limits using values from CPL library 
 	double min[3]; double max[3];
     std::vector<int> cnstFPortion(6);
@@ -120,28 +101,78 @@ void FixCPLForce::apply() {
     CPL::get_cnst_limits(cnstFRegion.data());
     CPL::my_proc_portion (cnstFRegion.data(), cnstFPortion.data());
 	//MIN
-	CPL::map_cell2coord(cnstFPortion[0], cnstFPortion[2], cnstFPortion[4], min);
+	CPL::map_cell2coord(cnstFPortion[0], 
+                        cnstFPortion[2], 
+                        cnstFPortion[4], min);
 	//MAX
-	CPL::map_cell2coord(cnstFPortion[1], cnstFPortion[3], cnstFPortion[5], max);
+	CPL::map_cell2coord(cnstFPortion[1], 
+                        cnstFPortion[3], 
+                        cnstFPortion[5], max);
+
+    double dx = CPL::get<double> ("dx");     
+    double dy = CPL::get<double> ("dy");     
+    double dz = CPL::get<double> ("dz");     
+
 	max[0] += dx;
 	max[1] += dy;
 	max[2] += dz;
     fxyz->set_minmax(min, max);
 
+    //Call apply for first step
+    apply();
+}
+
+//NOTE -- Not actually called post force, for some reason
+// this no longer works reliably in LAMMPS, instead call
+// explicitly in CPLInit!
+void FixCPLForce::apply() {
+
+    bool time = false;
+    high_resolution_clock::time_point begin;
+    high_resolution_clock::time_point end;
+
+    if (time) begin = high_resolution_clock::now();
+
+    double **x = atom->x;
+    double **v = atom->v;
+    double **f = atom->f;
+    double *rmass = atom->rmass;
+    double *radius = atom->radius;
+    int *mask = atom->mask;
+    int nlocal = atom->nlocal;
+    
+    char* groupstr = "cplforcegroup";
+    char* regionstr = "cplforceregion";
+
+    int cplforcegroup = group->find(groupstr);
+    int groupbit = group->bitmask[cplforcegroup];
+
+    int rid = domain->find_region (regionstr);
+    auto cplforceregion = domain->regions[rid];
+
+    //Update CFD field buffer with latest recieved value
+    fxyz->set_field(*cfdBuf);
+
     double fx=0., fy=0., fz=0.;
     double mi, radi, pot, xi[3], vi[3], ai[3];
     pot = 1.0; //Interaction Potential should be set here
     std::vector<int> cell;
-    std::vector<double> fi(3);
+
+    if (time) {
+        end = high_resolution_clock::now();
+        std::cout << "time allocatetion = " << duration_cast<microseconds>( end - begin ).count() << "e-6 s"   << std::endl;
+        begin = high_resolution_clock::now();
+    }
 
     //Should we reset sums here?
     fxyz->resetsums();
+
+    //Pre-force calculation, get quanities from discrete system needed to apply force
     if (fxyz->calc_preforce) {
     	for (int i = 0; i < nlocal; ++i)
     	{
        		if (mask[i] & groupbit)
         	{
-
 		        //Get local molecule data
 		        mi = rmass[i];
 		        radi = radius[i];
@@ -156,8 +187,14 @@ void FixCPLForce::apply() {
 
         	}
         }
+
     }
 
+    if (time) {
+        end = high_resolution_clock::now();
+        std::cout << "time pre force = " << duration_cast<microseconds>( end - begin ).count() << "e-6 s"   << std::endl;
+        begin = high_resolution_clock::now();
+    }
 
     // Calculate force and apply
     for (int i = 0; i < nlocal; ++i)
@@ -175,13 +212,12 @@ void FixCPLForce::apply() {
             }
 
             //Get force from object
-            fxyz->set_field(*cfdBuf);
             fi = fxyz->get_force(xi, vi, ai, mi, radi, pot);
 
             //Apply force and multiply by conversion factor if not SI or LJ units
-            f[i][0] += fi[0]*force->ftm2v;
-            f[i][1] += fi[1]*force->ftm2v;
-            f[i][2] += fi[2]*force->ftm2v;
+            for (int n=0; n<3; n++){
+                f[i][n] += fi[n]*force->ftm2v;
+            }
 
 //            std::cout.precision(17);
 //            std::cout << "Force " << i << " " << xi[2] <<  " " << vi[2] << " " << ai[2] << " " <<
@@ -190,6 +226,12 @@ void FixCPLForce::apply() {
 
         }
     }
+
+    if (time) {
+        end = high_resolution_clock::now();
+        std::cout << "time get force = " << duration_cast<microseconds>( end - begin ).count() << "e-6 s"   << std::endl;
+    }
+
 }
 
 
