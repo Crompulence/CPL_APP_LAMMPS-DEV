@@ -88,8 +88,9 @@ void CPLSocketLAMMPS::initMD(LAMMPS_NS::LAMMPS *lammps) {
    
     //TODO: get the origin from LAMMPS 
     double xyz_orig[3] = {0.0 ,0.0, 0.0};
+
     //NOTE: Make sure set_timing is called before setup_cfd due to a unfixed bug
-    CPL::set_timing(initialstep, 0, 1.0);
+    //CPL::set_timing(initialstep, 0, 1.0);
 
     //Setup CPL run
     CPL::setup_md (icomm_grid, globaldomain, xyz_orig);
@@ -112,13 +113,11 @@ void CPLSocketLAMMPS::getCellTopology() {
     // Cell bounds for velocity BCs region
     CPL::get_bnry_limits(velBCRegion.data());
     CPL::my_proc_portion (velBCRegion.data(), velBCPortion.data());
-
     CPL::get_no_cells(velBCPortion.data(), velBCCells);
 
     // Cell bounds for the constrained region
     CPL::get_cnst_limits(cnstFRegion.data());
     CPL::my_proc_portion (cnstFRegion.data(), cnstFPortion.data());
-
     CPL::get_no_cells(cnstFPortion.data(), cnstFCells);
 
 }
@@ -417,10 +416,6 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendtype) {
         //Allocate buffers to send
         //allocateBuffers(lammps, sendtype);
 
-        //Downcast to CPLForceDrag type here
-        CPLForceDrag& Granfxyz = dynamic_cast<CPLForceDrag&>(*cplfix->fxyz);
-        Granfxyz.calc_preforce = true;
-
         //Chosen arbitarily for now
         for (int i = velBCPortion[0]; i <= velBCPortion[1]; i++) {
         for (int j = velBCPortion[2]; j <= velBCPortion[3]; j++) {
@@ -452,21 +447,35 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendtype) {
                 npack += STRESSSIZE;
             }
             if ((sendtype & FORCE) == FORCE){
+
+                //Downcast to CPLForceDrag type here
+                CPLForceDrag& Granfxyz = dynamic_cast<CPLForceDrag&>(*cplfix->fxyz);
+                Granfxyz.calc_preforce = true;
+
                 sendBuf(npack+0, loc_cell[0], loc_cell[1], loc_cell[2]) = Granfxyz.FSums(0,loc_cell[0], loc_cell[1], loc_cell[2]);
                 sendBuf(npack+1, loc_cell[0], loc_cell[1], loc_cell[2]) = Granfxyz.FSums(1,loc_cell[0], loc_cell[1], loc_cell[2]);
                 sendBuf(npack+2, loc_cell[0], loc_cell[1], loc_cell[2]) = Granfxyz.FSums(2,loc_cell[0], loc_cell[1], loc_cell[2]);
                 npack += FORCESIZE;
             }
             if ((sendtype & FORCECOEFF) == FORCECOEFF){
+                //Downcast to CPLForceDrag type here
+                CPLForceDrag& Granfxyz = dynamic_cast<CPLForceDrag&>(*cplfix->fxyz);
+                Granfxyz.calc_preforce = true;
+
                 sendBuf(npack+0, loc_cell[0], loc_cell[1], loc_cell[2]) = Granfxyz.FcoeffSums(loc_cell[0], loc_cell[1], loc_cell[2]);
                 npack += FORCECOEFFSIZE;
             }
             if ((sendtype & VOIDRATIO) == VOIDRATIO){
+
+                //Downcast to CPLForceDrag type here
+                CPLForceDrag& Granfxyz = dynamic_cast<CPLForceDrag&>(*cplfix->fxyz);
+                Granfxyz.calc_preforce = true;
+
                 //sendBuf(npack, loc_cell[0], loc_cell[1], loc_cell[2]) = Granfxyz.nSums(loc_cell[0], loc_cell[1], loc_cell[2]);
                 //checksum += Granfxyz.nSums(loc_cell[0], loc_cell[1], loc_cell[2]);
                 if (Granfxyz.eSums(loc_cell[0], loc_cell[1], loc_cell[2])/Vcell > 1.) {
                     //std::cout << "Warning, eps = 0 so set to 0.1 in CPLSocketLAMMPS::packGran" << std::endl;
-                    sendBuf(npack, loc_cell[0], loc_cell[1], loc_cell[2]) = 0.0;
+                    sendBuf(npack, loc_cell[0], loc_cell[1], loc_cell[2]) = 0.0001;
                 } else {
                     sendBuf(npack, loc_cell[0], loc_cell[1], loc_cell[2]) = 1.0 - Granfxyz.eSums(loc_cell[0], loc_cell[1], loc_cell[2])/Vcell;
                 }

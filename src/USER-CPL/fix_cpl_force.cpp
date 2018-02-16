@@ -27,8 +27,7 @@ FixCPLForce::FixCPLForce ( LAMMPS_NS::LAMMPS *lammps, int narg, char **arg)
             forcetype = std::make_shared<std::string>(arg[iarg+1]);
     }
 
-    int ifix = lammps->modify->find_fix("clumps");
-
+    //int ifix = lammps->modify->find_fix("clumps");
     std::vector<double> fi{3};
 
 }
@@ -140,7 +139,12 @@ void FixCPLForce::apply() {
     double *radius = atom->radius;
     int *mask = atom->mask;
     int nlocal = atom->nlocal;
-    
+    // This will get the total number of molecules including halos
+    // However, acceleration won't be held for ghost cells so 
+    // probably not possible to use this. Instead collect pre force
+    // values and exchange these using CPL_swaphalos.
+    int nall = atom->nlocal + atom->nghost;
+
     char* groupstr = "cplforcegroup";
     char* regionstr = "cplforceregion";
 
@@ -167,7 +171,7 @@ void FixCPLForce::apply() {
     //Should we reset sums here?
     fxyz->resetsums();
 
-    //Pre-force calculation, get quanities from discrete system needed to apply force
+    //Pre-force calculation, get quantities from discrete system needed to apply force
     if (fxyz->calc_preforce) {
     	for (int i = 0; i < nlocal; ++i)
     	{

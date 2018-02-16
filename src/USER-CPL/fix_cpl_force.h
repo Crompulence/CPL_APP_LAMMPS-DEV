@@ -10,7 +10,7 @@ FixStyle(cpl/force, FixCPLForce)
 #include<memory>
 
 #include "fix.h"
-#include "fix_rigid.h"
+//#include "fix_rigid.h"
 
 #include "cpl/cpl.h"
 #include "cpl/CPL_ndArray.h"

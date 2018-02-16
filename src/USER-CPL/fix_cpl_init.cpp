@@ -64,8 +64,7 @@ fixCPLInit::fixCPLInit(LAMMPS_NS::LAMMPS *lammps, int narg, char **arg)
 
     forcetype = std::make_shared<std::string>("Undefined");
     sendtype = std::make_shared<std::string>("velocity");
-    //Change from undefined to default of above if not specified
-    bndryavg = std::make_shared<std::string>("above");
+    bndryavg = std::make_shared<std::string>("above");     //default to above if not specified
     for (int iarg=0; iarg<narg; iarg+=1){
         std::cout << iarg << " " << arg[iarg] << std::endl;
         std::string arguments(arg[iarg]);
@@ -113,6 +112,12 @@ fixCPLInit::fixCPLInit(LAMMPS_NS::LAMMPS *lammps, int narg, char **arg)
                       cplsocket.FORCECOEFF | cplsocket.VOIDRATIO;
     }
 
+    if (  (sendType.compare("granfull") == 0) 
+        & (forceType.compare("Drag") != 0))
+            lammps->error->all(FLERR,"Drag Forcetype (or its derivatives) required for sendtype granfull");
+
+
+
 }
 
 int fixCPLInit::setmask() {
@@ -142,7 +147,7 @@ void fixCPLInit::setup(int vflag)
 void fixCPLInit::post_force(int vflag)
 {
 
-    //std::cout << "fixCPLInit " << update->ntimestep << " " << update->ntimestep%nevery << std::endl;   
+    //std::cout << "fixCPLInit " << update->ntimestep << " " << update->ntimestep%nevery <<" " <<  update->dt << " " << std::endl;   
 
     // Recieve and unpack from CFD
     if (update->ntimestep%nevery == 0){
