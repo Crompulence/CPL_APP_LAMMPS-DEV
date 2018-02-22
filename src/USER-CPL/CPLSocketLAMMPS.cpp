@@ -446,6 +446,7 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendbitflag) {
 
 		    glob_cell[0] = i; glob_cell[1] = j; glob_cell[2] = k;
 		    CPL::map_glob2loc_cell(velBCPortion.data(), glob_cell, loc_cell);
+            int ic=loc_cell[0]; int jc=loc_cell[1]; int kc=loc_cell[2];
             row = i*nc_velBCRegion[1]*nc_velBCRegion[2] + j*nc_velBCRegion[2] + k;
             int npack = 0;
 
@@ -455,14 +456,14 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendbitflag) {
                 double vy = cfdbcfix->compute_array(row, 5);  
                 double vz = cfdbcfix->compute_array(row, 6);  
 
-                sendBuf(npack+0, loc_cell[0], loc_cell[1], loc_cell[2]) = vx;
-                sendBuf(npack+1, loc_cell[0], loc_cell[1], loc_cell[2]) = vy;
-                sendBuf(npack+2, loc_cell[0], loc_cell[1], loc_cell[2]) = vz; 
+                sendBuf(npack+0, ic, jc, kc) = vx;
+                sendBuf(npack+1, ic, jc, kc) = vy;
+                sendBuf(npack+2, ic, jc, kc) = vz; 
                 npack += VELSIZE;
             }
             if ((sendbitflag & NBIN) == NBIN){
                 double ncount = cfdbcfix->compute_array(row, 3);
-                sendBuf(npack, loc_cell[0], loc_cell[1], loc_cell[2]) = ncount; 
+                sendBuf(npack, ic, jc, kc) = ncount; 
                 npack += NBINSIZE;
             }
             if ((sendbitflag & STRESS) == STRESS){
@@ -471,36 +472,43 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendbitflag) {
             }
             if ((sendbitflag & FORCE) == FORCE){
 
-                //Downcast to CPLForceDrag type here
-                CPLForceDrag& Granfxyz = dynamic_cast<CPLForceDrag&>(*cplfix->fxyz);
-                Granfxyz.calc_preforce = true;
-                sendBuf(npack+0, loc_cell[0], loc_cell[1], loc_cell[2]) = Granfxyz.FSums->get_array_value(0, loc_cell[0], loc_cell[1], loc_cell[2]);
-                sendBuf(npack+1, loc_cell[0], loc_cell[1], loc_cell[2]) = Granfxyz.FSums->get_array_value(1, loc_cell[0], loc_cell[1], loc_cell[2]);
-                sendBuf(npack+2, loc_cell[0], loc_cell[1], loc_cell[2]) = Granfxyz.FSums->get_array_value(2, loc_cell[0], loc_cell[1], loc_cell[2]);
+                //Get FSums internal to CPLForceTest
+                std::string name("FSums");
+                auto field_ptr = c.get_internal_fields(name);
+                if (field_ptr != nullptr){
+                    sendBuf(npack+0, ic, jc, kc) = field_ptr->get_array_value(0, ic, jc, kc);
+                    sendBuf(npack+1, ic, jc, kc) = field_ptr->get_array_value(1, ic, jc, kc);
+                    sendBuf(npack+2, ic, jc, kc) = field_ptr->get_array_value(2, ic, jc, kc);
+                 } else {
+                    lammps->error->all(FLERR," Array value FSums required by sendtype not collected in forcetype");
+                }
                 npack += FORCESIZE;
             }
             if ((sendbitflag & FORCECOEFF) == FORCECOEFF){
-                //Downcast to CPLForceDrag type here
-                CPLForceDrag& Granfxyz = dynamic_cast<CPLForceDrag&>(*cplfix->fxyz);
-                Granfxyz.calc_preforce = true;
 
-                sendBuf(npack+0, loc_cell[0], loc_cell[1], loc_cell[2]) = Granfxyz.FcoeffSums->get_array_value(0, loc_cell[0], loc_cell[1], loc_cell[2]);
+                std::string name("FcoeffSums");
+                auto field_ptr = c.get_internal_fields(name);
+                if (field_ptr != nullptr){
+                    sendBuf(npack+0, ic, jc, kc) = field_ptr->get_array_value(0, ic, jc, kc);
+                } else {
+                    lammps->error->all(FLERR," Array value FcoeffSums required by sendtype not collected in forcetype");
+                }
                 npack += FORCECOEFFSIZE;
             }
             if ((sendbitflag & VOIDRATIO) == VOIDRATIO){
 
-                //Downcast to CPLForceDrag type here
-                CPLForceDrag& Granfxyz = dynamic_cast<CPLForceDrag&>(*cplfix->fxyz);
-                Granfxyz.calc_preforce = true;
-
-                //sendBuf(npack, loc_cell[0], loc_cell[1], loc_cell[2]) = Granfxyz.nSums(loc_cell[0], loc_cell[1], loc_cell[2]);
-                //checksum += Granfxyz.nSums(loc_cell[0], loc_cell[1], loc_cell[2]);
-                double phi = Granfxyz.eSums->get_array_value(0,loc_cell[0], loc_cell[1], loc_cell[2])/Vcell;
-                if (phi > 1.) {
-                    //std::cout << "Warning, eps = 0 so set to 0.1 in CPLSocketLAMMPS::packGran" << std::endl;
-                    sendBuf(npack, loc_cell[0], loc_cell[1], loc_cell[2]) = 0.01;
+                std::string name("eSums");
+                auto field_ptr = c.get_internal_fields(name);
+                if (field_ptr != nullptr){
+                    double phi = field_ptr->get_array_value(0, ic, jc, kc)/Vcell;
+                    if (phi > 1.) {
+                        //std::cout << "Warning, eps = 0 so set to 0.1 in CPLSocketLAMMPS::packGran" << std::endl;
+                        sendBuf(npack, ic, jc, kc) = 0.01;
+                    } else {
+                        sendBuf(npack, ic, jc, kc) = 1.0 - phi;
+                    }
                 } else {
-                    sendBuf(npack, loc_cell[0], loc_cell[1], loc_cell[2]) = 1.0 - phi;
+                    lammps->error->all(FLERR," Array value eSums required by sendtype not collected in forcetype");
                 }
                 //std::cout << i << " " << j << " " << k << " " << 1. - Granfxyz.eSums(i,j,k)/Vcell << std::endl;
                 npack += VOIDRATIOSIZE;
@@ -523,39 +531,39 @@ void CPLSocketLAMMPS::receive() {
 };
 
 
-//General function to parse args and return a vector...
+////General function to parse args and return a vector...
 
-std::vector<std::shared_ptr<std::string>> parse_arguments(int narg, char **arg, 
-                                                            std::vector<std::string> endargs) {
+//std::vector<std::shared_ptr<std::string>> parse_arguments(int narg, char **arg, 
+//                                                            std::vector<std::string> endargs) {
 
-    std::shared_ptr<std::string> forcetype;
-    std::vector<std::shared_ptr<std::string>> forcetype_args;
+//    std::shared_ptr<std::string> forcetype;
+//    std::vector<std::shared_ptr<std::string>> forcetype_args;
 
-    for (int iarg=0; iarg<narg; iarg+=1){
-        std::string arguments(arg[iarg]);
-        if (arguments == "forcetype"){
-            if (iarg+1<narg) {
-                for (int jarg=iarg+1; jarg<narg; jarg+=1){
-                    std::shared_ptr<std::string> forcetype_arg;
-                    forcetype_arg = std::make_shared<std::string>(arg[jarg]);
-                    //Check if we have read another argument type
-                    std::string forceType_arg(*forcetype_arg);
-                    for ( auto &endarg : endargs ) {
-                        if (  forceType_arg.compare(endarg) == 0)
-                            break;
-                    }
-                    //Otherwise it is a sendtype argument and should be added
-                    std::string forceType(*forcetype);
-                    std::cout << "Lammps FixCPLForce forcetype: "  << forceType << " with args "
-                              <<  forceType_arg << std::endl;
-                    forcetype_args.push_back(forcetype_arg);
-                }
-                
-            }
-        }
-    }
-    return forcetype_args
-}
+//    for (int iarg=0; iarg<narg; iarg+=1){
+//        std::string arguments(arg[iarg]);
+//        if (arguments == "forcetype"){
+//            if (iarg+1<narg) {
+//                for (int jarg=iarg+1; jarg<narg; jarg+=1){
+//                    std::shared_ptr<std::string> forcetype_arg;
+//                    forcetype_arg = std::make_shared<std::string>(arg[jarg]);
+//                    //Check if we have read another argument type
+//                    std::string forceType_arg(*forcetype_arg);
+//                    for ( auto &endarg : endargs ) {
+//                        if (  forceType_arg.compare(endarg) == 0)
+//                            break;
+//                    }
+//                    //Otherwise it is a sendtype argument and should be added
+//                    std::string forceType(*forcetype);
+//                    std::cout << "Lammps FixCPLForce forcetype: "  << forceType << " with args "
+//                              <<  forceType_arg << std::endl;
+//                    forcetype_args.push_back(forcetype_arg);
+//                }
+//                
+//            }
+//        }
+//    }
+//    return forcetype_args;
+//}
 
 
 
