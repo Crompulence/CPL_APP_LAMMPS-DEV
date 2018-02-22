@@ -126,7 +126,7 @@ void CPLSocketLAMMPS::getCellTopology() {
 
 
 //Pack general using bitflag
-void CPLSocketLAMMPS::allocateBuffers(const LAMMPS_NS::LAMMPS *lammps, int sendtype) {
+void CPLSocketLAMMPS::allocateBuffers(const LAMMPS_NS::LAMMPS *lammps, int sendbitflag) {
 
     // Received Buf field
     int recvShape[4] = {9, cnstFCells[0], cnstFCells[1], cnstFCells[2]};
@@ -134,23 +134,23 @@ void CPLSocketLAMMPS::allocateBuffers(const LAMMPS_NS::LAMMPS *lammps, int sendt
 
     //Check what is to be packed and sent
     int packsize=0;
-    if ((sendtype & VEL) == VEL){
+    if ((sendbitflag & VEL) == VEL){
         packsize += VELSIZE;
     }
-    if ((sendtype & NBIN) == NBIN){
+    if ((sendbitflag & NBIN) == NBIN){
         packsize += NBINSIZE;
     }
-    if ((sendtype & STRESS) == STRESS){
+    if ((sendbitflag & STRESS) == STRESS){
         packsize += STRESSSIZE;
-        lammps->error->all(FLERR," sendtype stress not developed. Aborting.");
+        lammps->error->all(FLERR," sendbitflag stress not developed. Aborting.");
     }
-    if ((sendtype & FORCE) == FORCE){
+    if ((sendbitflag & FORCE) == FORCE){
         packsize += FORCESIZE;
     }
-    if ((sendtype & FORCECOEFF) == FORCECOEFF){
+    if ((sendbitflag & FORCECOEFF) == FORCECOEFF){
         packsize += FORCECOEFFSIZE;
     }
-    if ((sendtype & VOIDRATIO) == VOIDRATIO){
+    if ((sendbitflag & VOIDRATIO) == VOIDRATIO){
         packsize += VOIDRATIOSIZE;
     }
 
@@ -158,8 +158,8 @@ void CPLSocketLAMMPS::allocateBuffers(const LAMMPS_NS::LAMMPS *lammps, int sendt
     int sendShape[4] = {packsize, velBCCells[0], velBCCells[1], velBCCells[2]};
     sendBuf.resize(4, sendShape);
 
-    if (sendtype > 63)
-        lammps->error->all(FLERR," sendtype bit flag unknown type. Aborting.");
+    if (sendbitflag > 63)
+        lammps->error->all(FLERR," sendbitflag bit flag unknown type. Aborting.");
 }
 
 void CPLSocketLAMMPS::setBndryAvgMode(int mode) {
@@ -180,11 +180,11 @@ void CPLSocketLAMMPS::setBndryAvgMode(int mode) {
 	}
 }
 
-void CPLSocketLAMMPS::setupFixMDtoCFD(LAMMPS_NS::LAMMPS *lammps, int sendtype)
+void CPLSocketLAMMPS::setupFixMDtoCFD(LAMMPS_NS::LAMMPS *lammps, int sendbitflag)
 {
 
     //Allocate buffers
-    allocateBuffers(lammps, sendtype);
+    allocateBuffers(lammps, sendbitflag);
 
     double botLeft[3];
     CPL::map_cell2coord(velBCRegion[0] , velBCRegion[2], velBCRegion[4], botLeft);
@@ -232,15 +232,20 @@ void CPLSocketLAMMPS::setupFixMDtoCFD(LAMMPS_NS::LAMMPS *lammps, int sendtype)
     //////////////////////////////////////////
     //This code sets the compute
     //////////////////////////////////////////
-    char dxstr[20], dystr[20], dzstr[20], low_y[20], hi_y[20];
+    char dxstr[20], dystr[20], dzstr[20];
+    char low_x[20], hi_x[20], low_y[20], hi_y[20], low_z[20], hi_z[20];
     ret = sprintf(dxstr, "%f", dx);
     ret = sprintf(dystr, "%f", dy);
     ret = sprintf(dzstr, "%f", dz);
+    ret = sprintf(low_x, "%f", botLeft[0]);
+    ret = sprintf(hi_x, "%f", topRight[0]);
     ret = sprintf(low_y, "%f", botLeft[1]);
     ret = sprintf(hi_y, "%f", topRight[1]);
+    ret = sprintf(low_z, "%f", botLeft[2]);
+    ret = sprintf(hi_z, "%f", topRight[2]);
 
     // CFD BC compute chunk 3d bins in y slice
-    char **computearg = new char*[23];
+    char **computearg = new char*[31];
     computearg[0] = (char *) "cfdbccompute";
     computearg[1] = (char *) "all";
     computearg[2] = (char *) "chunk/atom";
@@ -261,10 +266,18 @@ void CPLSocketLAMMPS::setupFixMDtoCFD(LAMMPS_NS::LAMMPS *lammps, int sendtype)
     computearg[17] = (char *) "units";
     computearg[18] = (char *) "box";
     computearg[19] = (char *) "bound";
-    computearg[20] = (char *) "y";
-    computearg[21] = (char *) low_y;
-    computearg[22] = (char *) hi_y;
-    lammps->modify->add_compute(23, computearg);
+    computearg[20] = (char *) "x";
+    computearg[21] = (char *) low_x;
+    computearg[22] = (char *) hi_x;
+    computearg[23] = (char *) "bound";
+    computearg[24] = (char *) "y";
+    computearg[25] = (char *) low_y;
+    computearg[26] = (char *) hi_y;
+    computearg[27] = (char *) "bound";
+    computearg[28] = (char *) "z";
+    computearg[29] = (char *) low_z;
+    computearg[30] = (char *) hi_z;
+    lammps->modify->add_compute(31, computearg);
     //Get handle for compute
     int icompute = lammps->modify->find_compute("cfdbccompute");
     if (icompute < 0)
@@ -325,7 +338,8 @@ void CPLSocketLAMMPS::setupFixMDtoCFD(LAMMPS_NS::LAMMPS *lammps, int sendtype)
 };
 
 void CPLSocketLAMMPS::setupFixCFDtoMD(LAMMPS_NS::LAMMPS *lammps, 
-                                      std::shared_ptr<std::string> forcetype) {
+                                      std::shared_ptr<std::string> forcetype, 
+                                      std::vector<std::shared_ptr<std::string>> forcetype_args) {
 
     double botLeft[3];
     CPL::map_cell2coord(cnstFRegion[0] , cnstFRegion[2], cnstFRegion[4], botLeft);
@@ -374,7 +388,7 @@ void CPLSocketLAMMPS::setupFixCFDtoMD(LAMMPS_NS::LAMMPS *lammps,
     char * writable = new char[str.size() + 1];
     std::copy(str.begin(), str.end(), writable);
     writable[str.size()] = '\0'; // terminating 0
-    char **fixarg = new char*[7];
+    char **fixarg = new char*[7+forcetype_args.size()];
     fixarg[0] = (char *) "cplforcefix";
     fixarg[1] = (char *) "all";
     fixarg[2] = (char *) "cpl/force";
@@ -382,7 +396,16 @@ void CPLSocketLAMMPS::setupFixCFDtoMD(LAMMPS_NS::LAMMPS *lammps,
     fixarg[4] = (char *) "cplforceregion"; 
     fixarg[5] = (char *) "forcetype";
     fixarg[6] = writable;
-    lammps->modify->add_fix(7, fixarg);
+    int i=0;
+    for(int i=0; i != forcetype_args.size(); i++) {
+        auto arg = forcetype_args[i];
+        std::string str(*arg);
+        char * writable = new char[str.size() + 1];
+        std::copy(str.begin(), str.end(), writable);
+        writable[str.size()] = '\0'; // terminating 0
+        fixarg[7+i] = writable;
+    }
+    lammps->modify->add_fix(7+forcetype_args.size(), fixarg);
     delete writable;
     delete [] fixarg;
 
@@ -403,7 +426,7 @@ void CPLSocketLAMMPS::setupFixCFDtoMD(LAMMPS_NS::LAMMPS *lammps,
 
 
 //Pack general using bitflag
-void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendtype) {
+void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendbitflag) {
 
         int *npxyz_md = lammps->comm->procgrid;
 	    int nc_velBCRegion[3];
@@ -414,7 +437,7 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendtype) {
 
         //int checksum=0;
         //Allocate buffers to send
-        //allocateBuffers(lammps, sendtype);
+        //allocateBuffers(lammps, sendbitflag);
 
         //Chosen arbitarily for now
         for (int i = velBCPortion[0]; i <= velBCPortion[1]; i++) {
@@ -427,7 +450,7 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendtype) {
             int npack = 0;
 
             //Check what is to be packed and sent
-            if ((sendtype & VEL) == VEL){
+            if ((sendbitflag & VEL) == VEL){
                 double vx = cfdbcfix->compute_array(row, 4);  
                 double vy = cfdbcfix->compute_array(row, 5);  
                 double vz = cfdbcfix->compute_array(row, 6);  
@@ -437,35 +460,34 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendtype) {
                 sendBuf(npack+2, loc_cell[0], loc_cell[1], loc_cell[2]) = vz; 
                 npack += VELSIZE;
             }
-            if ((sendtype & NBIN) == NBIN){
+            if ((sendbitflag & NBIN) == NBIN){
                 double ncount = cfdbcfix->compute_array(row, 3);
                 sendBuf(npack, loc_cell[0], loc_cell[1], loc_cell[2]) = ncount; 
                 npack += NBINSIZE;
             }
-            if ((sendtype & STRESS) == STRESS){
-                lammps->error->all(FLERR," sendtype stress not developed. Aborting.");
+            if ((sendbitflag & STRESS) == STRESS){
+                lammps->error->all(FLERR," sendbitflag stress not developed. Aborting.");
                 npack += STRESSSIZE;
             }
-            if ((sendtype & FORCE) == FORCE){
+            if ((sendbitflag & FORCE) == FORCE){
 
                 //Downcast to CPLForceDrag type here
                 CPLForceDrag& Granfxyz = dynamic_cast<CPLForceDrag&>(*cplfix->fxyz);
                 Granfxyz.calc_preforce = true;
-
-                sendBuf(npack+0, loc_cell[0], loc_cell[1], loc_cell[2]) = Granfxyz.FSums(0,loc_cell[0], loc_cell[1], loc_cell[2]);
-                sendBuf(npack+1, loc_cell[0], loc_cell[1], loc_cell[2]) = Granfxyz.FSums(1,loc_cell[0], loc_cell[1], loc_cell[2]);
-                sendBuf(npack+2, loc_cell[0], loc_cell[1], loc_cell[2]) = Granfxyz.FSums(2,loc_cell[0], loc_cell[1], loc_cell[2]);
+                sendBuf(npack+0, loc_cell[0], loc_cell[1], loc_cell[2]) = Granfxyz.FSums->get_array_value(0, loc_cell[0], loc_cell[1], loc_cell[2]);
+                sendBuf(npack+1, loc_cell[0], loc_cell[1], loc_cell[2]) = Granfxyz.FSums->get_array_value(1, loc_cell[0], loc_cell[1], loc_cell[2]);
+                sendBuf(npack+2, loc_cell[0], loc_cell[1], loc_cell[2]) = Granfxyz.FSums->get_array_value(2, loc_cell[0], loc_cell[1], loc_cell[2]);
                 npack += FORCESIZE;
             }
-            if ((sendtype & FORCECOEFF) == FORCECOEFF){
+            if ((sendbitflag & FORCECOEFF) == FORCECOEFF){
                 //Downcast to CPLForceDrag type here
                 CPLForceDrag& Granfxyz = dynamic_cast<CPLForceDrag&>(*cplfix->fxyz);
                 Granfxyz.calc_preforce = true;
 
-                sendBuf(npack+0, loc_cell[0], loc_cell[1], loc_cell[2]) = Granfxyz.FcoeffSums(loc_cell[0], loc_cell[1], loc_cell[2]);
+                sendBuf(npack+0, loc_cell[0], loc_cell[1], loc_cell[2]) = Granfxyz.FcoeffSums->get_array_value(0, loc_cell[0], loc_cell[1], loc_cell[2]);
                 npack += FORCECOEFFSIZE;
             }
-            if ((sendtype & VOIDRATIO) == VOIDRATIO){
+            if ((sendbitflag & VOIDRATIO) == VOIDRATIO){
 
                 //Downcast to CPLForceDrag type here
                 CPLForceDrag& Granfxyz = dynamic_cast<CPLForceDrag&>(*cplfix->fxyz);
@@ -473,11 +495,12 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendtype) {
 
                 //sendBuf(npack, loc_cell[0], loc_cell[1], loc_cell[2]) = Granfxyz.nSums(loc_cell[0], loc_cell[1], loc_cell[2]);
                 //checksum += Granfxyz.nSums(loc_cell[0], loc_cell[1], loc_cell[2]);
-                if (Granfxyz.eSums(loc_cell[0], loc_cell[1], loc_cell[2])/Vcell > 1.) {
+                double phi = Granfxyz.eSums->get_array_value(0,loc_cell[0], loc_cell[1], loc_cell[2])/Vcell;
+                if (phi > 1.) {
                     //std::cout << "Warning, eps = 0 so set to 0.1 in CPLSocketLAMMPS::packGran" << std::endl;
-                    sendBuf(npack, loc_cell[0], loc_cell[1], loc_cell[2]) = 0.0001;
+                    sendBuf(npack, loc_cell[0], loc_cell[1], loc_cell[2]) = 0.01;
                 } else {
-                    sendBuf(npack, loc_cell[0], loc_cell[1], loc_cell[2]) = 1.0 - Granfxyz.eSums(loc_cell[0], loc_cell[1], loc_cell[2])/Vcell;
+                    sendBuf(npack, loc_cell[0], loc_cell[1], loc_cell[2]) = 1.0 - phi;
                 }
                 //std::cout << i << " " << j << " " << k << " " << 1. - Granfxyz.eSums(i,j,k)/Vcell << std::endl;
                 npack += VOIDRATIOSIZE;
@@ -498,3 +521,44 @@ void CPLSocketLAMMPS::receive() {
     CPL::recv(recvBuf.data(), recvBuf.shapeData(), cnstFRegion.data());
 
 };
+
+
+//General function to parse args and return a vector...
+
+std::vector<std::shared_ptr<std::string>> parse_arguments(int narg, char **arg, 
+                                                            std::vector<std::string> endargs) {
+
+    std::shared_ptr<std::string> forcetype;
+    std::vector<std::shared_ptr<std::string>> forcetype_args;
+
+    for (int iarg=0; iarg<narg; iarg+=1){
+        std::string arguments(arg[iarg]);
+        if (arguments == "forcetype"){
+            if (iarg+1<narg) {
+                for (int jarg=iarg+1; jarg<narg; jarg+=1){
+                    std::shared_ptr<std::string> forcetype_arg;
+                    forcetype_arg = std::make_shared<std::string>(arg[jarg]);
+                    //Check if we have read another argument type
+                    std::string forceType_arg(*forcetype_arg);
+                    for ( auto &endarg : endargs ) {
+                        if (  forceType_arg.compare(endarg) == 0)
+                            break;
+                    }
+                    //Otherwise it is a sendtype argument and should be added
+                    std::string forceType(*forcetype);
+                    std::cout << "Lammps FixCPLForce forcetype: "  << forceType << " with args "
+                              <<  forceType_arg << std::endl;
+                    forcetype_args.push_back(forcetype_arg);
+                }
+                
+            }
+        }
+    }
+    return forcetype_args
+}
+
+
+
+
+
+

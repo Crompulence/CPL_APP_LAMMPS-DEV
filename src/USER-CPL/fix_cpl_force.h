@@ -34,6 +34,8 @@ private:
 	CPL::ndArray<double>* cfdBuf;
     std::vector<int> procPortion;
     std::vector<double> fi;
+
+    std::vector<std::shared_ptr<std::string>> forcetype_args;
     //std::unique_ptr<LAMMPS_NS::FixRigid> clumpfix;
 
 };
@@ -51,7 +53,7 @@ private:
 
 // ****************************************************************
 // Copied here for record of what not to do! Rigid mols are local!
-
+// and rigid molecules are private so not sure how we get at them
 
 
 

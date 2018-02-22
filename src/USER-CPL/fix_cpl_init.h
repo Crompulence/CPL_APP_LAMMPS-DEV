@@ -71,6 +71,7 @@ public:
     std::shared_ptr<std::string> sendtype;
     std::shared_ptr<std::string> bndryavg;
     int sendbitflag;
+    std::vector<std::shared_ptr<std::string>> forcetype_args;
 
 private:
 

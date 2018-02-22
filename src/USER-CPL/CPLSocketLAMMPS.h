@@ -100,7 +100,8 @@ public:
     void finalizeComms();
 
     void setupFixMDtoCFD(LAMMPS_NS::LAMMPS *lammps, int sendtype);
-    void setupFixCFDtoMD(LAMMPS_NS::LAMMPS *lammps, std::shared_ptr<std::string> forcetype);  
+    void setupFixCFDtoMD(LAMMPS_NS::LAMMPS *lammps, std::shared_ptr<std::string> forcetype, 
+                                      std::vector<std::shared_ptr<std::string>> forcetype_args);  
 	void setBndryAvgMode(int mode);
 
     // Fix that applies the momentum constrain

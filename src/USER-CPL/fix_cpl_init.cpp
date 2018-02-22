@@ -64,21 +64,53 @@ fixCPLInit::fixCPLInit(LAMMPS_NS::LAMMPS *lammps, int narg, char **arg)
 
     forcetype = std::make_shared<std::string>("Undefined");
     sendtype = std::make_shared<std::string>("velocity");
+    std::vector<std::shared_ptr<std::string>> sendtype_list;
     bndryavg = std::make_shared<std::string>("above");     //default to above if not specified
+
+
     for (int iarg=0; iarg<narg; iarg+=1){
-        std::cout << iarg << " " << arg[iarg] << std::endl;
+        std::cout << "Lammps cpl/init input arg "  << iarg << " is " << arg[iarg] << std::endl;
         std::string arguments(arg[iarg]);
-        if (arguments == "forcetype")
-            if (iarg+1<narg)
+        if (arguments == "forcetype"){
+            if (iarg+1<narg) {
                 forcetype = std::make_shared<std::string>(arg[iarg+1]);
+                if (iarg+2<narg) {
+                    for (int jarg=iarg+2; jarg<narg; jarg+=1){
+                        std::shared_ptr<std::string> forcetype_arg;
+                        forcetype_arg = std::make_shared<std::string>(arg[jarg]);
+                        //Check if we have read another argument type
+                        std::string forceType_arg(*forcetype_arg);
+                        if (  forceType_arg.compare("sendtype") == 0 
+                            | forceType_arg.compare("bndryavg") == 0)
+                            break;
+                        //Otherwise it is a sendtype argument and should be added
+                        std::string forceType(*forcetype);
+                        std::cout << "Lammps forcetype: "  << forceType << " with args "
+                                  <<  forceType_arg << std::endl;
+                        forcetype_args.push_back(forcetype_arg);
+                    }
+                }
+            }
+        }
 
         if (arguments == "sendtype")
-            if (iarg+1<narg)
-                sendtype = std::make_shared<std::string>(arg[iarg+1]);
+            if (iarg+1<narg) {
+                for (int jarg=iarg+1; jarg<narg; jarg+=1){
+                    sendtype = std::make_shared<std::string>(arg[jarg]);
+                    //Check if we have read another argument type
+                    std::string sendType(*sendtype);
+                    if (  sendType.compare("forcetype") == 0 
+                        | sendType.compare("bndryavg") == 0)
+                        break;
+                    //Otherwise it is a sendtype argument and should be added
+                    sendtype_list.push_back(sendtype);
+                }
+            }
 
-        if (arguments == "bndryavg")
+        if (arguments == "bndryavg"){
             if (iarg+1<narg)
                 bndryavg = std::make_shared<std::string>(arg[iarg+1]);
+        }
 
     }
     //Raise error if forcetype is not specified
@@ -101,21 +133,42 @@ fixCPLInit::fixCPLInit(LAMMPS_NS::LAMMPS *lammps, int narg, char **arg)
     }
 
     //Create appropriate bitflag to determine what is sent
-    std::string sendType(*sendtype);
-    if (sendType.compare("velocity") == 0){
-        sendbitflag = cplsocket.VEL;
-    } else if (sendType.compare("gran") == 0) {
-        //cplsocket.packGran(lmp);
-        sendbitflag = cplsocket.FORCE | cplsocket.VOIDRATIO;
-    } else if (sendType.compare("granfull") == 0) {
-        sendbitflag = cplsocket.VEL | cplsocket.FORCE |
-                      cplsocket.FORCECOEFF | cplsocket.VOIDRATIO;
+    sendbitflag = 0;
+    for ( auto &sendtype : sendtype_list ) {
+        std::string sendType(*sendtype);
+        //Pick 'n' mix send types
+        if (sendType.compare("VEL") == 0){
+            sendbitflag = sendbitflag | cplsocket.VEL;
+        } else if (sendType.compare("NBIN") == 0) {
+            sendbitflag = sendbitflag | cplsocket.NBIN;
+        } else if (sendType.compare("STRESS") == 0) {
+            sendbitflag = sendbitflag | cplsocket.STRESS;
+        } else if (sendType.compare("FORCE") == 0) {
+            sendbitflag = sendbitflag | cplsocket.FORCE;
+        } else if (sendType.compare("FORCECOEFF") == 0) {
+            sendbitflag = sendbitflag | cplsocket.FORCECOEFF;
+        } else if (sendType.compare("VOIDRATIO") == 0) {
+            sendbitflag = sendbitflag | cplsocket.VOIDRATIO;
+        //Predefined sendtypes
+        } else if (sendType.compare("velocity") == 0) {
+            sendbitflag = sendbitflag | cplsocket.VEL | cplsocket.NBIN;
+        } else if (sendType.compare("gran") == 0) {
+            sendbitflag = sendbitflag | cplsocket.FORCE | cplsocket.VOIDRATIO;
+        } else if (sendType.compare("granfull") == 0) {
+            sendbitflag = sendbitflag | cplsocket.VEL | cplsocket.FORCE |
+                          cplsocket.FORCECOEFF | cplsocket.VOIDRATIO;
+        } else { 
+            std::cout << "Lammps sendtype: "  << sendType << " not recognised"
+                      << " bitflag so far: " << sendbitflag << std::endl;
+            lammps->error->all(FLERR,"Lammps sendtype Error");
+        }
+
     }
 
-    if (  (sendType.compare("granfull") == 0) 
-        & (forceType.compare("Drag") != 0))
-            lammps->error->all(FLERR,"Drag Forcetype (or its derivatives) required for sendtype granfull");
-
+    if (((sendbitflag & cplsocket.FORCECOEFF) == cplsocket.FORCECOEFF)
+         & (forceType.compare("Drag") != 0)) {
+        lammps->error->all(FLERR,"Drag Forcetype (or its derivatives) required for sendtype granfull");
+    }
 
 
 }
@@ -132,7 +185,8 @@ void fixCPLInit::init()
 	
     //Setup what to send and how to apply forces
     cplsocket.setupFixMDtoCFD(lmp, sendbitflag);
-    cplsocket.setupFixCFDtoMD(lmp, forcetype);
+    //Note that constraint fix is setup through lammps input system
+    cplsocket.setupFixCFDtoMD(lmp, forcetype, forcetype_args);
 
 }
 

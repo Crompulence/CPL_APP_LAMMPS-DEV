@@ -23,8 +23,27 @@ FixCPLForce::FixCPLForce ( LAMMPS_NS::LAMMPS *lammps, int narg, char **arg)
     class LAMMPS_NS::LAMMPS *lmp=lammps;
     for (int iarg=0; iarg<narg; iarg+=1){
         std::string arguments(arg[iarg]);
-        if (arguments == "forcetype")
-            forcetype = std::make_shared<std::string>(arg[iarg+1]);
+        if (arguments == "forcetype"){
+            if (iarg+1<narg) {
+                forcetype = std::make_shared<std::string>(arg[iarg+1]);
+                if (iarg+2<narg) {
+                    for (int jarg=iarg+2; jarg<narg; jarg+=1){
+                        std::shared_ptr<std::string> forcetype_arg;
+                        forcetype_arg = std::make_shared<std::string>(arg[jarg]);
+                        //Check if we have read another argument type
+                        std::string forceType_arg(*forcetype_arg);
+                        if (  forceType_arg.compare("sendtype") == 0 
+                            | forceType_arg.compare("bndryavg") == 0)
+                            break;
+                        //Otherwise it is a sendtype argument and should be added
+                        std::string forceType(*forcetype);
+                        std::cout << "Lammps FixCPLForce forcetype: "  << forceType << " with args "
+                                  <<  forceType_arg << std::endl;
+                        forcetype_args.push_back(forcetype_arg);
+                    }
+                }
+            }
+        }
     }
 
     //int ifix = lammps->modify->find_fix("clumps");
