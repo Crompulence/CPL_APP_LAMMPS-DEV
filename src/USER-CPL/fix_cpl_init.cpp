@@ -165,10 +165,10 @@ fixCPLInit::fixCPLInit(LAMMPS_NS::LAMMPS *lammps, int narg, char **arg)
 
     }
 
-    if (((sendbitflag & cplsocket.FORCECOEFF) == cplsocket.FORCECOEFF)
-         & (forceType.compare("Drag") != 0)) {
-        lammps->error->all(FLERR,"Drag Forcetype (or its derivatives) required for sendtype granfull");
-    }
+//    if (((sendbitflag & cplsocket.FORCECOEFF) == cplsocket.FORCECOEFF)
+//         & (forceType.compare("Drag") != 0)) {
+//        lammps->error->all(FLERR,"Drag Forcetype (or its derivatives) required for sendtype granfull");
+//    }
 
 
 }

@@ -435,10 +435,6 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendbitflag) {
 	    int glob_cell[3], loc_cell[3];
         double Vcell = dx*dy*dz;
 
-        //int checksum=0;
-        //Allocate buffers to send
-        //allocateBuffers(lammps, sendbitflag);
-
         //Chosen arbitarily for now
         for (int i = velBCPortion[0]; i <= velBCPortion[1]; i++) {
         for (int j = velBCPortion[2]; j <= velBCPortion[3]; j++) {
@@ -474,7 +470,7 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendbitflag) {
 
                 //Get FSums internal to CPLForceTest
                 std::string name("FSums");
-                auto field_ptr = c.get_internal_fields(name);
+                auto field_ptr = cplfix->fxyz->get_internal_fields(name);
                 if (field_ptr != nullptr){
                     sendBuf(npack+0, ic, jc, kc) = field_ptr->get_array_value(0, ic, jc, kc);
                     sendBuf(npack+1, ic, jc, kc) = field_ptr->get_array_value(1, ic, jc, kc);
@@ -487,7 +483,7 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendbitflag) {
             if ((sendbitflag & FORCECOEFF) == FORCECOEFF){
 
                 std::string name("FcoeffSums");
-                auto field_ptr = c.get_internal_fields(name);
+                auto field_ptr = cplfix->fxyz->get_internal_fields(name);
                 if (field_ptr != nullptr){
                     sendBuf(npack+0, ic, jc, kc) = field_ptr->get_array_value(0, ic, jc, kc);
                 } else {
@@ -498,7 +494,7 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendbitflag) {
             if ((sendbitflag & VOIDRATIO) == VOIDRATIO){
 
                 std::string name("eSums");
-                auto field_ptr = c.get_internal_fields(name);
+                auto field_ptr = cplfix->fxyz->get_internal_fields(name);
                 if (field_ptr != nullptr){
                     double phi = field_ptr->get_array_value(0, ic, jc, kc)/Vcell;
                     if (phi > 1.) {

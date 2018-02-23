@@ -62,8 +62,28 @@ int FixCPLForce::setmask() {
 
 /* ---------------------------------------------------------------------- */
 
+struct args_struct
+{
+   std::string Cd=0.0000001;
+   std::string use_overlap=false;
+   std::string use_interpolate=false;
+   std::string velForce_on=true;
+   std::string gradP_on=true; 
+   std::string divStress_on=false;
+};
+
 void FixCPLForce::setup(int vflag)
 {
+
+    //Setup a map of default arguments for force types
+    std::map <std::string, std::string> args_map
+    {
+        { "use_overlap", "0" },
+        { "use_interpolate", "0" },
+        { "velForce_on", "1" },
+        { "gradP_on", "1" },
+        { "divStress_on", "0" }
+    };
 
     // Preliminary summation, only 1 value per cell so can slice
     // away cfdBuf->shape(0)
@@ -74,29 +94,34 @@ void FixCPLForce::setup(int vflag)
 
     // std::unique_ptr<CPLForce>  fxyz(nullptr); //Moved to header
     if (fxyzType.compare("Flekkoy") == 0) {
-        fxyz.reset(new CPLForceFlekkoy(9, cfdBuf->shape(1), 
-                                          cfdBuf->shape(2), 
-                                          cfdBuf->shape(3)));
-        fxyz->calc_preforce = true;
+        fxyz = make_unique<CPLForceFlekkoy>(9, cfdBuf->shape(1), 
+                                               cfdBuf->shape(2), 
+                                               cfdBuf->shape(3));
     } else if (fxyzType.compare("test") == 0) {
-        fxyz.reset(new CPLForceTest(3, cfdBuf->shape(1), 
-                                       cfdBuf->shape(2), 
-                                       cfdBuf->shape(3)));
+        fxyz = make_unique<CPLForceTest>(3, cfdBuf->shape(1), 
+                                            cfdBuf->shape(2), 
+                                            cfdBuf->shape(3));
     } else if (fxyzType.compare("Velocity") == 0) {
-        fxyz.reset(new CPLForceVelocity(3, cfdBuf->shape(1), 
-                                           cfdBuf->shape(2), 
-                                           cfdBuf->shape(3)));
+        fxyz = make_unique<CPLForceVelocity>(3, cfdBuf->shape(1), 
+                                                cfdBuf->shape(2), 
+                                                cfdBuf->shape(3));
     } else if (fxyzType.compare("Drag") == 0) {
-        fxyz.reset(new CPLForceDrag(9, cfdBuf->shape(1), 
-                                       cfdBuf->shape(2), 
-                                       cfdBuf->shape(3),
-                                       false)); 
-        fxyz->calc_preforce = true;
+        //Input of the form where square brackets denote [optional]
+        // (nd, icell, jcell, kcell, [Cd], [use_overlap], 
+        //  [use_interpolate], [drag_on], [gradP_on], [divStress_on] )
+        args_map.insert( { "Cd", "0.0000001"});
+               
+        for (int i=0; i<forcetype_args.size(); i++) {
+            std::cout << *forcetype_args[i] << " " << forcetype_args.size() << std::endl;
+        }
+        fxyz = make_unique<CPLForceDrag>(9, cfdBuf->shape(1), 
+                                            cfdBuf->shape(2), 
+                                            cfdBuf->shape(3), args_map); 
 
     } else if (fxyzType.compare("Di_Felice") == 0) {
-        fxyz.reset(new CPLForceGranular(9, cfdBuf->shape(1), 
-                                           cfdBuf->shape(2), 
-                                           cfdBuf->shape(3))); 
+        fxyz = make_unique<CPLForceGranular>(9, cfdBuf->shape(1), 
+                                                cfdBuf->shape(2), 
+                                                cfdBuf->shape(3)); 
 //    } else if (fxyzType.compare("Ergun") == 0) {
 //        fxyz.reset(new CPLForceGranular(3, cfdBuf->shape(1), 
 //                                           cfdBuf->shape(2), 
