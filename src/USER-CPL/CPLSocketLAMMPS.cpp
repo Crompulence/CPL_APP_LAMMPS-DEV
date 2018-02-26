@@ -448,18 +448,36 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendbitflag) {
 
             //Check what is to be packed and sent
             if ((sendbitflag & VEL) == VEL){
-                double vx = cfdbcfix->compute_array(row, 4);  
-                double vy = cfdbcfix->compute_array(row, 5);  
-                double vz = cfdbcfix->compute_array(row, 6);  
+//                double vx = cfdbcfix->compute_array(row, 4);  
+//                double vy = cfdbcfix->compute_array(row, 5);  
+//                double vz = cfdbcfix->compute_array(row, 6);  
 
-                sendBuf(npack+0, ic, jc, kc) = vx;
-                sendBuf(npack+1, ic, jc, kc) = vy;
-                sendBuf(npack+2, ic, jc, kc) = vz; 
+//                sendBuf(npack+0, ic, jc, kc) = vx;
+//                sendBuf(npack+1, ic, jc, kc) = vy;
+//                sendBuf(npack+2, ic, jc, kc) = vz; 
+                //Get FSums internal to CPLForceTest
+                std::string name("vSums");
+                auto field_ptr = cplfix->fxyz->get_internal_fields(name);
+                if (field_ptr != nullptr){
+                    sendBuf(npack+0, ic, jc, kc) = field_ptr->get_array_value(0, ic, jc, kc);
+                    sendBuf(npack+1, ic, jc, kc) = field_ptr->get_array_value(1, ic, jc, kc);
+                    sendBuf(npack+2, ic, jc, kc) = field_ptr->get_array_value(2, ic, jc, kc);
+                 } else {
+                    lammps->error->all(FLERR," Array value vSums required by sendtype not collected in forcetype");
+                }
                 npack += VELSIZE;
             }
             if ((sendbitflag & NBIN) == NBIN){
-                double ncount = cfdbcfix->compute_array(row, 3);
-                sendBuf(npack, ic, jc, kc) = ncount; 
+//                double ncount = cfdbcfix->compute_array(row, 3);
+//                sendBuf(npack, ic, jc, kc) = ncount; 
+                //Get FSums internal to CPLForceTest
+                std::string name("nSums");
+                auto field_ptr = cplfix->fxyz->get_internal_fields(name);
+                if (field_ptr != nullptr){
+                    sendBuf(npack+0, ic, jc, kc) = field_ptr->get_array_value(0, ic, jc, kc);
+                 } else {
+                    lammps->error->all(FLERR," Array value nSums required by sendtype not collected in forcetype");
+                }
                 npack += NBINSIZE;
             }
             if ((sendbitflag & STRESS) == STRESS){

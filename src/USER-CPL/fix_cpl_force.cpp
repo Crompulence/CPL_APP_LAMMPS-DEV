@@ -87,24 +87,32 @@ void FixCPLForce::setup(int vflag)
                                                      cfdBuf->shape(2), 
                                                      cfdBuf->shape(3));
     } else if (fxyzType.compare("Drag") == 0) {
-        fxyz = std::make_unique<CPLForceDrag>(9, cfdBuf->shape(1), 
-                                                 cfdBuf->shape(2), 
-                                                 cfdBuf->shape(3), args_map); 
+        fxyz = std::make_unique<CPLForceDrag>(9, 
+                                              cfdBuf->shape(1), 
+                                              cfdBuf->shape(2), 
+                                              cfdBuf->shape(3), 
+                                              args_map); 
 
     } else if (fxyzType.compare("Di_Felice") == 0) {
-        fxyz = std::make_unique<CPLForceGranular>(9, cfdBuf->shape(1), 
-                                                     cfdBuf->shape(2), 
-                                                     cfdBuf->shape(3), args_map); 
+        fxyz = std::make_unique<CPLForceGranular>(9, 
+                                                  cfdBuf->shape(1), 
+                                                  cfdBuf->shape(2), 
+                                                  cfdBuf->shape(3), 
+                                                  args_map);  
 
     } else if (fxyzType.compare("Ergun") == 0) {
-        fxyz = std::make_unique<CPLForceErgun>(9, cfdBuf->shape(1), 
-                                                  cfdBuf->shape(2), 
-                                                  cfdBuf->shape(3), args_map); 
+        fxyz = std::make_unique<CPLForceErgun>(9, 
+                                               cfdBuf->shape(1), 
+                                               cfdBuf->shape(2), 
+                                               cfdBuf->shape(3), 
+                                               args_map); 
 
     } else if (fxyzType.compare("BVK") == 0) {
-        fxyz = std::make_unique<CPLForceBVK>(9, cfdBuf->shape(1), 
-                                                cfdBuf->shape(2), 
-                                                cfdBuf->shape(3), args_map); 
+        fxyz = std::make_unique<CPLForceBVK>(9, 
+                                             cfdBuf->shape(1), 
+                                             cfdBuf->shape(2), 
+                                             cfdBuf->shape(3), 
+                                             args_map); 
     } else {
         std::string cmd("CPLForce type ");
         cmd += fxyzType + " not defined";
