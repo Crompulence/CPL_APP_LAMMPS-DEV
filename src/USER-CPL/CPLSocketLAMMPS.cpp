@@ -13,7 +13,7 @@
 
                          C P L  -  L I B R A R Y
 
-           Copyright (C) 2012-2015 Edward Smith & David Trevelyan
+           Copyright (C) 2012-2018 Edward Smith & David Trevelyan
 
 License
 

@@ -63,76 +63,48 @@ int FixCPLForce::setmask() {
 
 /* ---------------------------------------------------------------------- */
 
-//struct args_struct
-//{
-//   std::string Cd=0.0000001;
-//   std::string use_overlap=false;
-//   std::string use_interpolate=false;
-//   std::string velForce_on=true;
-//   std::string gradP_on=true; 
-//   std::string divStress_on=false;
-//};
-
 void FixCPLForce::setup(int vflag)
 {
 
     //Setup a map of default arguments for force types
     std::map <std::string, std::string> args_map{};
-//    {
-//        { "use_overlap", "0" },
-//        { "use_interpolate", "0" },
-//        { "gradP_on", "1" },
-//        { "divStress_on", "0" }
-//    };
     for (int i=0; i<forcetype_args.size(); i=i+2) {
-//            std::cout << *forcetype_args[i] << " " << 
-//                         *forcetype_args[i+1] << " " << 
-//                          forcetype_args.size() << std::endl;
         args_map.insert( { *forcetype_args[i], *forcetype_args[i+1]});
     }
 
-
-    // Preliminary summation, only 1 value per cell so can slice
-    // away cfdBuf->shape(0)
+    //This is a factory
     std::string fxyzType(*forcetype);
-
-    //This should be replaced by a factory class/method I think!
-    // std::unique_ptr<CPLForce> CPLForce_factory( fxyzType );
-
-    // std::unique_ptr<CPLForce>  fxyz(nullptr); //Moved to header
     if (fxyzType.compare("Flekkoy") == 0) {
         fxyz = std::make_unique<CPLForceFlekkoy>(9, cfdBuf->shape(1), 
-                                               cfdBuf->shape(2), 
-                                               cfdBuf->shape(3));
+                                                    cfdBuf->shape(2), 
+                                                    cfdBuf->shape(3));
     } else if (fxyzType.compare("test") == 0) {
         fxyz = std::make_unique<CPLForceTest>(3, cfdBuf->shape(1), 
-                                            cfdBuf->shape(2), 
-                                            cfdBuf->shape(3));
+                                                 cfdBuf->shape(2), 
+                                                 cfdBuf->shape(3));
     } else if (fxyzType.compare("Velocity") == 0) {
         fxyz = std::make_unique<CPLForceVelocity>(3, cfdBuf->shape(1), 
-                                                cfdBuf->shape(2), 
-                                                cfdBuf->shape(3));
+                                                     cfdBuf->shape(2), 
+                                                     cfdBuf->shape(3));
     } else if (fxyzType.compare("Drag") == 0) {
-        //Input of the form where square brackets denote [optional]
-        // (nd, icell, jcell, kcell, [Cd], [use_overlap], 
-        //  [use_interpolate], [drag_on], [gradP_on], [divStress_on] )
         fxyz = std::make_unique<CPLForceDrag>(9, cfdBuf->shape(1), 
-                                            cfdBuf->shape(2), 
-                                            cfdBuf->shape(3), args_map); 
+                                                 cfdBuf->shape(2), 
+                                                 cfdBuf->shape(3), args_map); 
 
     } else if (fxyzType.compare("Di_Felice") == 0) {
         fxyz = std::make_unique<CPLForceGranular>(9, cfdBuf->shape(1), 
-                                                cfdBuf->shape(2), 
-                                                cfdBuf->shape(3)); 
-//    } else if (fxyzType.compare("Ergun") == 0) {
-//        fxyz.reset(new CPLForceGranular(3, cfdBuf->shape(1), 
-//                                           cfdBuf->shape(2), 
-//                                           cfdBuf->shape(3))); 
-//    } else if (fxyzType.compare("Tang_et_al") == 0) {
-//        fxyz.reset(new CPLForceGranular(3, cfdBuf->shape(1), 
-//                                           cfdBuf->shape(2), 
-//                                           cfdBuf->shape(3))); 
+                                                     cfdBuf->shape(2), 
+                                                     cfdBuf->shape(3), args_map); 
 
+    } else if (fxyzType.compare("Ergun") == 0) {
+        fxyz = std::make_unique<CPLForceErgun>(9, cfdBuf->shape(1), 
+                                                  cfdBuf->shape(2), 
+                                                  cfdBuf->shape(3), args_map); 
+
+    } else if (fxyzType.compare("BVK") == 0) {
+        fxyz = std::make_unique<CPLForceBVK>(9, cfdBuf->shape(1), 
+                                                cfdBuf->shape(2), 
+                                                cfdBuf->shape(3), args_map); 
     } else {
         std::string cmd("CPLForce type ");
         cmd += fxyzType + " not defined";
