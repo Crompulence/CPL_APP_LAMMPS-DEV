@@ -21,6 +21,10 @@ FixCPLForce::FixCPLForce (LAMMPS_NS::LAMMPS *lammps, int narg, char **arg) :
        conversionDisabled = true;
    else if (mode == "enabled")
        conversionDisabled = false;
+   CPL::get_file_param("constrain.momentum", "force-distribution", forceDistribution);
+   if (forceDistribution != "divergent" and forceDistribution != "uniform") {
+        error->all(FLERR, "force-distribution can only be 'uniform' and 'divergent'.");
+    }
 }
 
 //NOTE: It is called from fixCPLInit initial_integrate() now.
@@ -72,6 +76,15 @@ void FixCPLForce::post_force(int vflag) {
 
     if (CPL::is_proc_inside(cplField->cellBounds.data())) {
         bool valid_cell;
+        int icell, jcell, kcell;
+        double g, no_particles, gdA;
+        double fx, fy, fz;
+        // Multiply by the appropriate conversion factor
+        double unit_factor = force->ftm2v;
+        if (conversionDisabled)
+            unit_factor = 1.0;
+        double pressure;
+        CPL::get_file_param("initial-conditions", "pressure", pressure);
         for (int i = 0; i < nlocal; ++i) {
             if (mask[i] & groupbit) {
                 //Get local molecule data
@@ -87,17 +100,18 @@ void FixCPLForce::post_force(int vflag) {
                 // This is necessary as there could be atoms inside the processors but
                 // outside a cell belonging to the constrain region.
                 if (valid_cell) {
-                    int icell = loc_cell[0];
-                    int jcell = loc_cell[1];
-                    int kcell = loc_cell[2];
-                    double g = flekkoyGWeight (x[i][1], cplforceregion->extent_ylo, 
-                                                        cplforceregion->extent_yhi);
+                    icell = loc_cell[0];
+                    jcell = loc_cell[1];
+                    kcell = loc_cell[2];
                     nSums(icell, jcell, kcell) += 1.0; 
-                    gSums(icell, jcell, kcell) += g;
+                    if (forceDistribution == "divergent") {
+                        g = flekkoyGWeight (x[i][1], cplforceregion->extent_ylo, 
+                                                            cplforceregion->extent_yhi);
+                        gSums(icell, jcell, kcell) += g;
+                    }
                 }
             }
         }
-
 
         // Calculate force and apply
         for (int i = 0; i < nlocal; ++i) {
@@ -114,43 +128,37 @@ void FixCPLForce::post_force(int vflag) {
                 loc_cell = cplField->getLocalCell(glob_cell, valid_cell);
 
                 if (valid_cell) {
-                    int icell = loc_cell[0];
-                    int jcell = loc_cell[1];
-                    int kcell = loc_cell[2];
-                    double n = nSums(icell, jcell, kcell);
-                    if (n < 1.0) {
+                    icell = loc_cell[0];
+                    jcell = loc_cell[1];
+                    kcell = loc_cell[2];
+                    no_particles = nSums(icell, jcell, kcell);
+                    if (no_particles < 1.0) {
                         std::cout << "Warning: 0 particles in cell (" 
                                   << icell << ", " << jcell << ", " << kcell << ")"
                                   << std::endl;
                     }
                     else {
-                        double g = flekkoyGWeight (x[i][1], cplforceregion->extent_ylo,
-                                                   cplforceregion->extent_yhi);
-
                         // Since the Flekkoy weight is considered only for 0 < y < L/2, for cells 
                         // that are completely in y < 0 gSums(i, j, k) will be always 0.0 so can 
                         // produce a NAN in the g/gSums division below.
-                        if (gSums(icell, jcell, kcell) > 0.0) {
-                            double gdA = (g/gSums(icell, jcell, kcell)) * dA;
-
-                            // Normal to the X-Z plane is (0, 1, 0) so (tauxy, syy, tauxy)
-                            // are the only components of the stress tensor that matter.
-                            double fx = gdA * cplField->buffer(1, icell, jcell, kcell);
-                            double fy = gdA * cplField->buffer(4, icell, jcell, kcell);
-                            double fz = gdA * cplField->buffer(7, icell, jcell, kcell);
-                            
-                            // Multiply by the appropriate conversion factor
-                            double unit_factor = force->ftm2v;
-                            if (conversionDisabled)
-                                unit_factor = 1.0;
-                            // Thermodynamic pressure
-                            double pressure;
-                            CPL::get_file_param("initial-conditions", "pressure", pressure);
-                            f[i][0] += fx * unit_factor;
-                            f[i][1] += (gdA * pressure + fy) * unit_factor;
-                            f[i][2] += fz * unit_factor;
-
+                        if (forceDistribution == "divergent" && gSums(icell, jcell, kcell) > 0.0) {
+                            g = flekkoyGWeight (x[i][1], cplforceregion->extent_ylo,
+                                                       cplforceregion->extent_yhi);
+                            gdA = (g/gSums(icell, jcell, kcell)) * dA;
                         }
+                        else if (forceDistribution == "uniform") {
+                            gdA =  dA / no_particles;
+                        }
+                        // Normal to the X-Z plane is (0, 1, 0) so (tauxy, syy, tauxy)
+                        // are the only components of the stress tensor that matter.
+                        fx = gdA * cplField->buffer(1, icell, jcell, kcell);
+                        fy = gdA * cplField->buffer(4, icell, jcell, kcell);
+                        fz = gdA * cplField->buffer(7, icell, jcell, kcell);
+                        
+                                                // Thermodynamic pressure
+                        f[i][0] += fx * unit_factor;
+                        f[i][1] += (-gdA * pressure + fy) * unit_factor;
+                        f[i][2] += fz * unit_factor;
                     }
                 }
             }
@@ -164,7 +172,8 @@ double FixCPLForce::flekkoyGWeight(double y, double ymin, double ymax) {
     // K factor regulates how to distribute the total force across the volume.
     // 1/K represent the fraction of the constrain region volumen used.
     // Flekøy uses K = 2.
-    double K = 1;
+    double K;
+    CPL::get_file_param("constrain.momentum", "K", K);
     // Define re-scaled coordinate 
     double L = ymax - ymin;
     //double yhat = y - ymin - 0.5*L; 

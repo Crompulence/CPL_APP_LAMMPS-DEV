@@ -26,10 +26,12 @@ def prepare_config_fix(tmpdir):
 
 # EXPLANATION: See README-test located in this folder.
 
-@pytest.mark.parametrize("cfdprocs, mdprocs, err_msg", [
-                         ((3, 3, 3), (3, 3, 3),  ""),
-                         ((1, 1, 1), (3, 3, 3),  "")])
-def test_forcesC2P(prepare_config_fix, cfdprocs, mdprocs, err_msg):
+@pytest.mark.parametrize("cfdprocs, mdprocs, cnst_ncells, err_msg", [
+                         ((3, 3, 3), (3, 3, 3),3, ""),
+                         ((1, 1, 1), (3, 3, 3),3, ""),
+                         ((1, 1, 1), (3, 3, 3),1, ""),
+                         ((1, 1, 1), (3, 3, 3),1, "")])
+def test_forcesC2P(prepare_config_fix, cfdprocs, mdprocs, cnst_ncells, err_msg):
     MD_PARAMS = {"lx": 300.0, "ly": 300.0, "lz": 300.0}
     MD_PARAMS["npx"], MD_PARAMS["npy"], MD_PARAMS["npz"] = mdprocs
 
@@ -42,7 +44,7 @@ def test_forcesC2P(prepare_config_fix, cfdprocs, mdprocs, err_msg):
                      "olap_ylo": 1, "olap_yhi": 5,
                      "olap_zlo": 1, "olap_zhi": 15,
                      "cnst_xlo": 1, "cnst_xhi": 15,
-                     "cnst_ylo": 5, "cnst_yhi": 5,
+                     "cnst_ylo": (5-cnst_ncells+1), "cnst_yhi": 5,
                      "cnst_zlo": 1, "cnst_zhi": 15,
                      "bndry_xlo": 1, "bndry_xhi": 15,
                      "bndry_ylo": 1, "bndry_yhi": 1,

@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include "LAMMPSDep.h"
 #include "LAMMPSOutgoingField.h"
+#include <iomanip>
 
 CPL::PortionField shiftBc(const CPL::PortionField& region_in) {
     double shift = 0.0;
@@ -83,17 +84,19 @@ DEPFUNC_IMP(cfdbcregion_depfunc) {
     std::valarray<double> bounds = shiftBc(cplsocket.bcRegion).bounds;
     std::stringstream str_out;
     str_out << "region " << dep_name << " block "\
-            << bounds[0] << " " << bounds[1] << " "\
+            << "EDGE" << " " << "EDGE" << " "\
             << bounds[2] << " " << bounds[3] << " "\
-            << bounds[4] << " " << bounds[5] << " "\
+            << "EDGE" << " " << "EDGE" << " "\
             << "units box";
     return str_out.str();
 }
 
+//NOTE: Seems that 'upper' is not working for bound parameter. Use 'bounds' to get the appropriate
+//      number of bins. The upper bound  is  ~1e-7 units lower due to dx*ncells is not exactly Lx.
 DEPFUNC_IMP(cfdbccompute_depfunc) {
     std::valarray<double> bounds = shiftBc(cplsocket.bcRegion).bounds;
     std::stringstream str_out;
-    str_out << "compute "  << "cfdbccompute "\
+    str_out << std::setprecision(15) << "compute "  << "cfdbccompute "\
             << "all " << "chunk/atom bin/3d "\
             << "x lower " << cplsocket.dx << " "\
             << "y lower " << cplsocket.dy << " "\
@@ -103,6 +106,7 @@ DEPFUNC_IMP(cfdbccompute_depfunc) {
             << "bound x " << bounds[0] << " " << bounds[1] << " "\
             << "bound y " << bounds[2] << " " << bounds[3] << " "\
             << "bound z " << bounds[4] << " " << bounds[5];
+    std::cout << "CPL: " << str_out.str() << std::endl;
     return str_out.str();
 }
 

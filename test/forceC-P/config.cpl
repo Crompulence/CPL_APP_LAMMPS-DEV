@@ -5,7 +5,9 @@
 "constrain" : {
     "momentum": {
         "type": "Flekkoy",
-        "unit-conversion": "disabled"
+        "unit-conversion": "disabled",
+        "force-distribution": "divergent",
+        "K": 1.0
     },
     "mass": {
         "type": ""
