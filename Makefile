@@ -1,5 +1,8 @@
 LAMMPS_DIR=`cat CODE_INST_DIR`
 LAMMPS_SRC_DIR=$(LAMMPS_DIR)/src
+LAMMPSVERSION=`cat $(LAMMPS_SRC_DIR)/version.h`
+file := "../GranLAMMPS/src/version.h"
+variable := $(shell cat ${file})
 
 .PHONY: all test clean clean-all yes-all patch-lammps
 
@@ -13,8 +16,16 @@ all:
 	cp -f $(LAMMPS_SRC_DIR)/lmp_cpl ./bin
 
 patch-lammps:
-	cp ./config/lammps_cpl.patch $(LAMMPS_DIR)
-	cd $(LAMMPS_DIR) && patch -p1 < lammps_cpl.patch
+	echo "Specify patch-lammps-Aug17 or patch-lammps-Oct17"
+	echo $(variable)
+
+patch-lammps-Aug17:
+	cp ./config/mpmd_Aug2017.patch $(LAMMPS_DIR)
+	cd $(LAMMPS_DIR) && patch -p1 < mpmd_Aug2017.patch
+
+patch-lammps-Oct17:
+	cp ./config/mpmd_Oct2017.patch $(LAMMPS_DIR)
+	cd $(LAMMPS_DIR) && patch -p1 < mpmd_Oct2017.patch
 
 yes-all:
 	bash config/enable-packages.sh $(MAKE)
