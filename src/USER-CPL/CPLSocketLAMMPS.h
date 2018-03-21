@@ -72,7 +72,8 @@ public:
     
     // Construct from no arguments
     CPLSocketLAMMPS() : myCoords(3), olapRegion(6), velBCRegion(6), cnstFRegion(6),
-                     velBCPortion(6), cnstFPortion(6) {Comms_initialised=false;}
+                     velBCPortion(6), cnstFPortion(6) {}
+
     //~CPLSocketLAMMPS();
     // Timesteps and timestep ratio
     int nsteps;
@@ -176,7 +177,6 @@ private:
     int const FORCECOEFFSIZE = 1;  // 1 Sum of force coefficients
     int const VOIDRATIOSIZE = 1;  // 1 Void ratio
 
-    bool Comms_initialised;
 };
 
 #endif // CPL_SOCKET_H_INCLUDED

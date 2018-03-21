@@ -66,9 +66,7 @@ public:
     void setup (int vflag); 
 	void post_force(int vflag);
 
-#ifndef MPMD
     CPLSocketLAMMPS cplsocket;
-#endif
     std::shared_ptr<std::string> forcetype;
     std::shared_ptr<std::string> sendtype;
     std::shared_ptr<std::string> bndryavg;
