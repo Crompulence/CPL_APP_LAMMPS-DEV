@@ -55,9 +55,14 @@ Author(s)
 
 void CPLSocketLAMMPS::initComms() {
 
+    std::cout << "CPLSocketLAMMPS::initComms " <<  Comms_initialised << std::endl;
     // Split MPI_COMM_WORLD into realm communicators
-    CPL::init(CPL::md_realm, realmComm);
-    MPI_Comm_rank(realmComm, &rankRealm);
+    if (not Comms_initialised) 
+    {
+        CPL::init(CPL::md_realm, realmComm);
+        MPI_Comm_rank(realmComm, &rankRealm);
+        Comms_initialised = true;
+    }
 
 };
 
