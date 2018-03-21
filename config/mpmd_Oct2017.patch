@@ -1,20 +1,5 @@
-diff --git a/src/lammps.h b/src/lammps.h
-index c432784..b132821 100644
---- a/src/lammps.h
-+++ b/src/lammps.h
-@@ -14,6 +14,10 @@
- #ifndef LMP_LAMMPS_H
- #define LMP_LAMMPS_H
- 
-+// Global variable, makes life easier here
-+#define MPMD TRUE
-+extern class CPLSocketLAMMPS cplsocket;
-+
- #include <stdio.h>
- 
- namespace LAMMPS_NS {
 diff --git a/src/main.cpp b/src/main.cpp
-index 82dac5a..1bf5a4c 100644
+index 82dac5a..7891465 100644
 --- a/src/main.cpp
 +++ b/src/main.cpp
 @@ -17,6 +17,7 @@
@@ -25,33 +10,27 @@ index 82dac5a..1bf5a4c 100644
  
  #if defined(LAMMPS_TRAP_FPE) && defined(_GNU_SOURCE)
  #include <fenv.h>
-@@ -31,6 +32,7 @@ using namespace LAMMPS_NS;
- /* ----------------------------------------------------------------------
-    main program to drive LAMMPS
- ------------------------------------------------------------------------- */
-+CPLSocketLAMMPS cplsocket;
+@@ -48,9 +49,13 @@ int main(int argc, char **argv)
+   feenableexcept(FE_OVERFLOW);
+ #endif
  
- int main(int argc, char **argv)
- {
-@@ -51,6 +53,10 @@ int main(int argc, char **argv)
++CPLSocketLAMMPS cplsocket;
++cplsocket.initComms();
++MPI_Comm comm = cplsocket.realmCommunicator();
++
  #ifdef LAMMPS_EXCEPTIONS
    try {
-     LAMMPS *lammps = new LAMMPS(argc,argv,MPI_COMM_WORLD);
-+    delete lammps;
-+    cplsocket.initComms();
-+    MPI_Comm comm = cplsocket.realmCommunicator();
-+    lammps = new LAMMPS(argc,argv,comm);
+-    LAMMPS *lammps = new LAMMPS(argc,argv,MPI_COMM_WORLD);
++    LAMMPS *lammps = new LAMMPS(argc,argv,comm);
      lammps->input->file();
      delete lammps;
    } catch(LAMMPSAbortException & ae) {
-@@ -61,6 +67,10 @@ int main(int argc, char **argv)
+@@ -60,7 +65,7 @@ int main(int argc, char **argv)
+     exit(1);
    }
  #else
-   LAMMPS *lammps = new LAMMPS(argc,argv,MPI_COMM_WORLD);
-+  delete lammps;
-+  cplsocket.initComms();
-+  MPI_Comm comm = cplsocket.realmCommunicator();
-+  lammps = new LAMMPS(argc,argv,comm);
+-  LAMMPS *lammps = new LAMMPS(argc,argv,MPI_COMM_WORLD);
++  LAMMPS *lammps = new LAMMPS(argc,argv,comm);
    lammps->input->file();
    delete lammps;
  #endif
