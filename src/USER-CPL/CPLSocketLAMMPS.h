@@ -73,6 +73,7 @@ public:
     // Construct from no arguments
     CPLSocketLAMMPS() : myCoords(3), olapRegion(6), velBCRegion(6), cnstFRegion(6),
                      velBCPortion(6), cnstFPortion(6) {}
+
     //~CPLSocketLAMMPS();
     // Timesteps and timestep ratio
     int nsteps;
@@ -117,6 +118,7 @@ public:
     int const VOIDRATIO = 32;  // 2^5, bit 5
 
 private:
+
     double bndry_shift_above = 0.0;
     double bndry_shift_below = 0.0;
 
@@ -148,9 +150,9 @@ private:
     arrayDoub sendBuf;
     arrayDoub recvBuf;
 
-
     // Cell sizes
     double dx, dy, dz;
+
     //Appropriate region, compute and fix    
     class LAMMPS_NS::Region *cfdbcregion, *cplforceregion;
     class LAMMPS_NS::Compute *cfdbccompute;
@@ -174,6 +176,7 @@ private:
     int const STRESSSIZE = 9;  // 9 Nine stress components
     int const FORCECOEFFSIZE = 1;  // 1 Sum of force coefficients
     int const VOIDRATIOSIZE = 1;  // 1 Void ratio
+
 };
 
 #endif // CPL_SOCKET_H_INCLUDED

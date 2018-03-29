@@ -38,7 +38,8 @@ if (test $1 = 1) then
     sed -i -e 's/[^ \t]*atc[^ \t]* //' ../Makefile.package
     sed -i -e 's|^PKG_INC =[ \t]*|&-I$(CPL_PATH)/include |' ../Makefile.package
     sed -i -e 's|^PKG_PATH =[ \t]*|&-L$(CPL_LIBRARY_PATH) -Wl,-rpath=$(CPL_LIBRARY_PATH) |' ../Makefile.package
-    sed -i -e 's|^PKG_LIB =[ \t]*|&-lcpl -lmpifort -lgfortran |' ../Makefile.package
+    #sed -i -e 's|^PKG_LIB =[ \t]*|&-lcpl -lmpifort -lgfortran |' ../Makefile.package
+    sed -i -e 's|^PKG_LIB =[ \t]*|&-lcpl |' ../Makefile.package
 #    sed -i -e 's|^PKG_SYSINC =[ \t]*|&$(user-cpl_SYSINC) |' ../Makefile.package
 #    sed -i -e 's|^PKG_SYSLIB =[ \t]*|&$(user-cpl_SYSLIB) |' ../Makefile.package
 #    sed -i -e 's|^PKG_SYSPATH =[ \t]*|&$(user-cpl_SYSPATH) |' ../Makefile.package
@@ -58,8 +59,8 @@ elif (test $1 = 0) then
     sed -i -e 's|[^ \t]*(CPL_PATH)/include*[^ \t] ||g' ../Makefile.package
     sed -i -e 's|[^ \t]*CPL_LIBRARY_PATH*[^ \t] ||g' ../Makefile.package
     sed -i -e 's|[^ \t]*cpl*[^ \t] ||' ../Makefile.package
-    sed -i -e 's|[^ \t]*mpifort*[^ \t] ||' ../Makefile.package
-    sed -i -e 's|[^ \t]*gfortran*[^ \t] ||' ../Makefile.package
+#    sed -i -e 's|[^ \t]*mpifort*[^ \t] ||' ../Makefile.package
+#    sed -i -e 's|[^ \t]*gfortran*[^ \t] ||' ../Makefile.package
   fi
 
 #  if (test -e ../Makefile.package.settings) then

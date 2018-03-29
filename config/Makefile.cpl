@@ -1,4 +1,4 @@
-# mpi = MPI with its default compiler
+# cpl = CPL library linked in with mpi and default compiler
 
 SHELL = /bin/sh
 

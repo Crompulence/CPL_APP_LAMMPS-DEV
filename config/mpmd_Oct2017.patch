@@ -1,0 +1,35 @@
+diff --git a/src/main.cpp b/src/main.cpp
+index 82dac5a..23590ca 100644
+--- a/src/main.cpp
++++ b/src/main.cpp
+@@ -17,6 +17,7 @@
+ #include "error.h"
+ #include <stdio.h>
+ #include <stdlib.h>
++#include "cpl.h"
+ 
+ #if defined(LAMMPS_TRAP_FPE) && defined(_GNU_SOURCE)
+ #include <fenv.h>
+@@ -48,9 +49,12 @@ int main(int argc, char **argv)
+   feenableexcept(FE_OVERFLOW);
+ #endif
+ 
++MPI_Comm comm;
++CPL::init(CPL::md_realm, comm);
++
+ #ifdef LAMMPS_EXCEPTIONS
+   try {
+-    LAMMPS *lammps = new LAMMPS(argc,argv,MPI_COMM_WORLD);
++    LAMMPS *lammps = new LAMMPS(argc,argv,comm);
+     lammps->input->file();
+     delete lammps;
+   } catch(LAMMPSAbortException & ae) {
+@@ -60,7 +64,7 @@ int main(int argc, char **argv)
+     exit(1);
+   }
+ #else
+-  LAMMPS *lammps = new LAMMPS(argc,argv,MPI_COMM_WORLD);
++  LAMMPS *lammps = new LAMMPS(argc,argv,comm);
+   lammps->input->file();
+   delete lammps;
+ #endif

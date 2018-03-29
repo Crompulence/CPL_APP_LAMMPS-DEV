@@ -91,8 +91,8 @@ void FixCPLForce::setup(int vflag)
                                               cfdBuf->shape(1), 
                                               cfdBuf->shape(2), 
                                               cfdBuf->shape(3), 
-                                              args_map); 
-
+                                              args_map);
+        //fxyz->calc_preforce = 1;
     } else if (fxyzType.compare("Di_Felice") == 0) {
         fxyz = std::make_unique<CPLForceGranular>(9, 
                                                   cfdBuf->shape(1), 
@@ -190,7 +190,7 @@ void FixCPLForce::apply(int nevery) {
 
     if (time) {
         end = high_resolution_clock::now();
-        std::cout << "time allocatetion = " << duration_cast<microseconds>( end - begin ).count() << "e-6 s"   << std::endl;
+        std::cout << "time allocation = " << duration_cast<microseconds>( end - begin ).count() << "e-6 s"   << std::endl;
         begin = high_resolution_clock::now();
     }
 
