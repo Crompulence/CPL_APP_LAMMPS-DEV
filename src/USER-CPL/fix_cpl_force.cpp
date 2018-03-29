@@ -11,6 +11,7 @@
 #include "domain.h"
 #include "region.h"
 #include "force.h"
+#include "update.h"
 
 #include "fix_cpl_force.h"
 #include "cpl/CPL_misclib.h"
@@ -144,7 +145,7 @@ void FixCPLForce::setup(int vflag)
     fxyz->set_minmax(min, max);
 
     //Call apply for first step
-    apply();
+    apply(1);
 }
 
 //NOTE -- Not actually called post force, for some reason
