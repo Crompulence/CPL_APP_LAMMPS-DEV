@@ -24,7 +24,7 @@ public:
     int setmask();
 	void setup(int vflag);
 	void setupBuf(CPL::ndArray<double>& Buf, std::vector<int>& portion);
-    void apply();
+    void apply(int nevery);
     void updateProcPortion (std::vector<int>& portion);
     std::shared_ptr<std::string> forcetype;
     std::unique_ptr<CPLForce> fxyz;

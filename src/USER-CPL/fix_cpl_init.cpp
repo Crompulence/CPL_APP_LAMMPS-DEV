@@ -207,7 +207,7 @@ void fixCPLInit::post_force(int vflag)
     if (update->ntimestep%nevery == 0){
         cplsocket.receive();
     }
-    cplsocket.cplfix->apply();
+    cplsocket.cplfix->apply(nevery);
 
     //Pack and send to CFD
     if (update->ntimestep%nevery == 0){

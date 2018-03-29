@@ -150,7 +150,7 @@ void FixCPLForce::setup(int vflag)
 //NOTE -- Not actually called post force, for some reason
 // this no longer works reliably in LAMMPS, instead call
 // explicitly in CPLInit!
-void FixCPLForce::apply() {
+void FixCPLForce::apply(int nevery) {
 
     bool time = false;
     high_resolution_clock::time_point begin;
@@ -194,30 +194,34 @@ void FixCPLForce::apply() {
         begin = high_resolution_clock::now();
     }
 
-    //Should we reset sums here?
-    fxyz->resetsums();
+    //Only recalculate preforce everytime we recieve data
+    if ((update->ntimestep%nevery == 0) & (not fxyz->calc_preforce_everytime))
+    {
+        //Should we reset sums here?
+        fxyz->resetsums();
 
-    //Pre-force calculation, get quantities from discrete system needed to apply force
-    if (fxyz->calc_preforce) {
-    	for (int i = 0; i < nlocal; ++i)
-    	{
-       		if (mask[i] & groupbit)
+        //Pre-force calculation, get quantities from discrete system needed to apply force
+        if (fxyz->calc_preforce) {
+        	for (int i = 0; i < nlocal; ++i)
         	{
-		        //Get local molecule data
-		        mi = rmass[i];
-		        radi = radius[i];
-		        for (int n=0; n<3; n++){
-		            xi[n]=x[i][n]; 
-		            vi[n]=v[i][n]; 
-		            ai[n]=f[i][n];
-		        }
+           		if (mask[i] & groupbit)
+            	{
+		            //Get local molecule data
+		            mi = rmass[i];
+		            radi = radius[i];
+		            for (int n=0; n<3; n++){
+		                xi[n]=x[i][n]; 
+		                vi[n]=v[i][n]; 
+		                ai[n]=f[i][n];
+		            }
 
-		        // Sum all the weights for each cell.
-		        fxyz->pre_force(xi, vi, ai, mi, radi, pot);
+		            // Sum all the weights for each cell.
+		            fxyz->pre_force(xi, vi, ai, mi, radi, pot);
 
-        	}
+            	}
+            }
+
         }
-
     }
 
     if (time) {
