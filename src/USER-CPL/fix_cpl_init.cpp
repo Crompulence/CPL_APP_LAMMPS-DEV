@@ -10,6 +10,10 @@
 
 
 
+// FixCPLInit::~FixCPLInit() { 
+//
+// }
+
 FixCPLInit::FixCPLInit(LAMMPS_NS::LAMMPS *lammps, int narg, char **arg)
     		: Fix (lammps, narg, arg), cnstFixDefined(false), bcFixDefined(false) {
 
@@ -58,7 +62,6 @@ void FixCPLInit::setup(int vflag) {
 void FixCPLInit::end_of_step() {
     // By default cpl/bc and cpl/constrain had to be both
     // defined to start pack/unpack and send/recv.
-    // std::cout << "ENTRO ENDSOUSTEP" << std::endl;
     if (cnstFixDefined && bcFixDefined ||\
         !cplsocket.sendEnabled ||\
         !cplsocket.recvEnabled) {

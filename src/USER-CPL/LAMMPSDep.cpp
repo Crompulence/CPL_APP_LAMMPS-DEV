@@ -13,15 +13,15 @@ void DepLoader::loadDeps(const DepListT& dep_list, DepPoolT& dep_pool) {
 
 
 LAMMPSDep::LAMMPSDep(std::string dep_name, const DepListT& dep_list, 
-                     const CPLSocketLAMMPS& cplsocket, 
+                     void* obj, 
                      LAMMPS_NS::LAMMPS* lammps, DepFuncT dep_func,
                      int n_every) : name(dep_name), 
                      depList(dep_list), cmd(dep_func), nevery(n_every), 
-                     cplSocket(&cplsocket), lmp(lammps), loaded(false) {
+                     lmp(lammps), loaded(false) {
 
     elem_name = dep_name;
     //LAMMPS Specific
-    cmd_str = cmd(name, cplsocket, lammps, nevery);
+    cmd_str = cmd(name, obj, lammps, nevery);
 }
 
 

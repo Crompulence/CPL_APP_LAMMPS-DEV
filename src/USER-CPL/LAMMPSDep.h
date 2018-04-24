@@ -55,21 +55,22 @@ Author(s)
 
 
 #define DEPFUNC_DEF(fname) std::string fname(std::string dep_name, \
-                          const CPLSocketLAMMPS& cplsocket, \
+                          void* obj, \
                           LAMMPS_NS::LAMMPS* lmp, int nevery=-1)
 #define DEPFUNC_IMP(fname) std::string fname(std::string dep_name, \
-                           const CPLSocketLAMMPS& cplsocket, \
+                           void* obj, \
                            LAMMPS_NS::LAMMPS* lmp, int nevery)
 
 class LAMMPSDep;
 
 typedef std::vector<std::string> DepListT;
-typedef std::map<std::string, LAMMPSDep*> DepPoolT;
-typedef std::string (*DepFuncT)(std::string, const CPLSocketLAMMPS&, LAMMPS_NS::LAMMPS*, int);
+typedef CPL::Pool<LAMMPSDep> DepPoolT;
+typedef std::string (*DepFuncT)(std::string, void* obj, LAMMPS_NS::LAMMPS*, int);
 
 class DepLoader {
     public:
         DepLoader(){}
+        virtual ~DepLoader(){};
         void loadDeps(const DepListT& dep_list, DepPoolT& dep_pool);
 };
 
@@ -78,7 +79,7 @@ class LAMMPSDep : public DepLoader, public CPL::PoolElement<LAMMPSDep>{
 public:
     // Construct from no arguments
     LAMMPSDep(std::string dep_name, const DepListT& dep_list, 
-              const CPLSocketLAMMPS& cplsocket, 
+              void* obj, 
               LAMMPS_NS::LAMMPS* lammps, DepFuncT dep_func, 
               int n_every = -1); 
     LAMMPSDep(){}
@@ -88,7 +89,6 @@ public:
     std::string depType;
     bool loaded;
     bool load();
-    const CPLSocketLAMMPS* cplSocket;
 
     //specific to lammps
     DepFuncT cmd;
@@ -105,6 +105,7 @@ class LAMMPSDepFix : public LAMMPSDep {
         using LAMMPSDep::LAMMPSDep;
         LAMMPS_NS::Fix* fix;
         virtual void load_();
+        virtual ~LAMMPSDepFix(){std::cout << "DEPFIX DESTRUCTOR" << std::endl;};
 };
 
 class LAMMPSDepGroup : public LAMMPSDep {
@@ -115,6 +116,7 @@ class LAMMPSDepGroup : public LAMMPSDep {
         // are accessed with the group id which we save.
         int groupId;
         virtual void load_();
+        virtual ~LAMMPSDepGroup(){};
 };
 
 class LAMMPSDepRegion : public LAMMPSDep {
@@ -122,6 +124,7 @@ class LAMMPSDepRegion : public LAMMPSDep {
         using LAMMPSDep::LAMMPSDep;
         LAMMPS_NS::Region* region;
         virtual void load_();
+        virtual ~LAMMPSDepRegion(){std::cout << "DEPREGION DESTRUCTOR" << std::endl;};
 };
 
 class LAMMPSDepCompute : public LAMMPSDep {
@@ -129,6 +132,7 @@ class LAMMPSDepCompute : public LAMMPSDep {
         using LAMMPSDep::LAMMPSDep;
         LAMMPS_NS::Compute* compute;
         virtual void load_();
+        virtual ~LAMMPSDepCompute(){std::cout << "DEPCOMPUTE DESTRUCTOR" << std::endl;};
 };
 
 

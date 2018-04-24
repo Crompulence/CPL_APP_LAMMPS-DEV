@@ -18,7 +18,7 @@ class FixCPLInit : public LAMMPS_NS::Fix {
 public:
 
     FixCPLInit(class LAMMPS_NS::LAMMPS *lammps, int narg, char **arg);
-	~FixCPLInit();
+	virtual ~FixCPLInit();
     int setmask();
     void setup (int vflag); 
     void end_of_step();

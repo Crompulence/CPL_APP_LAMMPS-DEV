@@ -32,6 +32,8 @@ CPL::PortionField shiftBc(const CPL::PortionField& region_in) {
 }
 
 
+FixCPLBc:: ~FixCPLBc() {
+}
 
 
 FixCPLBc::FixCPLBc(LAMMPS_NS::LAMMPS *lammps, int narg, char **arg)
@@ -65,11 +67,11 @@ FixCPLBc::FixCPLBc(LAMMPS_NS::LAMMPS *lammps, int narg, char **arg)
 
 void FixCPLBc::post_constructor() {
     // Setup dependencies
-    (new LAMMPSDepRegion("cfdbcregion", DepListT({}), cplsocket, lmp, 
+    (new LAMMPSDepRegion("cfdbcregion", DepListT({}), this, lmp, 
                      &cfdbcregion_depfunc))->addToPool(depPool);
-    (new LAMMPSDepCompute("cfdbccompute", DepListT({"cfdbcregion"}), cplsocket,
+    (new LAMMPSDepCompute("cfdbccompute", DepListT({"cfdbcregion"}), this,
                      lmp, &cfdbccompute_depfunc))->addToPool(depPool);
-    (new LAMMPSDepFix("cfdbcfix", DepListT({"cfdbccompute"}), cplsocket,
+    (new LAMMPSDepFix("cfdbcfix", DepListT({"cfdbccompute"}), this,
                      lmp, &cfdbcfix_depfunc))->addToPool(depPool);
  
     fixCPLInit->bcPool.setupAll();

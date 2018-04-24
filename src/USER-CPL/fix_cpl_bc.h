@@ -19,12 +19,13 @@ class FixCPLBc: public LAMMPS_NS::Fix {
 public:
 
     FixCPLBc(class LAMMPS_NS::LAMMPS *lammps, int narg, char **arg);
-	~FixCPLBc(){};
+	~FixCPLBc();
     void post_constructor();
     int setmask(){}
 
     // Pool of boundary conditions for CFD
     CPL::OutgoingFieldPool* bcPool;
+    // This points to FixCPLInit depPool object.
     DepPoolT* depPool;
 
 private:

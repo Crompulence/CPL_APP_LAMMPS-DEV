@@ -25,6 +25,7 @@ public:
 
     // Pool of constrains for MD
     CPL::IncomingFieldPool* cnstPool;
+    // This points to FixCPLIinit depPool object.
     DepPoolT* depPool;
 
 private:

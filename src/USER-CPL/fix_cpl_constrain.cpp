@@ -36,11 +36,11 @@ FixCPLConstrain::FixCPLConstrain(LAMMPS_NS::LAMMPS *lammps, int narg, char **arg
 }
 
 void FixCPLConstrain::post_constructor() {
-    (new LAMMPSDepRegion("cplforceregion", DepListT({}), cplsocket, lmp, 
+    (new LAMMPSDepRegion("cplforceregion", DepListT({}), this, lmp, 
                     &cplforceregion_depfunc))->addToPool(depPool);
-    (new LAMMPSDepGroup("cplforcegroup", DepListT({"cplforceregion"}), cplsocket, lmp, 
+    (new LAMMPSDepGroup("cplforcegroup", DepListT({"cplforceregion"}), this, lmp, 
                     &cplforcegroup_depfunc))->addToPool(depPool);
-    (new LAMMPSDepFix("cplforcefix", DepListT({"cplforcegroup", "cplforceregion"}), cplsocket,
+    (new LAMMPSDepFix("cplforcefix", DepListT({"cplforcegroup", "cplforceregion"}), this,
                  lmp, &cplforcefix_depfunc))->addToPool(depPool);
  
     fixCPLInit->cnstPool.setupAll();
