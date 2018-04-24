@@ -191,13 +191,15 @@ void FixCPLForce::apply(int nevery) {
 
     if (time) {
         end = high_resolution_clock::now();
-        std::cout << "time allocation = " << duration_cast<microseconds>( end - begin ).count() << "e-6 s"   << std::endl;
+        std::cout << " step " << update->ntimestep << " time allocation = " 
+                 << duration_cast<microseconds>( end - begin ).count() << "e-6 s"   << std::endl;
         begin = high_resolution_clock::now();
     }
 
     //Only recalculate preforce everytime we recieve data
-    if ((update->ntimestep%nevery == 0) & (not fxyz->calc_preforce_everytime))
+    if ((update->ntimestep%nevery == 0) | (fxyz->calc_preforce_everytime))
     {
+
         //Should we reset sums here?
         fxyz->resetsums();
 
@@ -227,7 +229,8 @@ void FixCPLForce::apply(int nevery) {
 
     if (time) {
         end = high_resolution_clock::now();
-        std::cout << "time pre force = " << duration_cast<microseconds>( end - begin ).count() << "e-6 s"   << std::endl;
+        std::cout << " step " << update->ntimestep << " time pre force = "
+                 << duration_cast<microseconds>( end - begin ).count() << "e-6 s"   << std::endl;
         begin = high_resolution_clock::now();
     }
 
@@ -264,7 +267,8 @@ void FixCPLForce::apply(int nevery) {
 
     if (time) {
         end = high_resolution_clock::now();
-        std::cout << "time get force = " << duration_cast<microseconds>( end - begin ).count() << "e-6 s"   << std::endl;
+        std::cout <<  " step " << update->ntimestep << " time get force = " 
+               << duration_cast<microseconds>( end - begin ).count() << "e-6 s"   << std::endl;
     }
 
 }
