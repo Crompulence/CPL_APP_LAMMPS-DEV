@@ -11,17 +11,20 @@ FixStyle(cpl/wallreflect, FixCPLWallReflect)
 #include <memory>
 #include "LAMMPSDep.h"
 #include <valarray>
+#include "compute_chunk_atom.h"
+#include <fstream>
 
 class FixCPLWallReflect: public LAMMPS_NS::Fix {
 
 public:
 
     FixCPLWallReflect(class LAMMPS_NS::LAMMPS *lammps, int narg, char **arg);
-	virtual ~FixCPLWallReflect(){std::cout << "DESTRUCTROR WALLREFLECT"<< std::endl;};
+	virtual ~FixCPLWallReflect(){fd.close();};
     void post_constructor();
     int setmask();
     void setup(int vflag);
     void post_force(int vflag);
+    void end_of_step();
 
     // Public attributes
     double alpha;
@@ -29,9 +32,13 @@ public:
     double hi, low;
     double dy;
     DepPoolT depPool;
+    LAMMPS_NS::ComputeChunkAtom* chunk_compute;
+    LAMMPS_NS::Fix* forces_fix;
+    std::ofstream fd;
+    int begin_tstep;
 
-// protected:
-    // std::valarray<double> Fb;
+protected:
+    std::valarray<double> Fb;
 
 };
 
