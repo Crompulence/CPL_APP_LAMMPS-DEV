@@ -52,7 +52,7 @@ install:
     - pwd > ../$LAMMPS_APP_DIR/CODE_INST_DIR
     - cd ../$LAMMPS_APP_DIR
 
-#    - echo granular >> config/lammps_packages.in
+    - echo granular >> config/lammps_packages.in
     - make patch-lammps-Oct17
     - make -j 8
     - cd ../
