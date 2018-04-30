@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 from scipy.signal import argrelextrema
 
 def analytical_gravity(z0, v0, t0, t):
@@ -54,6 +53,6 @@ def check_bouncing_error_vs_gravity(D = 3.5e-4):
 if __name__ == "__main__":
     
     error = check_bouncing_error_vs_gravity()
-
+    import matplotlib.pyplot as plt
     plt.plot(error[0,0,:],error[0,1,:])
     plt.show()

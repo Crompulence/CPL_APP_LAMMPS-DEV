@@ -57,6 +57,10 @@ install:
     - make -j 8
     - cd ../
 
+before_script:
+    - apt-get install python-numpy
+    - apt-get install python-scipy
+
 script:
     - make test-single
 
