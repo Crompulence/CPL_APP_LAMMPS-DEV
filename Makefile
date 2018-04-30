@@ -1,8 +1,6 @@
 LAMMPS_DIR=`cat CODE_INST_DIR`
 LAMMPS_SRC_DIR=$(LAMMPS_DIR)/src
 LAMMPSVERSION=`cat $(LAMMPS_SRC_DIR)/version.h`
-file := "../GranLAMMPS/src/version.h"
-variable := $(shell cat ${file})
 
 .PHONY: all test clean clean-all yes-all patch-lammps
 
