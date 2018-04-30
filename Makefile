@@ -42,3 +42,6 @@ clean-all: clean
 
 test:
 	py.test2 -v ./test
+
+test-single:
+	py.test -v ./test/constant_force

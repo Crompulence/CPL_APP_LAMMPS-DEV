@@ -1,0 +1,67 @@
+# http://travis-ci.org/Crompulence/cpl-library
+
+os: linux
+sudo: required
+
+language: python
+python:
+    - 2.7
+
+env:
+    - MPI=mpich3 GCC_VERSION=5
+
+branches:
+  only:
+    - master
+
+cache:
+  apt: true
+
+before_install:
+    - sudo apt-get install git-core
+    - git clone https://github.com/Crompulence/cpl-library.git ./cpl
+    - cd ./cpl
+    - sh ./make/travis/travis-install-gcc.sh 'gcc-'$GCC_VERSION;
+    - sh ./make/travis/travis-install-fortran.sh 'gfortran-'$GCC_VERSION
+    - test -n $CC  && unset CC
+    - test -n $CXX && unset CXX
+    - export MPI_BUILD_DIR=$TRAVIS_BUILD_DIR/mpi
+    - export MPI_DIR=$MPI_BUILD_DIR/$MPI
+    - sh ./make/travis/travis-install-mpi.sh $MPI $MPI_BUILD_DIR
+    - sh ./make/travis/travis-install-mpi4py.sh $MPI_DIR
+    - export PATH=$MPI_DIR/bin:$PATH
+    - make PLATFORM=gcc
+    - export CPL_PATH=`pwd`
+    - source $CPL_PATH/SOURCEME.sh
+    - cd ../
+
+install:
+    #Get LAMMPS
+    - git clone https://github.com/lammps/lammps.git gitlammps
+
+    #Get GranLAMMPS first as this requires password
+#    - git clone https://edwardsmith999@bitbucket.org/granlammps/gitlammps.git gitlammps
+#    - cd ./gitlammps
+#    - git checkout common
+#    - cd ../
+
+    #Download CPL APP for LAMMPS and add package USER-CPL
+    - LAMMPS_APP_DIR=./CPL_APP_LAMMPS-DEV
+    - git clone https://github.com/Crompulence/CPL_APP_LAMMPS-DEV.git $LAMMPS_APP_DIR
+    - cd gitlammps
+    - pwd > ../$LAMMPS_APP_DIR/CODE_INST_DIR
+    - cd ../$LAMMPS_APP_DIR
+
+#    - echo granular >> config/lammps_packages.in
+    - make patch-lammps-Oct17
+    - make -j 8
+    - cd ../
+
+script:
+    - make test-single
+
+after_success:
+     - echo "Build Success"
+
+notifications:
+  email: true
