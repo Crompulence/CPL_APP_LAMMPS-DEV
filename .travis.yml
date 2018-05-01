@@ -1,22 +1,30 @@
-# http://travis-ci.org/Crompulence/cpl-library
+# http://travis-ci.org/Crompulence/CPL_APP_LAMMPS-DEV
 
 os: linux
 sudo: required
-
 language: python
 python:
     - 2.7
 
-env:
-    - MPI=mpich3 GCC_VERSION=6
-
-compiler: gcc
-addons:
-apt:
-  sources:
-    - ubuntu-toolchain-r-test
-  packages:
-    - g++-$GCC_VERSION gcc-$GCC_VERSION libstdc++-$GCC_VERSION-dev gfortran-$GCC_VERSION
+# set up build matrix
+matrix:
+  include:
+    #Build for 14.04
+    - dist: trusty
+      compiler: gcc
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-6 gcc-6 libstdc++-6-dev gfortran-6
+      # change default compiler to newer gcc-6
+      env:
+        - GCC_VERSION=6
+        - CXX_COMPILER=g++-6
+        - C_COMPILER=gcc-6
+        - F_COMPILER=gfortran-6
+        - MPI=mpich3
 
 branches:
   only:
@@ -34,7 +42,9 @@ virtualenv:
 before_install:
     #Needed steps to get out opf virtualenv and get Scipy working
     - SITE_PKG_DIR=$VIRTUAL_ENV/lib/python$TRAVIS_PYTHON_VERSION/site-packages
-    - rm -f $VIRTUAL_ENV/lib/python$TRAVIS_PYTHON_VERSION/no-global-site-packages.txt  
+    - rm -f $VIRTUAL_ENV/lib/python$TRAVIS_PYTHON_VERSION/no-global-site-packages.txt
+
+    #Get git and download CPL library, building mpi first then CPL
     - sudo apt-get install git-core
     - git clone https://github.com/Crompulence/cpl-library.git ./cpl
     - cd ./cpl
@@ -59,6 +69,7 @@ install:
     - pwd > ../$LAMMPS_APP_DIR/CODE_INST_DIR
     - cd ../$LAMMPS_APP_DIR
     - echo granular >> config/lammps_packages.in
+    #Build version of LAMMPS
     - make patch-lammps-Oct17
     - make -j 8
     - cd ../
