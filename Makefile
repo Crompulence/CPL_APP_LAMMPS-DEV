@@ -15,15 +15,23 @@ all:
 
 patch-lammps:
 	echo "Specify patch-lammps-Aug17 or patch-lammps-Oct17"
-	echo $(variable)
+	echo $(LAMMPSVERSION)
 
 patch-lammps-Aug17:
 	cp ./config/mpmd_Aug2017.patch $(LAMMPS_DIR)
-	cd $(LAMMPS_DIR) && patch -p1 < mpmd_Aug2017.patch
+	cd $(LAMMPS_DIR) && patch -N -p1 < mpmd_Aug2017.patch
 
 patch-lammps-Oct17:
 	cp ./config/mpmd_Oct2017.patch $(LAMMPS_DIR)
-	cd $(LAMMPS_DIR) && patch -p1 < mpmd_Oct2017.patch
+	cd $(LAMMPS_DIR) && patch -N -p1 < mpmd_Oct2017.patch
+
+unpatch-lammps-Aug17:
+	cp ./config/mpmd_Oct2017.patch $(LAMMPS_DIR)
+	cd $(LAMMPS_DIR) && patch -R -p1 < mpmd_Aug2017.patch
+
+unpatch-lammps-Oct17:
+	cp ./config/mpmd_Oct2017.patch $(LAMMPS_DIR)
+	cd $(LAMMPS_DIR) && patch -R -p1 < mpmd_Oct2017.patch
 
 yes-all:
 	bash config/enable-packages.sh $(MAKE)
@@ -42,4 +50,4 @@ test:
 	py.test2 -v ./test
 
 test-single:
-	py.test -v -s ./test/constant_force
+	py.test -v ./test/constant_force

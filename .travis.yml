@@ -8,7 +8,7 @@ python:
     - 2.7
 
 env:
-    - MPI=mpich3 GCC_VERSION=5
+    - MPI=mpich3 GCC_VERSION=6
 
 branches:
   only:
@@ -45,16 +45,14 @@ before_install:
     - cd ../
 
 install:
-
-    - sh ./make/travis/travis-install-lammps.sh lammps
-
     #Download CPL APP for LAMMPS and add package USER-CPL
     - LAMMPS_APP_DIR=./CPL_APP_LAMMPS-DEV
     - git clone https://github.com/Crompulence/CPL_APP_LAMMPS-DEV.git $LAMMPS_APP_DIR
+    - sh ./make/travis/travis-install-lammps.sh lammps
+
     - cd gitlammps
     - pwd > ../$LAMMPS_APP_DIR/CODE_INST_DIR
     - cd ../$LAMMPS_APP_DIR
-
     - echo granular >> config/lammps_packages.in
     - make patch-lammps-Oct17
     - make -j 8
