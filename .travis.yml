@@ -28,9 +28,6 @@ before_install:
     - SITE_PKG_DIR=$VIRTUAL_ENV/lib/python$TRAVIS_PYTHON_VERSION/site-packages
     - rm -f $VIRTUAL_ENV/lib/python$TRAVIS_PYTHON_VERSION/no-global-site-packages.txt  
     - sudo apt-get install git-core
-
-    	echo "Using cached MPI"
-     else
     - git clone https://github.com/Crompulence/cpl-library.git ./cpl
     - cd ./cpl
     - sh ./make/travis/travis-install-gcc.sh 'gcc-'$GCC_VERSION;
@@ -39,7 +36,7 @@ before_install:
     - test -n $CXX && unset CXX
     - export MPI_BUILD_DIR=$TRAVIS_BUILD_DIR/mpi
     - export MPI_DIR=$MPI_BUILD_DIR/$MPI
-    - sh ./make/travis/travis-install-mpi.sh $MPI $MPI_BUILD_DIR
+    - sh ./make/travis/travis-install-mpi.sh $MPI $MPI_BUILD_DIR $GCC_VERSION
     - sh ./make/travis/travis-install-mpi4py.sh $MPI_DIR
     - export PATH=$MPI_DIR/bin:$PATH
     - make PLATFORM=gcc
@@ -50,13 +47,6 @@ before_install:
 install:
 
     - sh ./make/travis/travis-install-lammps.sh lammps
-#    # Get LAMMPS
-#    - git clone https://github.com/lammps/lammps.git gitlammps
-#    # Get GranLAMMPS first as this requires password
-#    - git clone https://edwardsmith999@bitbucket.org/granlammps/gitlammps.git gitlammps
-#    - cd ./gitlammps
-#    - git checkout common
-#    - cd ../
 
     #Download CPL APP for LAMMPS and add package USER-CPL
     - LAMMPS_APP_DIR=./CPL_APP_LAMMPS-DEV
