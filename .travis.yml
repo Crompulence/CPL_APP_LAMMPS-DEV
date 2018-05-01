@@ -16,8 +16,18 @@ branches:
 
 cache:
   apt: true
+  directories:
+    - mpi
+    - cpl
+    - gitlammps
+
+virtualenv:
+    system_site_packages: true
 
 before_install:
+    #Needed steps to get out opf virtualenv and get Scipy working
+    - SITE_PKG_DIR=$VIRTUAL_ENV/lib/python$TRAVIS_PYTHON_VERSION/site-packages
+    - rm -f $VIRTUAL_ENV/lib/python$TRAVIS_PYTHON_VERSION/no-global-site-packages.txt  
     - sudo apt-get install git-core
     - git clone https://github.com/Crompulence/cpl-library.git ./cpl
     - cd ./cpl
