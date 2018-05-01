@@ -18,7 +18,6 @@ cache:
   apt: true
   directories:
     - mpi
-    - cpl
     - gitlammps
 
 virtualenv:
@@ -29,6 +28,9 @@ before_install:
     - SITE_PKG_DIR=$VIRTUAL_ENV/lib/python$TRAVIS_PYTHON_VERSION/site-packages
     - rm -f $VIRTUAL_ENV/lib/python$TRAVIS_PYTHON_VERSION/no-global-site-packages.txt  
     - sudo apt-get install git-core
+
+    	echo "Using cached MPI"
+     else
     - git clone https://github.com/Crompulence/cpl-library.git ./cpl
     - cd ./cpl
     - sh ./make/travis/travis-install-gcc.sh 'gcc-'$GCC_VERSION;
@@ -46,10 +48,11 @@ before_install:
     - cd ../
 
 install:
-    #Get LAMMPS
-    - git clone https://github.com/lammps/lammps.git gitlammps
 
-    #Get GranLAMMPS first as this requires password
+    - sh ./make/travis/travis-install-lammps.sh lammps
+#    # Get LAMMPS
+#    - git clone https://github.com/lammps/lammps.git gitlammps
+#    # Get GranLAMMPS first as this requires password
 #    - git clone https://edwardsmith999@bitbucket.org/granlammps/gitlammps.git gitlammps
 #    - cd ./gitlammps
 #    - git checkout common
