@@ -34,7 +34,6 @@ cache:
   apt: true
   directories:
     - mpi
-    - gitlammps
 
 virtualenv:
     system_site_packages: true
