@@ -10,6 +10,14 @@ python:
 env:
     - MPI=mpich3 GCC_VERSION=6
 
+compiler: gcc
+addons:
+apt:
+  sources:
+    - ubuntu-toolchain-r-test
+  packages:
+    - g++-$GCC_VERSION gcc-$GCC_VERSION libstdc++-$GCC_VERSION-dev gfortran-$GCC_VERSION
+
 branches:
   only:
     - master
@@ -30,8 +38,6 @@ before_install:
     - sudo apt-get install git-core
     - git clone https://github.com/Crompulence/cpl-library.git ./cpl
     - cd ./cpl
-    - sh ./make/travis/travis-install-gcc.sh 'gcc-'$GCC_VERSION;
-    - sh ./make/travis/travis-install-fortran.sh 'gfortran-'$GCC_VERSION
     - test -n $CC  && unset CC
     - test -n $CXX && unset CXX
     - export MPI_BUILD_DIR=$TRAVIS_BUILD_DIR/mpi
@@ -49,7 +55,6 @@ install:
     - LAMMPS_APP_DIR=./CPL_APP_LAMMPS-DEV
     - git clone https://github.com/Crompulence/CPL_APP_LAMMPS-DEV.git $LAMMPS_APP_DIR
     - sh ./make/travis/travis-install-lammps.sh lammps
-
     - cd gitlammps
     - pwd > ../$LAMMPS_APP_DIR/CODE_INST_DIR
     - cd ../$LAMMPS_APP_DIR
