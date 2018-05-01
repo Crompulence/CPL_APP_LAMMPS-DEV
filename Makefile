@@ -42,4 +42,4 @@ test:
 	py.test2 -v ./test
 
 test-single:
-	py.test -v ./test/constant_force
+	py.test -v -s ./test/constant_force

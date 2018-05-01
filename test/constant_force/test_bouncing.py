@@ -46,6 +46,8 @@ def clean_dir():
                 get_subprocess_error(e.output)
             raise
 
+    print(clean)
+
     return clean
 
 @pytest.fixture(scope="module")
@@ -72,12 +74,14 @@ def run_case():
 
     with cd(TEST_DIR):
         try:
-            run = sp.check_output(cmd, shell=True)
+            process = sp.Popen(cmd, shell=True, stdout=sp.PIPE, stderr=sp.PIPE)
         except sp.CalledProcessError as e:
             if e.output.startswith('error: {'):
                 get_subprocess_error(e.output)
             raise
 
+    run = process.communicate()
+    print(run)
     return run
 
 
