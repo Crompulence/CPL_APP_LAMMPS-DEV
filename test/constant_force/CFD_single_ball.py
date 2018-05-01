@@ -3,6 +3,7 @@ from mpi4py import MPI
 from cplpy import CPL
 
 g = 9.81
+mi = -5.9490638385009208e-08
 
 #initialise MPI and CPL
 comm = MPI.COMM_WORLD
@@ -10,10 +11,10 @@ CPL = CPL()
 MD_COMM = CPL.init(CPL.CFD_REALM)
 
 ## Parameters of the cpu topology (cartesian grid)
-npxyz = np.array([1, 1, 1], order='F', dtype=np.int32)
-xyzL = np.array([1.5E-003, 1.5E-003, 2.5E-003], order='F', dtype=np.float64)
-xyz_orig = np.array([0.0, 0.0, 0.0], order='F', dtype=np.float64)
-ncxyz = np.array([8, 8, 8], order='F', dtype=np.int32)
+npxyz = [1, 1, 1]
+xyzL = [1.5E-003, 1.5E-003, 2.5E-003]
+xyz_orig = [0.0, 0.0, 0.0]
+ncxyz = [8, 8, 8]
 
 #Setup coupled simulation
 cart_comm = MD_COMM.Create_cart([npxyz[0], npxyz[1], npxyz[2]])
@@ -24,7 +25,7 @@ ft = True
 for time in range(101):
 
     # send data to update
-    send_array[2,:,:,:] = -5.9490638385009208e-08*g  # * mi
+    send_array[2,:,:,:] = mi*g
     CPL.send(send_array)
 
     # recv data and plot

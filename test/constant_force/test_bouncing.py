@@ -25,10 +25,9 @@ def get_subprocess_error(e):
     print(error['code'], error['message'])
 
 
-MD_EXEC = "./lmp_cpl"
+MD_EXEC = "../../bin/lmp_cpl"
 CFD_EXEC = "./CFD_single_ball.py"
 TEST_DIR = os.path.dirname(os.path.realpath(__file__))
-
 
 @pytest.fixture(scope="module")
 def clean_dir():
@@ -40,7 +39,7 @@ def clean_dir():
             clean = sp.check_output("rm -f " + "./thermo_output* " 
                                              + "./log.lammps* " 
                                              + "./debug.vels" 
-                                             + " " + MD_EXEC, shell=True)
+                                             + " " + MD_EXEC.split("/")[-1], shell=True)
         except sp.CalledProcessError as e:
             if e.output.startswith('error: {'):
                 get_subprocess_error(e.output)
@@ -53,7 +52,7 @@ def clean_dir():
 @pytest.fixture(scope="module")
 def build_case():
 
-    print("Building LAMMPS")
+    print("Building LAMMPS in ", TEST_DIR)
     #Try to setup code
     with cd(TEST_DIR):
         try:
@@ -65,12 +64,23 @@ def build_case():
 
     return build
 
-@pytest.fixture(scope="module")
-def run_case():
 
-    print("Running case")
+@pytest.fixture(scope="module")
+def build_run():
+    try:
+        clean = clean_dir()
+        if os.path.isfile(MD_EXEC):
+            print("MD executable is ", MD_EXEC)
+        else:
+            build = build_case()
+    except sp.CalledProcessError:
+        print("Build Failed")
+
+def run_case(mdprocs):
+
+    print("Running case ", TEST_DIR)
     #Try to run code
-    cmd = ('cplexec -m 1 "' + MD_EXEC + ' < single.in" ' + ' -c 1 ' +  CFD_EXEC)
+    cmd = ('cplexec -m ' + str(mdprocs) + ' "' + MD_EXEC + ' < single.in" ' + ' -c 1 ' +  CFD_EXEC)
 
     with cd(TEST_DIR):
         try:
@@ -84,32 +94,27 @@ def run_case():
     print(run)
     return run
 
-
-@pytest.fixture(scope="module")
-def build_run():
-    try:
-        clean = clean_dir()
-        build = build_case()
-    except sp.CalledProcessError:
-        print("Build Failed")
-    else:
-        run = run_case()
-
-def test_gravity(build_run):
+@pytest.mark.parametrize("mdprocs", [1, 2, 4, 8])
+def test_gravity(build_run, mdprocs):
 
     #Check vs analystical solution for gravity
     import bouncing
+    clean_dir()
+    run = run_case(mdprocs)
 
     with cd(TEST_DIR):
         error = bouncing.check_bouncing_error_vs_gravity()
         for e in error[0,1,:]:
             assert np.abs(e) < 1e-11
 
-
-def test_regression(build_run):
+@pytest.mark.parametrize("mdprocs", [1, 2, 4, 8])
+def test_regression(build_run, mdprocs):
 
     #Check vs analystical solution for gravity
     import bouncing as b
+    clean_dir()
+    run = run_case(mdprocs)
+
     with cd(TEST_DIR):
 
         t, z, v, f = b.read_data(logfile='./log.lammps', 
