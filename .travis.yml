@@ -58,8 +58,8 @@ install:
     - cd ../
 
 before_script:
-    - apt-get install python-numpy
-    - apt-get install python-scipy
+    - sudo apt-get install python-numpy
+    - sudo apt-get install python-scipy
 
 script:
     - make test-single
