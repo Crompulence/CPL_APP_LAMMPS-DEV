@@ -31,8 +31,9 @@ for time in range(101):
     # recv data and plot
     recv_array, ierr = CPL.recv(recv_array)
 
-    print(time)
+    print("CFD time = ", time)
 
+comm.Barrier()
 CPL.finalize()
 MPI.Finalize()
 

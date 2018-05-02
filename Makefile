@@ -47,7 +47,7 @@ clean-all: clean
 	cd $(LAMMPS_SRC_DIR) && $(MAKE) clean-all
 
 test:
-	py.test2 -v ./test
+	py.test -v ./test
 
 test-single:
 	py.test -v -s ./test/constant_force

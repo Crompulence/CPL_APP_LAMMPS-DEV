@@ -71,7 +71,7 @@ install:
     #Build version of LAMMPS
     - make patch-lammps-Oct17
     - make -j 8
-    - cd ../
+    - ls bin/
 
 before_script:
     - sudo apt-get install python-numpy
