@@ -69,7 +69,7 @@ install:
     - cd ../$LAMMPS_APP_DIR
     - echo granular >> config/lammps_packages.in
     - cd config
-    - sh ./enable-packages.sh
+    - sh ./enable-packages.sh make
     - cd ../
     #Build version of LAMMPS
     - make patch-lammps-Oct17
