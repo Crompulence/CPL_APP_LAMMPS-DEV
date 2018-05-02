@@ -187,7 +187,6 @@ void FixCPLForce::apply(int nevery) {
     double fx=0., fy=0., fz=0.;
     double mi, radi, pot, xi[3], vi[3], ai[3];
     pot = 1.0; //Interaction Potential should be set here
-    std::vector<int> cell;
 
     if (time) {
         end = high_resolution_clock::now();

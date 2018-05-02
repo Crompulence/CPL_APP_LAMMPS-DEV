@@ -25,6 +25,18 @@ def get_subprocess_error(e):
     print(error['code'], error['message'])
 
 
+def runcmd(cmd):
+    try:
+        #run = sp.Popen(cmd, stdout=sp.PIPE, stderr=None, shell=True)
+        run = sp.check_output(cmd, stderr=sp.STDOUT, shell=True)
+    except sp.CalledProcessError as e:
+        if e.output.startswith('error: {'):
+            get_subprocess_error(e.output)
+        raise
+
+    return run
+
+
 MD_EXEC = "../../bin/lmp_cpl"
 CFD_EXEC = "./CFD_single_ball.py"
 TEST_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -81,18 +93,16 @@ def run_case(mdprocs):
     print("Running case ", TEST_DIR)
     #Try to run code
     #cmd = ('cplexec -m ' + str(mdprocs) + ' "' + MD_EXEC + ' < single.in" ' + ' -c 1 ' +  CFD_EXEC)
-    cmd = ('mpiexec -n ' + str(mdprocs) + ' ' + MD_EXEC + ' < single.in' + ' : -n 1 python ' +  CFD_EXEC)
+    cmd = ('mpiexec -n ' + str(mdprocs) + ' ' + MD_EXEC + ' -in ./single.in' + ' : -n 1 python ' +  CFD_EXEC)
     print(cmd)
     with cd(TEST_DIR):
         try:
-            process = sp.Popen(cmd, shell=True, stdout=sp.PIPE, stderr=sp.PIPE)
+            run = runcmd(cmd)
         except sp.CalledProcessError as e:
             if e.output.startswith('error: {'):
                 get_subprocess_error(e.output)
             raise
 
-    run = process.communicate()
-    print(run)
     return run
 
 @pytest.mark.parametrize("mdprocs", [1, 2, 4, 8])
