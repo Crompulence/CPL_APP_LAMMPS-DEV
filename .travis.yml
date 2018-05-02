@@ -68,6 +68,9 @@ install:
     - pwd > ../$LAMMPS_APP_DIR/CODE_INST_DIR
     - cd ../$LAMMPS_APP_DIR
     - echo granular >> config/lammps_packages.in
+    - cd config
+    - sh ./enable-packages.sh
+    - cd ../
     #Build version of LAMMPS
     - make patch-lammps-Oct17
     - make -j 8
@@ -80,6 +83,7 @@ before_script:
 script:
     - cd ./test/constant_force
     - ls
+    - ldd ../../bin/lmp_cpl
     - mpiexec -n 1 python ./CFD_single_ball.py &
     - mpiexec -n 1 ../../bin/lmp_cpl -in ./single.in &
     - cd ../../
