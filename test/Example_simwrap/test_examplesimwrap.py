@@ -4,16 +4,16 @@ import sys
 import numpy as np
 import subprocess as sp
 
-sys.path.append("/home/es205/codes/python/SimWrapPy/")
-try:
-    import simwraplib as swl
-except ImportError:
-    print("Downloading simwraplib")
-    import subprocess as sp
-    downloadout = sp.check_output("git clone https://github.com/edwardsmith999/SimWrapPy.git ./SimWrapPy", shell=True)
-    print(downloadout)
-    sys.path.append("./SimWrapPy/")
-    import simwraplib as swl
+sys.path.append("../SimWrapPy/")
+import simwraplib as swl
+
+#except ImportError:
+#    print("Downloading simwraplib")
+#    import subprocess as sp
+#    downloadout = sp.check_output("git clone https://github.com/edwardsmith999/SimWrapPy.git ../SimWrapPy", shell=True)
+#    print(downloadout)
+#    sys.path.append("./SimWrapPy/")
+#    import simwraplib as swl
 
 TEST_DIR = os.path.dirname(os.path.realpath(__file__))
 

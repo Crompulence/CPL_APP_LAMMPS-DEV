@@ -8,6 +8,7 @@ all:
 	cp -R src/USER-CPL $(LAMMPS_SRC_DIR)
 	cp ./config/Makefile.cpl $(LAMMPS_SRC_DIR)/MAKE
 	cd $(LAMMPS_SRC_DIR) && $(MAKE) no-USER-CPL && $(MAKE) yes-USER-CPL
+	#cd $(LAMMPS_SRC_DIR) && $(MAKE) yes-granular
 	cd $(LAMMPS_SRC_DIR) && $(MAKE) cpl
 	rm -rf bin > /dev/null
 	mkdir bin
@@ -51,3 +52,7 @@ test:
 
 test-single:
 	py.test -v -s ./test/constant_force
+
+test-simwrap:
+	cd ./test/Example_simwrap
+	py.test -v -s ./
