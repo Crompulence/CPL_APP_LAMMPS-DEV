@@ -73,7 +73,7 @@ install:
     - sh ./enable-packages.sh make
     - cd ../
     #Build version of LAMMPS
-    - make patch-lammps-Oct17
+    - make patch-lammps-Apr18
     - make -j 8
     - source SOURCEME.sh
 

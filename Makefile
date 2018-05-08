@@ -26,13 +26,21 @@ patch-lammps-Oct17:
 	cp ./config/mpmd_Oct2017.patch $(LAMMPS_DIR)
 	cd $(LAMMPS_DIR) && patch -N -p1 < mpmd_Oct2017.patch
 
+patch-lammps-Apr18:
+	cp ./config/mpmd_Apr2018.patch $(LAMMPS_DIR)
+	cd $(LAMMPS_DIR) && patch -p2 < mpmd_Apr2018.patch
+
 unpatch-lammps-Aug17:
 	cp ./config/mpmd_Oct2017.patch $(LAMMPS_DIR)
-	cd $(LAMMPS_DIR) && patch -R -p1 < mpmd_Aug2017.patch
+	cd $(LAMMPS_DIR) && patch -R -p2 < mpmd_Aug2017.patch
 
 unpatch-lammps-Oct17:
 	cp ./config/mpmd_Oct2017.patch $(LAMMPS_DIR)
-	cd $(LAMMPS_DIR) && patch -R -p1 < mpmd_Oct2017.patch
+	cd $(LAMMPS_DIR) && patch -R -p2 < mpmd_Oct2017.patch
+
+unpatch-lammps-Apr18:
+	cp ./config/mpmd_Apr2018.patch $(LAMMPS_DIR)
+	cd $(LAMMPS_DIR) && patch -R -p2 < mpmd_Apr2018.patch
 
 yes-all:
 	bash config/enable-packages.sh $(MAKE)
