@@ -19,8 +19,3 @@
 -  LAMMPS *lammps = new LAMMPS(argc,argv,MPI_COMM_WORLD);
 +  LAMMPS *lammps = new LAMMPS(argc,argv,comm);
    lammps->input->file();
-@@ -66,3 +70,3 @@ int main(int argc, char **argv)
- #endif
--  MPI_Barrier(MPI_COMM_WORLD);
-+  MPI_Barrier(comm);
-   MPI_Finalize();
