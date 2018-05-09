@@ -13,8 +13,8 @@ before checking the solution against the constant
 accelerations equations for the falling bit before/after it 
 hits the wall and using regression for the wall interaction.
 
-![alt tag](https://raw.githubusercontent.com/Crompulence/CPL_APP_LAMMPS-DEV/blob/master/test/constant_force/Wall_force_LAMMPS.png)
-
+![Results from LAMMPS vs analytical solution](Wall_force_LAMMPS.png?raw=true "Title")
+ 
 This is run for a range of processor topologies by pytest and checked each time
 against the constant acceleration equations.
 
