@@ -1,0 +1,21 @@
+--- ../gitlammps/src/main.cpp	2018-05-08 10:16:32.229393103 +0100
++++ ../gitlammps/src/main_withpatch.cpp	2018-05-08 10:22:21.357396752 +0100
+@@ -19,2 +19,3 @@
+ #include <cstdlib>
++#include "cpl.h"
+ 
+@@ -50,5 +51,8 @@ int main(int argc, char **argv)
+ 
++  MPI_Comm comm;
++  CPL::init(CPL::md_realm, comm);
++
+ #ifdef LAMMPS_EXCEPTIONS
+   try {
+-    LAMMPS *lammps = new LAMMPS(argc,argv,MPI_COMM_WORLD);
++    LAMMPS *lammps = new LAMMPS(argc,argv,comm);
+     lammps->input->file();
+@@ -62,3 +66,3 @@ int main(int argc, char **argv)
+ #else
+-  LAMMPS *lammps = new LAMMPS(argc,argv,MPI_COMM_WORLD);
++  LAMMPS *lammps = new LAMMPS(argc,argv,comm);
+   lammps->input->file();
