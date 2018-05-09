@@ -32,7 +32,7 @@ TEST_DIR = os.path.dirname(os.path.realpath(__file__))
 gbase = 9.81
 dtbase = 1e-5
 params = []
-for i in range(-10,10):
+for i in range(-10,5):
     ratio = 1. + 0.05*i
     params.append([dtbase/ratio, ratio*gbase])
 
@@ -69,7 +69,7 @@ def test_newtest(timestep, g):
 
         #Run the case
         run.setup()
-        run.execute(blocking=True, print_output=True)
+        run.execute(blocking=True, print_output=False)
 
     #Check error
     import bouncing
