@@ -62,7 +62,7 @@ def test_newtest(timestep, g):
 
         #Setup a mock script
         mockscript = "./CFD_single_ball.py"
-        mock = swl.ScriptRun(rundir, mockscript, inputchanges={"g = ":g})
+        mock = swl.ScriptRun(rundir, mockscript, inputchanges={"g = ": g})
 
         #Setup a coupled run
         run = swl.CPLRun(None, basedir, rundir, [lmps, mock],

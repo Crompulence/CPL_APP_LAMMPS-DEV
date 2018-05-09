@@ -62,5 +62,5 @@ test-single:
 	py.test -v ./test/constant_force
 
 test-simwrap:
-	py.test -v ./test/Example_simwrap/
+	py.test -vs ./test/Example_simwrap/
 
