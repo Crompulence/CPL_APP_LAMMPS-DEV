@@ -7,6 +7,7 @@ mi = -5.9490638385009208e-08
 
 print("After import")
 
+
 #initialise MPI and CPL
 comm = MPI.COMM_WORLD
 CPL = CPL()
@@ -27,7 +28,6 @@ CPL.setup_cfd(cart_comm, xyzL, xyz_orig, ncxyz)
 recv_array, send_array = CPL.get_arrays(recv_size=4, send_size=9)
 
 print("After CPL setup")
-
 
 ft = True
 for time in range(101):

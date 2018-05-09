@@ -17,6 +17,7 @@ class cd:
         os.chdir(self.savedPath)
 
 
+
 sys.path.insert(0, "./SimWrapPy/")
 try:
     import simwraplib as swl
@@ -45,7 +46,7 @@ def test_newtest(timestep, g):
     executable = "/../../bin/lmp_cpl"
     inputfile = "/single.in"
     initstate = "/Bouncing_Ball.lj"
-    rundir = TEST_DIR + "/run"# + "dt_" + str(np.round(timestep,2)) + "_g_" + str(np.round(g,2))
+    rundir = TEST_DIR + "/run" # + "dt_" + str(np.round(timestep,2)) + "_g_" + str(np.round(g,2))
 
     #Clean previous result
     clean = sp.check_output("rm -f " + rundir + "./thermo_output* " 
