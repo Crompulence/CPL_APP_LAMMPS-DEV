@@ -1,3 +1,4 @@
+from __future__ import print_function
 import pytest
 from cplpy import run_test, prepare_config
 import subprocess as sp
@@ -26,15 +27,41 @@ def get_subprocess_error(e):
 
 
 def runcmd(cmd):
-    try:
+
+    run = []
+    for path in execute(cmd):
+        print(path, end="")
+        run.append(path)
+#    try:
         #run = sp.Popen(cmd, stdout=sp.PIPE, stderr=None, shell=True)
-        run = sp.check_output(cmd, stderr=sp.STDOUT, shell=True)
-    except sp.CalledProcessError as e:
-        if e.output.startswith('error: {'):
-            get_subprocess_error(e.output)
-        raise
+        #run = sp.check_output(cmd, stderr=sp.STDOUT, shell=True)
+
+#    except sp.CalledProcessError as e:
+#        if e.output.startswith('error: {'):
+#            get_subprocess_error(e.output)
+#        raise
 
     return run
+
+def execute(cmd, blocking=True):
+    """
+    Outputs results as they are generated, example usage:
+
+    from __future__ import print_function
+
+    for path in execute(["locate", "a"]):
+        print(path, end="")
+
+    """
+    popen = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.STDOUT, shell=True, universal_newlines=True)
+    for stdout_line in iter(popen.stdout.readline, ""):
+        yield stdout_line 
+    popen.stdout.close()
+    if blocking:
+        return_code = popen.wait()
+
+    if return_code:
+        raise sp.CalledProcessError(return_code, cmd)
 
 
 MD_EXEC = "../../bin/lmp_cpl"

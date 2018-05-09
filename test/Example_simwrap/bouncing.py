@@ -61,7 +61,6 @@ if __name__ == "__main__":
     plt.plot(zp)
     plt.show()
 
-    
     error = check_bouncing_error_vs_gravity()
     plt.plot(error[0,0,:],error[0,1,:])
     plt.show()
