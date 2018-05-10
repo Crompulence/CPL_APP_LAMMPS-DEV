@@ -15,30 +15,32 @@ all:
 	cp -f $(LAMMPS_SRC_DIR)/lmp_cpl ./bin
 
 patch-lammps:
-	echo "Specify patch-lammps-Aug17 or patch-lammps-Oct17"
-	echo $(LAMMPSVERSION)
+	python ./config/get_patch.py $(LAMMPS_SRC_DIR)
+	cp ./config/mpmd.patch $(LAMMPS_DIR)
+	cd $(LAMMPS_DIR) && patch -N -p2 < mpmd.patch
 
-patch-lammps-Aug17:
-	cp ./config/mpmd_Aug2017.patch $(LAMMPS_DIR)
-	cd $(LAMMPS_DIR) && patch -N -p1 < mpmd_Aug2017.patch
+unpatch-lammps:
+	python ./config/get_patch.py $(LAMMPS_SRC_DIR)
+	cp ./config/mpmd.patch $(LAMMPS_DIR)
+	cd $(LAMMPS_DIR) && patch -N -R -p2 < mpmd.patch
 
-patch-lammps-Oct17:
+patch-lammps-Oct2017:
 	cp ./config/mpmd_Oct2017.patch $(LAMMPS_DIR)
 	cd $(LAMMPS_DIR) && patch -N -p1 < mpmd_Oct2017.patch
 
-patch-lammps-Apr18:
+patch-lammps-Apr2018:
 	cp ./config/mpmd_Apr2018.patch $(LAMMPS_DIR)
 	cd $(LAMMPS_DIR) && patch -p2 < mpmd_Apr2018.patch
 
-unpatch-lammps-Aug17:
+unpatch-lammps-Aug2017:
 	cp ./config/mpmd_Oct2017.patch $(LAMMPS_DIR)
 	cd $(LAMMPS_DIR) && patch -R -p2 < mpmd_Aug2017.patch
 
-unpatch-lammps-Oct17:
+unpatch-lammps-Oct2017:
 	cp ./config/mpmd_Oct2017.patch $(LAMMPS_DIR)
 	cd $(LAMMPS_DIR) && patch -R -p2 < mpmd_Oct2017.patch
 
-unpatch-lammps-Apr18:
+unpatch-lammps-Apr2018:
 	cp ./config/mpmd_Apr2018.patch $(LAMMPS_DIR)
 	cd $(LAMMPS_DIR) && patch -R -p2 < mpmd_Apr2018.patch
 

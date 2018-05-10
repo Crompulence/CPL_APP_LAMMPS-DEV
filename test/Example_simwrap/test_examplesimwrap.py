@@ -16,8 +16,6 @@ class cd:
     def __exit__(self, etype, value, traceback):
         os.chdir(self.savedPath)
 
-
-
 sys.path.insert(0, "./SimWrapPy/")
 try:
     import simwraplib as swl
@@ -70,7 +68,7 @@ def test_newtest(timestep, g):
 
         #Run the case
         run.setup()
-        run.execute(blocking=True, print_output=False)
+        run.execute(blocking=True, print_output=True)
 
     #Check error
     import bouncing
