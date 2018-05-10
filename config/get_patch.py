@@ -19,7 +19,10 @@ class cd:
 
 DIR = os.path.dirname(os.path.realpath(__file__))
 with cd(DIR):
-    os.remove("./mpmd.patch")
+    try:
+        os.remove("./mpmd.patch")
+    except OSError:
+        pass
     patches = glob.glob("./*.patch")
 
     lammpssrcdir = sys.argv[1]
