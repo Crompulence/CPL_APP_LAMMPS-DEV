@@ -119,8 +119,8 @@ def run_case(mdprocs):
 
     print("Running case ", TEST_DIR)
     #Try to run code
-    #cmd = ('cplexec -m ' + str(mdprocs) + ' "' + MD_EXEC + ' < single.in" ' + ' -c 1 ' +  CFD_EXEC)
-    cmd = ('mpiexec -n ' + str(mdprocs) + ' ' + MD_EXEC + ' -in ./single.in' + ' : -n 1 python ' +  CFD_EXEC)
+    cmd = ('cplexec -m ' + str(mdprocs) + ' "' + MD_EXEC + ' < single.in" ' + ' -c 1 ' +  CFD_EXEC)
+    #cmd = ('mpiexec -n ' + str(mdprocs) + ' ' + MD_EXEC + ' -in ./single.in' + ' : -n 1 python ' +  CFD_EXEC)
     print(cmd)
     with cd(TEST_DIR):
         try:
