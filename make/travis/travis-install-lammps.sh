@@ -6,7 +6,10 @@ else
     case $1 in
       lammps) set -x;
         #Get LAMMPS
-        git clone https://github.com/lammps/lammps.git gitlammps;;
+        git clone https://github.com/lammps/lammps.git gitlammps
+        cd gitlammps
+        git checkout stable
+        cd ../;;
       granlammps) set -x;
         #Get GranLAMMPS first as this requires password
         git clone https://edwardsmith999@bitbucket.org/granlammps/gitlammps.git gitlammps
