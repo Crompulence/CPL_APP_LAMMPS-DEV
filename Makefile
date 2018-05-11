@@ -17,12 +17,12 @@ all:
 patch-lammps:
 	python ./config/get_patch.py $(LAMMPS_SRC_DIR)
 	cp ./config/mpmd.patch $(LAMMPS_DIR)
-	cd $(LAMMPS_DIR) && patch -N -p2 < mpmd.patch
+	cd $(LAMMPS_DIR) && patch -N -p1 < mpmd.patch
 
 unpatch-lammps:
 	python ./config/get_patch.py $(LAMMPS_SRC_DIR)
 	cp ./config/mpmd.patch $(LAMMPS_DIR)
-	cd $(LAMMPS_DIR) && patch -N -R -p2 < mpmd.patch
+	cd $(LAMMPS_DIR) && patch -N -R -p1 < mpmd.patch
 
 patch-lammps-Oct2017:
 	cp ./config/mpmd_Oct2017.patch $(LAMMPS_DIR)
@@ -61,7 +61,7 @@ test:
 	py.test -v ./test
 
 test-single:
-	py.test -v ./test/constant_force
+	py.test -vs ./test/constant_force
 
 test-simwrap:
 	py.test -vs ./test/Example_simwrap/

@@ -14,7 +14,6 @@ MD_COMM = CPL.init(CPL.CFD_REALM)
 
 print("After CPL init")
 
-
 ## Parameters of the cpu topology (cartesian grid)
 npxyz = [1, 1, 1]
 xyzL = [1.5E-003, 1.5E-003, 2.5E-003]
