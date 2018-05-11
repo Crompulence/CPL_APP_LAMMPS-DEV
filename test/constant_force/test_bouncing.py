@@ -28,18 +28,18 @@ def get_subprocess_error(e):
 
 def runcmd(cmd):
 
-    run = []
-    for path in execute(cmd):
-        print(path, end="")
-        run.append(path)
-#    try:
+#    run = []
+#    for path in execute(cmd):
+#        print(path, end="")
+#        run.append(path)
+    try:
         #run = sp.Popen(cmd, stdout=sp.PIPE, stderr=None, shell=True)
-        #run = sp.check_output(cmd, stderr=sp.STDOUT, shell=True)
+        run = sp.check_output(cmd, stderr=sp.STDOUT, shell=True)
 
-#    except sp.CalledProcessError as e:
-#        if e.output.startswith('error: {'):
-#            get_subprocess_error(e.output)
-#        raise
+    except sp.CalledProcessError as e:
+        if e.output.startswith('error: {'):
+            get_subprocess_error(e.output)
+        raise
 
     return run
 
@@ -119,16 +119,11 @@ def run_case(mdprocs):
 
     print("Running case ", TEST_DIR)
     #Try to run code
-    cmd = ('cplexec -m ' + str(mdprocs) + ' "' + MD_EXEC + ' < single.in" ' + ' -c 1 ' +  CFD_EXEC)
+    cmd = ('cplexec -vM -m ' + str(mdprocs) + ' "' + MD_EXEC + ' -in single.in" ' + ' -c 1 ' +  CFD_EXEC)
     #cmd = ('mpiexec -n ' + str(mdprocs) + ' ' + MD_EXEC + ' -in ./single.in' + ' : -n 1 python ' +  CFD_EXEC)
     print(cmd)
     with cd(TEST_DIR):
-        try:
-            run = runcmd(cmd)
-        except sp.CalledProcessError as e:
-            if e.output.startswith('error: {'):
-                get_subprocess_error(e.output)
-            raise
+        run = runcmd(cmd)
 
     return run
 

@@ -64,7 +64,8 @@ install:
     #Download CPL APP for LAMMPS and add package USER-CPL
     - LAMMPS_APP_DIR=./CPL_APP_LAMMPS-DEV
     - git clone https://github.com/Crompulence/CPL_APP_LAMMPS-DEV.git $LAMMPS_APP_DIR
-    - sh ./make/travis/travis-install-lammps.sh lammps
+    - sh $LAMMPS_APP_DIR/make/travis/travis-install-lammps.sh lammps
+    #Build version of LAMMPS
     - cd gitlammps
     - pwd > ../$LAMMPS_APP_DIR/CODE_INST_DIR
     - cd ../$LAMMPS_APP_DIR
@@ -72,15 +73,13 @@ install:
     - cd config
     - sh ./enable-packages.sh make
     - cd ../
-    #Build version of LAMMPS
-    #- make patch-lammps
+    - make patch-lammps
     - make -j 8
     - source SOURCEME.sh
 
 before_script:
     - sudo apt-get install python-numpy
     - sudo apt-get install python-scipy
-    - git clone https://github.com/edwardsmith999/SimWrapPy.git ./test/SimWrapPy
 
 script:
     - make test-single
