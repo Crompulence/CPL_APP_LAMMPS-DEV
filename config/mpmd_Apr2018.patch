@@ -1,21 +1,35 @@
---- ../gitlammps/src/main.cpp	2018-05-08 10:16:32.229393103 +0100
-+++ ../gitlammps/src/main_withpatch.cpp	2018-05-08 10:22:21.357396752 +0100
-@@ -19,2 +19,3 @@
- #include <cstdlib>
+diff --git a/src/main.cpp b/src/main.cpp
+index 9536838..a597f7f 100644
+--- a/src/main.cpp
++++ b/src/main.cpp
+@@ -17,6 +17,7 @@
+ #include "error.h"
+ #include <stdio.h>
+ #include <stdlib.h>
 +#include "cpl.h"
  
-@@ -50,5 +51,8 @@ int main(int argc, char **argv)
+ #if defined(LAMMPS_TRAP_FPE) && defined(_GNU_SOURCE)
+ #include <fenv.h>
+@@ -48,9 +49,12 @@ int main(int argc, char **argv)
+   feenableexcept(FE_OVERFLOW);
+ #endif
  
-+  MPI_Comm comm;
-+  CPL::init(CPL::md_realm, comm);
++MPI_Comm comm;
++CPL::init(CPL::md_realm, comm);
 +
  #ifdef LAMMPS_EXCEPTIONS
    try {
 -    LAMMPS *lammps = new LAMMPS(argc,argv,MPI_COMM_WORLD);
 +    LAMMPS *lammps = new LAMMPS(argc,argv,comm);
      lammps->input->file();
-@@ -62,3 +66,3 @@ int main(int argc, char **argv)
+     delete lammps;
+   } catch(LAMMPSAbortException & ae) {
+@@ -60,7 +64,7 @@ int main(int argc, char **argv)
+     exit(1);
+   }
  #else
 -  LAMMPS *lammps = new LAMMPS(argc,argv,MPI_COMM_WORLD);
 +  LAMMPS *lammps = new LAMMPS(argc,argv,comm);
    lammps->input->file();
+   delete lammps;
+ #endif

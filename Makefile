@@ -17,12 +17,12 @@ all:
 patch-lammps:
 	python ./config/get_patch.py $(LAMMPS_SRC_DIR)
 	cp ./config/mpmd.patch $(LAMMPS_DIR)
-	cd $(LAMMPS_DIR) && patch -N -p2 < mpmd.patch
+	cd $(LAMMPS_DIR) && patch -N -p1 < mpmd.patch
 
 unpatch-lammps:
 	python ./config/get_patch.py $(LAMMPS_SRC_DIR)
 	cp ./config/mpmd.patch $(LAMMPS_DIR)
-	cd $(LAMMPS_DIR) && patch -N -R -p2 < mpmd.patch
+	cd $(LAMMPS_DIR) && patch -N -R -p1 < mpmd.patch
 
 patch-lammps-Oct2017:
 	cp ./config/mpmd_Oct2017.patch $(LAMMPS_DIR)
@@ -34,15 +34,15 @@ patch-lammps-Apr2018:
 
 unpatch-lammps-Aug2017:
 	cp ./config/mpmd_Oct2017.patch $(LAMMPS_DIR)
-	cd $(LAMMPS_DIR) && patch -R -p2 < mpmd_Aug2017.patch
+	cd $(LAMMPS_DIR) && patch -R -p1 < mpmd_Aug2017.patch
 
 unpatch-lammps-Oct2017:
 	cp ./config/mpmd_Oct2017.patch $(LAMMPS_DIR)
-	cd $(LAMMPS_DIR) && patch -R -p2 < mpmd_Oct2017.patch
+	cd $(LAMMPS_DIR) && patch -R -p1 < mpmd_Oct2017.patch
 
 unpatch-lammps-Apr2018:
 	cp ./config/mpmd_Apr2018.patch $(LAMMPS_DIR)
-	cd $(LAMMPS_DIR) && patch -R -p2 < mpmd_Apr2018.patch
+	cd $(LAMMPS_DIR) && patch -R -p1 < mpmd_Apr2018.patch
 
 yes-all:
 	bash config/enable-packages.sh $(MAKE)
