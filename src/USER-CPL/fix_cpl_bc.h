@@ -21,7 +21,7 @@ public:
     FixCPLBc(class LAMMPS_NS::LAMMPS *lammps, int narg, char **arg);
 	~FixCPLBc();
     void post_constructor();
-    int setmask(){}
+    int setmask(){return 0;}
 
     // Pool of boundary conditions for CFD
     CPL::OutgoingFieldPool* bcPool;

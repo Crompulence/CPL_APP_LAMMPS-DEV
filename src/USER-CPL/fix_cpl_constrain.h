@@ -21,7 +21,7 @@ public:
     FixCPLConstrain(class LAMMPS_NS::LAMMPS *lammps, int narg, char **arg);
 	~FixCPLConstrain(){};
     void post_constructor();
-    int setmask(){}
+    int setmask(){return 0;}
 
     // Pool of constrains for MD
     CPL::IncomingFieldPool* cnstPool;
