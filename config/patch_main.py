@@ -26,6 +26,10 @@ with open(mainfile, "r") as old:
                 new.write('  CPL::init(CPL::md_realm, comm);\n')
             elif "MPI_COMM_WORLD" in l:
                 new.write(l.replace("MPI_COMM_WORLD","comm"))
+
+            elif "MPI_Finalize" in l:
+                new.write('CPL::finalize();\n')
+                new.write(l)
             else:
                 new.write(l)
 
