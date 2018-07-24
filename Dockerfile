@@ -1,10 +1,9 @@
 # start from cpl library base
-# I THINK THIS SHOULD BE OPENFOAM CPL BASE
 FROM cpllibrary/cpl-library
 MAINTAINER Edward Smith <edward.smith05@imperial.ac.uk>
 
 #Number of processes to use in build
-ENV NPROCS=8
+ENV NPROCS=1
 
 #Get LAMMPS
 RUN git clone https://github.com/lammps/lammps.git /lammps &&  \

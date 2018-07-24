@@ -1,6 +1,5 @@
-# start from cpl library base
-# I THINK THIS SHOULD BE OPENFOAM CPL BASE
-FROM cpllibrary/cplopenfoam
+# start from CPL library and openfoam latest image
+FROM cpllibrary/cpl-openfoam
 MAINTAINER Edward Smith <edward.smith05@imperial.ac.uk>
 
 #Number of processes to use in build
