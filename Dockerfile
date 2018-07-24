@@ -20,3 +20,5 @@ RUN echo "/lammps" > /CPL_APP_LAMMPS-DEV/CODE_INST_DIR && \
     make patch-lammps
 
 RUN make -j $NPROCS
+
+ENV PATH="/CPL_APP_LAMMPS-DEV/bin:${PATH}"
