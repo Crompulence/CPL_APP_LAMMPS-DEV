@@ -53,8 +53,8 @@ FixCPLBc::FixCPLBc(LAMMPS_NS::LAMMPS *lammps, int narg, char **arg)
         lammps->error->all(FLERR,"Missing send_type option in cpl/init.");
     else {
         if (send_type == "velocity") {
-            (new VelOutgoingField("1velocity", DepListT({"cfdbcfix"}), depPool, lammps))->addToPool(bcPool);
-            (new NbinOutgoingField("2nbinbc", DepListT({"cfdbcfix"}), depPool, lammps))->addToPool(bcPool);
+            (new VelOutgoingField("1velocity", DepListT({"cfdbc_fix"}), depPool, lammps))->addToPool(bcPool);
+            (new NbinOutgoingField("2nbinbc", DepListT({"cfdbc_fix"}), depPool, lammps))->addToPool(bcPool);
         }
         else if (send_type == "gran") {
         }
@@ -69,10 +69,17 @@ void FixCPLBc::post_constructor() {
     // Setup dependencies
     (new LAMMPSDepRegion("cfdbcregion", DepListT({}), this, lmp, 
                      &cfdbcregion_depfunc))->addToPool(depPool);
-    (new LAMMPSDepCompute("cfdbccompute", DepListT({"cfdbcregion"}), this,
-                     lmp, &cfdbccompute_depfunc))->addToPool(depPool);
-    (new LAMMPSDepFix("cfdbcfix", DepListT({"cfdbccompute"}), this,
-                     lmp, &cfdbcfix_depfunc))->addToPool(depPool);
+    (new LAMMPSDepCompute("cfdbc_chunks", DepListT({"cfdbcregion"}), this,
+                     lmp, &cfdbc_chunks_depfunc))->addToPool(depPool);
+    (new LAMMPSDepCompute("cfdbc_property", DepListT({"cfdbc_chunks"}), this,
+                     lmp, &cfdbc_property_depfunc))->addToPool(depPool);
+    (new LAMMPSDepCompute("cfdbc_vcom", DepListT({"cfdbc_chunks"}), this,
+                     lmp, &cfdbc_vcom_depfunc))->addToPool(depPool);
+    (new LAMMPSDepFix("cfdbc_fix", DepListT({"cfdbc_chunks", "cfdbc_property", "cfdbc_vcom"}), this,
+                     lmp, &cfdbc_fix_depfunc))->addToPool(depPool);
+
+    // (new LAMMPSDepFix("cfdbc_fix", DepListT({"cfdbc_chunks"}), this,
+    //                  lmp, &cfdbc_fix_depfunc))->addToPool(depPool);
  
     fixCPLInit->bcPool.setupAll();
     fixCPLInit->bcFixDefined = true;
@@ -95,10 +102,10 @@ DEPFUNC_IMP(cfdbcregion_depfunc) {
 
 //NOTE: Seems that 'upper' is not working for bound parameter. Use 'bounds' to get the appropriate
 //      number of bins. The upper bound  is  ~1e-7 units lower due to dx*ncells is not exactly Lx.
-DEPFUNC_IMP(cfdbccompute_depfunc) {
+DEPFUNC_IMP(cfdbc_chunks_depfunc) {
     std::valarray<double> bounds = shiftBc(cplsocket.bcRegion).bounds;
     std::stringstream str_out;
-    str_out << std::setprecision(15) << "compute "  << "cfdbccompute "\
+    str_out << std::setprecision(15) << "compute "  << "cfdbc_chunks "\
             << "all " << "chunk/atom bin/3d "\
             << "x lower " << cplsocket.dx << " "\
             << "y lower " << cplsocket.dy << " "\
@@ -108,15 +115,44 @@ DEPFUNC_IMP(cfdbccompute_depfunc) {
             << "bound x " << bounds[0] << " " << bounds[1] << " "\
             << "bound y " << bounds[2] << " " << bounds[3] << " "\
             << "bound z " << bounds[4] << " " << bounds[5];
-    std::cout << "CPL: " << str_out.str() << std::endl;
     return str_out.str();
 }
 
-DEPFUNC_IMP(cfdbcfix_depfunc) {
+DEPFUNC_IMP(cfdbc_property_depfunc) {
     std::stringstream str_out;
-    str_out << "fix "  << "cfdbcfix "\
-            << "all " << "ave/chunk "\
-            << "1 1 " << cplsocket.timestepRatio << " "\
-            << "cfdbccompute vx vy vz norm all file vels.debug";
+    str_out << "compute cfdbc_property all property/chunk "\
+            << "cfdbc_chunks coord1 coord2 coord3 count";
+    std::cout << "1 :" << str_out.str();
     return str_out.str();
 }
+
+DEPFUNC_IMP(cfdbc_vcom_depfunc) {
+    std::stringstream str_out;
+    str_out << "compute cfdbc_vcom all vcm/chunk cfdbc_chunks";
+    std::cout << "2:" << str_out.str();
+    return str_out.str();
+}
+
+DEPFUNC_IMP(cfdbc_fix_depfunc) {
+    std::stringstream str_out;
+    str_out << "fix "  << "cfdbc_fix "\
+            << "all " << "ave/time "\
+            << "1 " << cplsocket.timestepRatio << " "\
+            << cplsocket.timestepRatio << " "\
+            << "c_cfdbc_property[*] " << "c_cfdbc_vcom[*][1] "\
+            << "mode vector "\
+            << "file velocity.debug";
+    std::cout << "3:" << str_out.str();
+    return str_out.str();
+}
+
+// DEPFUNC_IMP(cfdbc_fix_depfunc) {
+//     std::stringstream str_out;
+//     str_out << "fix "  << "cfdbc_fix "\
+//             << "all " << "ave/chunk "\
+//             << "1 " << cplsocket.timestepRatio << " "\
+//             << cplsocket.timestepRatio << " "\
+//             << "cfdbc_chunks vx vy vz norm all file vels.debug";
+//     std::cout << "CPL: " << str_out.str() << std::endl;
+//     return str_out.str();
+// }

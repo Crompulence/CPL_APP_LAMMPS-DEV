@@ -155,7 +155,6 @@ void FixCPLForce::post_force(int vflag) {
                         fy = gdA * cplField->buffer(4, icell, jcell, kcell);
                         fz = gdA * cplField->buffer(7, icell, jcell, kcell);
                         
-                                                // Thermodynamic pressure
                         f[i][0] += fx * unit_factor;
                         f[i][1] += (-gdA * pressure + fy) * unit_factor;
                         f[i][2] += fz * unit_factor;

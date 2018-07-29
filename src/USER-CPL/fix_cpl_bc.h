@@ -34,8 +34,10 @@ private:
 };
 
 DEPFUNC_DEF(cfdbcregion_depfunc);
-DEPFUNC_DEF(cfdbccompute_depfunc);
-DEPFUNC_DEF(cfdbcfix_depfunc);
+DEPFUNC_DEF(cfdbc_chunks_depfunc);
+DEPFUNC_DEF(cfdbc_property_depfunc);
+DEPFUNC_DEF(cfdbc_vcom_depfunc);
+DEPFUNC_DEF(cfdbc_fix_depfunc);
 
 #endif
 #endif

@@ -54,7 +54,7 @@ def test_velocitiesP2C(prepare_config_fix, cfdprocs, mdprocs, err_msg):
     correct = run_test(TEST_TEMPLATE_DIR, CONFIG_PARAMS, MD_EXEC, MD_FNAME, MD_ARGS,
                        CFD_EXEC, CFD_FNAME, CFD_ARGS, MD_PARAMS, CFD_PARAMS, err_msg, True)
     if correct:
-        check_vels(1e-6, steps=2)
+        check_vels(1e-6, steps=3)
 
 
 def name_with_step(fname, step):
@@ -68,6 +68,7 @@ def check_vels(tol, lammps_fname="lammps_vels.dat", cfd_fname="cfd_vels.dat", st
     # Line format of CFD script file -- > x y z vx vy vz
     for s in xrange(steps):
         with open(name_with_step(cfd_fname, s), "r") as cfd_file:
+            # print cfd_fname
             cfd_lines = cfd_file.readlines()
         cfd_lines = [l[:-1].split(" ") for l in cfd_lines]
         cfd_cells = {}
@@ -82,8 +83,7 @@ def check_vels(tol, lammps_fname="lammps_vels.dat", cfd_fname="cfd_vels.dat", st
         header = 3
         step_header = 1
         per_step = int(lammps_lines[3].split(" ")[1])
-        #NOTE: Jump the first time-step. Initial state.
-        begin = header + (step_header + per_step) * (s+1) + 1
+        begin = header + (step_header + per_step) * (s) + 1
         end = begin + per_step
         lammps_lines = lammps_lines[begin:end]
         lammps_lines = [l[:-1].split(" ") for l in lammps_lines]

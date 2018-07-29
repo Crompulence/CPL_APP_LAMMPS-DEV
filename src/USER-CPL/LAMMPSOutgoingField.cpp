@@ -5,7 +5,7 @@ void VelOutgoingField::update() {
     if (averageVels) {
         std::vector<int> bc_region = region.cellBounds;
         if (CPL::is_proc_inside(bc_region.data())) {
-            LAMMPS_NS::Fix* cfdbcfix = static_cast<LAMMPSDepFix*>((*depPool)["cfdbcfix"])->fix;
+            LAMMPS_NS::Fix* cfdbcfix = static_cast<LAMMPSDepFix*>((*depPool)["cfdbc_fix"])->fix;
             vAvg = 0.0;
             int row;
             int N = region.nCells[0] * region.nCells[1] * region.nCells[2];
@@ -28,7 +28,7 @@ void VelOutgoingField::update() {
 void VelOutgoingField::pack_(const std::vector<int>& glob_cell,
                              const std::vector<int>& loc_cell,
                              const std::valarray<double>& coord) {
-    LAMMPS_NS::Fix* cfdbcfix = static_cast<LAMMPSDepFix*>((*depPool)["cfdbcfix"])->fix;
+    LAMMPS_NS::Fix* cfdbcfix = static_cast<LAMMPSDepFix*>((*depPool)["cfdbc_fix"])->fix;
 	int row = glob_cell[0]*region.nCells[1]\
                           *region.nCells[2] + glob_cell[1]\
                           *region.nCells[2] + glob_cell[2];
@@ -57,7 +57,7 @@ void VelOutgoingField::setup() {
 void NbinOutgoingField::pack_(const std::vector<int>& glob_cell,
                               const std::vector<int>& loc_cell,
                               const std::valarray<double>& coord) {
-    LAMMPS_NS::Fix* cfdbcfix = static_cast<LAMMPSDepFix*>((*depPool)["cfdbcfix"])->fix;
+    LAMMPS_NS::Fix* cfdbcfix = static_cast<LAMMPSDepFix*>((*depPool)["cfdbc_fix"])->fix;
 	int row = glob_cell[0]*region.nCells[1]\
                           *region.nCells[2] + glob_cell[1]\
                           *region.nCells[2] + glob_cell[2];

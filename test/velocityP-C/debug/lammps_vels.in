@@ -14,7 +14,8 @@ boundary p p p
 create_box	1 box
 
 region fluidregion block 0 ${xx} 0 ${yy} 0 ${zz} units box
-region constrainreg block 0 ${xx} 200 220  0 ${zz} units box
+# region constrainreg block 0 ${xx} 200 220  0 ${zz} units box
+region constrainreg block EDGE EDGE 200 220 EDGE EDGE units box
 
 create_atoms 1 region fluidregion units box
 
@@ -48,9 +49,13 @@ run $(2*v_timestep_ratio+1)
 # IMPORTANT for not messing the internal average for BCs in the CPLSocket for LAMMPS
 reset_timestep 0
 
-compute vfieldcompute all chunk/atom bin/3d x lower ${dx} y  lower ${dy} z  lower ${dz} bound y 200 220 ids every region constrainreg units box
+compute vfieldcompute all chunk/atom bin/3d x lower ${dx} y  lower ${dy} z  lower ${dz} bound y 200 220  bound x 0 300  bound z 0 300 ids every region constrainreg units box
 # The output shows the middle coordinate of each box (10, 10, 10) for the first box in this case
-fix vfieldfix all ave/chunk ${timestep_ratio} 1 ${timestep_ratio} vfieldcompute vx vy vz norm all file lammps_vels.dat
+# fix vfieldfix all ave/chunk  1 ${timestep_ratio} ${timestep_ratio} vfieldcompute vx vy vz norm all file lammps_vels.dat
+compute vcom_comp all vcm/chunk vfieldcompute
+compute property_comp all property/chunk vfieldcompute coord1 coord2 coord3 count
+fix vfieldfix all ave/time 1 ${timestep_ratio} ${timestep_ratio} c_property_comp[*] c_vcom_comp[*][1] mode vector file lammps_vels.dat
+
 
 # cplifx set variable CPLSTEPS to the total number of steps
 print "---RUN COUPLED---"

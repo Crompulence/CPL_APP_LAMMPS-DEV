@@ -5,4 +5,4 @@ from test_vels import check_vels
        
 
 if __name__ == "__main__":
-    check_vels(1e-6, steps=2, mode="debug")
+    check_vels(1e-6, steps=3, mode="debug")
