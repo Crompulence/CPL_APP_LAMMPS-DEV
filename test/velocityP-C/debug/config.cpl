@@ -22,7 +22,8 @@
     "velocity" : {
         "compute-mode": "above",
         "components": [1, 1, 1],
-        "average-vels": false
+        "average-vels": false,
+        "samples": 5
     }
 },
 

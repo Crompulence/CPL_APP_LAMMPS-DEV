@@ -134,10 +134,17 @@ DEPFUNC_IMP(cfdbc_vcom_depfunc) {
 }
 
 DEPFUNC_IMP(cfdbc_fix_depfunc) {
+    int samples;
+    CPL::get_file_param("bc.velocity", "samples", samples);
+    if (samples <= 0 || samples > cplsocket.timestepRatio)
+        lmp->error->all(FLERR,"Number of samples has to be >= 0 and <= timestep ratio.");
+    if (cplsocket.timestepRatio % samples != 0)
+        lmp->error->all(FLERR,"Number of samples has to be a divisor of timestep ratio.");
+    int sample_every = cplsocket.timestepRatio / samples;
     std::stringstream str_out;
     str_out << "fix "  << "cfdbc_fix "\
             << "all " << "ave/time "\
-            << "1 " << cplsocket.timestepRatio << " "\
+            << sample_every << " " << samples << " "\
             << cplsocket.timestepRatio << " "\
             << "c_cfdbc_property[*] " << "c_cfdbc_vcom[*][1] "\
             << "mode vector "\
