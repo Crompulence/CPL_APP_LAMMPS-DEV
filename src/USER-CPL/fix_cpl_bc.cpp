@@ -105,7 +105,7 @@ DEPFUNC_IMP(cfdbcregion_depfunc) {
 DEPFUNC_IMP(cfdbc_chunks_depfunc) {
     std::valarray<double> bounds = shiftBc(cplsocket.bcRegion).bounds;
     std::stringstream str_out;
-    str_out << std::setprecision(15) << "compute "  << "cfdbc_chunks "\
+    str_out << std::setprecision(16) << "compute "  << "cfdbc_chunks "\
             << "all " << "chunk/atom bin/3d "\
             << "x lower " << cplsocket.dx << " "\
             << "y lower " << cplsocket.dy << " "\
