@@ -80,7 +80,7 @@ void FixCPLForce::post_force(int vflag) {
         double g, no_particles, gdA;
         double fx, fy, fz;
         // Multiply by the appropriate conversion factor
-        double unit_factor = force->ftm2v;
+        double unit_factor = force->vxmu2f;
         if (conversionDisabled)
             unit_factor = 1.0;
         double pressure;
