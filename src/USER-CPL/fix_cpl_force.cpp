@@ -1,3 +1,66 @@
+/*
+
+    ________/\\\\\\\\\__/\\\\\\\\\\\\\____/\\\_____________
+     _____/\\\////////__\/\\\/////////\\\_\/\\\_____________
+      ___/\\\/___________\/\\\_______\/\\\_\/\\\_____________
+       __/\\\_____________\/\\\\\\\\\\\\\/__\/\\\_____________
+        _\/\\\_____________\/\\\/////////____\/\\\_____________
+         _\//\\\____________\/\\\_____________\/\\\_____________
+          __\///\\\__________\/\\\_____________\/\\\_____________
+           ____\////\\\\\\\\\_\/\\\_____________\/\\\\\\\\\\\\\\\_
+            _______\/////////__\///______________\///////////////__
+
+
+                         C P L  -  L I B R A R Y
+
+           Copyright (C) 2012-2018 Edward Smith & David Trevelyan
+
+License
+
+    This file is part of CPL-Library.
+
+    CPL-Library is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    CPL-Library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with CPL-Library.  If not, see <http://www.gnu.org/licenses/>.
+
+Description
+
+    fix for creating forces to be applied as part of coupling with CPL-Library.
+
+    This fix is turned on by fix_cpl_init but is also designed to potentiallt be used
+    by itself for testing or other purposes. The usage looks like this:
+
+    fix ID group-ID cpl/force region all forcetype X sendtype Y
+
+    cpl/force returns a 3 per-atom values for the force which can be output using the dump custom 
+    command, time-averaged with fix ave/atom command or reduced by the compute reduce command.
+    Or the per-atom values can be referenced in an atom-style variable.
+    
+    An Example which prints two atom values:
+
+    fix cplforcefix all cpl/force region all forcetype Drag peratom
+    
+    variable 	    cpl_out1 equal f_cplforcefix[1][3] 
+    variable 	    cpl_out2 equal f_cplforcefix[4][1] 
+
+    fix             print_stress all print 10 "${cpl_out1} ${cpl_out2}" file print_stress.txt screen yes
+    dump            10 all custom 10000 dumpmyforce% id type x y z f_cplforcefix[*][*]
+
+Author(s)
+
+    David Trevelyan, Edward Smith, Eduardo Fernandez-Ramos
+
+*/
+
 #include<iostream>
 #include<memory>
 #include<fstream>
@@ -17,12 +80,16 @@
 #include "fix_cpl_force.h"
 #include "cpl/CPL_misclib.h"
 #include "cpl/CPL_ndArray.h"
+//#include "cpl/CPL_misclib.h"
 
 using namespace std::chrono;
+
 
 FixCPLForce::FixCPLForce ( LAMMPS_NS::LAMMPS *lammps, int narg, char **arg) 
     : Fix (lammps, narg, arg), fddata(NULL)
 {
+
+    calcperatom = false;
     class LAMMPS_NS::LAMMPS *lmp=lammps;
     for (int iarg=0; iarg<narg; iarg+=1){
         std::string arguments(arg[iarg]);
@@ -36,13 +103,19 @@ FixCPLForce::FixCPLForce ( LAMMPS_NS::LAMMPS *lammps, int narg, char **arg)
                         //Check if we have read another argument type
                         std::string forceType_arg(*forcetype_arg);
                         if (  forceType_arg.compare("sendtype") == 0 
-                            | forceType_arg.compare("bndryavg") == 0)
+                            | forceType_arg.compare("bndryavg") == 0) {
                             break;
-                        //Otherwise it is a sendtype argument and should be added
-                        std::string forceType(*forcetype);
-                        std::cout << "Lammps FixCPLForce forcetype: "  << forceType << " with args "
-                                  <<  forceType_arg << std::endl;
-                        forcetype_args.push_back(forcetype_arg);
+                        } else if (forceType_arg.compare("calcperatom") == 0) {
+                            calcperatom = true;
+                            std::cout << " Output for fix cpl/force is on and can be accessed using f_cplforcefix[*][*] " << std::endl;
+                        } else {
+
+                            //Otherwise it is a forcetype argument and should be added
+                            std::string forceType(*forcetype);
+                            std::cout << "Lammps FixCPLForce forcetype: "  << forceType << " with args "
+                                      <<  forceType_arg << std::endl;
+                            forcetype_args.push_back(forcetype_arg);
+                        }
                     }
                 }
             }
@@ -52,28 +125,30 @@ FixCPLForce::FixCPLForce ( LAMMPS_NS::LAMMPS *lammps, int narg, char **arg)
     //int ifix = lammps->modify->find_fix("clumps");
     std::vector<double> fi{3};
 
-//    //Create peratom output
-    peratom_flag = 1;
-    size_peratom_cols = numcols;
-    peratom_freq = 1;
+    //Create peratom output
+    if (calcperatom) {
+        peratom_flag = 1;
+        size_peratom_cols = numcols;
+        peratom_freq = 1;
 
-    grow_arrays(atom->nmax);
-    //Set data array to zero
-    int nlocal = atom->nlocal;
-    for (int i = 0; i < nlocal; i++) {
+        grow_arrays(atom->nmax);
+        //Set data array to zero
+        int nlocal = atom->nlocal;
+        for (int i = 0; i < nlocal; i++) {
         for (int j = 0; j < numcols; j++) {
             fddata[i][j] = 0; //i*3 + j;
-        }
+        } }
     }
-
 }
 
 /* ---------------------------------------------------------------------- */
 
 FixCPLForce::~FixCPLForce()
 {
-  atom->delete_callback(id,0); //~ Unregister callbacks from the Atom class
-  memory->destroy(fddata); //~ Destroy the local data array
+    if (calcperatom) {
+        atom->delete_callback(id,0); //~ Unregister callbacks from the Atom class
+        memory->destroy(fddata); //~ Destroy the local data array
+    }
 }
 
 
@@ -288,8 +363,7 @@ void FixCPLForce::apply(int nevery) {
             //Apply force and multiply by conversion factor if not SI or LJ units
             for (int n=0; n<3; n++){
                 f[i][n] += fi[n]*force->ftm2v;
-                //Store per atom output
-                fddata[i][n] = fi[n]*force->ftm2v;
+                if (calcperatom) fddata[i][n] = fi[n]*force->ftm2v;
             }
 
 

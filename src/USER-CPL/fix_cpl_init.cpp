@@ -35,6 +35,12 @@ License
 Description
 
     "Initialiser fix" for coupled simulation with CPL-Library.
+    Should be used with input is of the form:
+
+    fix ID group-ID cpl/init region all forcetype X sendtype Y bndryavg Z
+
+    where details of form of X, Y and Z are given on the CPL library wiki:
+    http://www.cpl-library.org/wiki/index.php/LAMMPS_input_syntax
 
 Author(s)
 

@@ -44,6 +44,7 @@ private:
     //std::unique_ptr<LAMMPS_NS::FixRigid> clumpfix;
 
     // Array for atom data
+    bool calcperatom; 
     double **fddata; 
     int numcols = 3;
 };
