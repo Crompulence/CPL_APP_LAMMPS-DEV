@@ -2,7 +2,7 @@ LAMMPS_DIR=`cat CODE_INST_DIR`
 LAMMPS_SRC_DIR=$(LAMMPS_DIR)/src
 LAMMPSVERSION=`cat $(LAMMPS_SRC_DIR)/version.h`
 
-.PHONY: all test clean clean-all yes-all patch-lammps
+.PHONY: all test clean clean-all yes-all patch-lammps unpatch-lammps
 
 all:
 	cp -R src/USER-CPL $(LAMMPS_SRC_DIR)
@@ -15,11 +15,17 @@ all:
 	cp -f $(LAMMPS_SRC_DIR)/lmp_cpl ./bin
 
 patch-lammps:
+	python ./config/patch_main.py $(LAMMPS_SRC_DIR)
+
+unpatch-lammps:
+	cp ./config/main_prepatch.cpp $(LAMMPS_SRC_DIR)/main.cpp
+
+patch-lammps-old:
 	python ./config/get_patch.py $(LAMMPS_SRC_DIR)
 	cp ./config/mpmd.patch $(LAMMPS_DIR)
 	cd $(LAMMPS_DIR) && patch -N -p1 < mpmd.patch
 
-unpatch-lammps:
+unpatch-lammps-old:
 	python ./config/get_patch.py $(LAMMPS_SRC_DIR)
 	cp ./config/mpmd.patch $(LAMMPS_DIR)
 	cd $(LAMMPS_DIR) && patch -N -R -p1 < mpmd.patch
@@ -34,15 +40,15 @@ patch-lammps-Apr2018:
 
 unpatch-lammps-Aug2017:
 	cp ./config/mpmd_Oct2017.patch $(LAMMPS_DIR)
-	cd $(LAMMPS_DIR) && patch -R -p2 < mpmd_Aug2017.patch
+	cd $(LAMMPS_DIR) && patch -R -p1 < mpmd_Aug2017.patch
 
 unpatch-lammps-Oct2017:
 	cp ./config/mpmd_Oct2017.patch $(LAMMPS_DIR)
-	cd $(LAMMPS_DIR) && patch -R -p2 < mpmd_Oct2017.patch
+	cd $(LAMMPS_DIR) && patch -R -p1 < mpmd_Oct2017.patch
 
 unpatch-lammps-Apr2018:
 	cp ./config/mpmd_Apr2018.patch $(LAMMPS_DIR)
-	cd $(LAMMPS_DIR) && patch -R -p2 < mpmd_Apr2018.patch
+	cd $(LAMMPS_DIR) && patch -R -p1 < mpmd_Apr2018.patch
 
 yes-all:
 	bash config/enable-packages.sh $(MAKE)
