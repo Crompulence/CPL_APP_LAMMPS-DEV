@@ -21,6 +21,7 @@ class FixCPLForce : public LAMMPS_NS::Fix {
 public:
 
     FixCPLForce(class LAMMPS_NS::LAMMPS *lammps, int narg, char **arg);
+    ~FixCPLForce();
     int setmask();
 	void setup(int vflag);
 	void setupBuf(CPL::ndArray<double>& Buf, std::vector<int>& portion);
@@ -28,16 +29,23 @@ public:
     void updateProcPortion (std::vector<int>& portion);
     std::shared_ptr<std::string> forcetype;
     std::unique_ptr<CPLForce> fxyz;
+    void grow_arrays(int);
+    void copy_arrays(int, int, int);
+    int pack_exchange(int, double *);
+    int unpack_exchange(int, double *);
 
 private:
 
 	CPL::ndArray<double>* cfdBuf;
     std::vector<int> procPortion;
-    std::vector<double> fi;
+    //std::vector<double> fi;
 
     std::vector<std::shared_ptr<std::string>> forcetype_args;
     //std::unique_ptr<LAMMPS_NS::FixRigid> clumpfix;
 
+    // Array for atom data
+    double **fddata; 
+    int numcols = 3;
 };
 
 #endif

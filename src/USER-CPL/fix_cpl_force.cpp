@@ -12,6 +12,7 @@
 #include "region.h"
 #include "force.h"
 #include "update.h"
+#include "memory.h"
 
 #include "fix_cpl_force.h"
 #include "cpl/CPL_misclib.h"
@@ -20,7 +21,7 @@
 using namespace std::chrono;
 
 FixCPLForce::FixCPLForce ( LAMMPS_NS::LAMMPS *lammps, int narg, char **arg) 
-    : Fix (lammps, narg, arg)
+    : Fix (lammps, narg, arg), fddata(NULL)
 {
     class LAMMPS_NS::LAMMPS *lmp=lammps;
     for (int iarg=0; iarg<narg; iarg+=1){
@@ -51,7 +52,30 @@ FixCPLForce::FixCPLForce ( LAMMPS_NS::LAMMPS *lammps, int narg, char **arg)
     //int ifix = lammps->modify->find_fix("clumps");
     std::vector<double> fi{3};
 
+//    //Create peratom output
+    peratom_flag = 1;
+    size_peratom_cols = numcols;
+    peratom_freq = 1;
+
+    grow_arrays(atom->nmax);
+    //Set data array to zero
+    int nlocal = atom->nlocal;
+    for (int i = 0; i < nlocal; i++) {
+        for (int j = 0; j < numcols; j++) {
+            fddata[i][j] = 0; //i*3 + j;
+        }
+    }
+
 }
+
+/* ---------------------------------------------------------------------- */
+
+FixCPLForce::~FixCPLForce()
+{
+  atom->delete_callback(id,0); //~ Unregister callbacks from the Atom class
+  memory->destroy(fddata); //~ Destroy the local data array
+}
+
 
 //NOTE: It is called from fixCPLInit initial_integrate() now.
 int FixCPLForce::setmask() {
@@ -258,12 +282,16 @@ void FixCPLForce::apply(int nevery) {
             }
 
             //Get force from object
-            fi = fxyz->get_force(xi, vi, ai, mi, radi, pot);
+            //std::vector<double> fi = {0., 0., 0.};
+            auto fi = fxyz->get_force(xi, vi, ai, mi, radi, pot);
 
             //Apply force and multiply by conversion factor if not SI or LJ units
             for (int n=0; n<3; n++){
                 f[i][n] += fi[n]*force->ftm2v;
+                //Store per atom output
+                fddata[i][n] = fi[n]*force->ftm2v;
             }
+
 
 //            std::cout.precision(17);
 //            std::cout << "Force " << i << " " << xi[2] <<  " " << vi[2] << " " << ai[2] << " " <<
@@ -294,4 +322,50 @@ void FixCPLForce::updateProcPortion (std::vector<int>& portion) {
     for (int i = 0; i < 6; ++i) {
         procPortion[i] = portion[i];
     }
+}
+
+
+
+/* ----------------------------------------------------------------------
+   allocate atom-based array
+------------------------------------------------------------------------- */
+
+void FixCPLForce::grow_arrays(int nmax)
+{
+  memory->grow(fddata,nmax,numcols,"cplforce:fddata");
+  array_atom = fddata;
+}
+
+/* ----------------------------------------------------------------------
+   copy values within local atom-based array
+------------------------------------------------------------------------- */
+
+void FixCPLForce::copy_arrays(int i, int j, int delflag)
+{
+  for (int q = 0; q < numcols; q++)
+    fddata[j][q] = fddata[i][q];
+}
+
+/* ----------------------------------------------------------------------
+   pack values in local atom-based array for exchange with another proc
+------------------------------------------------------------------------- */
+
+int FixCPLForce::pack_exchange(int i, double *buf)
+{
+  for (int q = 0; q < numcols; q++)
+    buf[q] = fddata[i][q];
+
+  return numcols;
+}
+
+/* ----------------------------------------------------------------------
+   unpack values in local atom-based array from exchange with another proc
+------------------------------------------------------------------------- */
+
+int FixCPLForce::unpack_exchange(int nlocal, double *buf)
+{
+  for (int q = 0; q < numcols; q++)
+    fddata[nlocal][q] = buf[q];
+
+  return numcols;
 }
