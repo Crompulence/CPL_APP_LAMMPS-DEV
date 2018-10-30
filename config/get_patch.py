@@ -37,7 +37,7 @@ with cd(DIR):
         for p in patches:
             pd = p.replace("./","").replace("mpmd_","").replace(".patch","")
             patchdate = datetime.strptime(pd[-8:-4] + " " + str(lammps_version_date.day) +" " + pd[-4:], '%b %d %Y')
-            #print(patchdate, lammps_version_date, patchdate > lammps_version_date)
+            print(patchdate, lammps_version_date, patchdate >= lammps_version_date)
             if patchdate >= lammps_version_date:
                 #Use earliest possible patch
                 if patch_to_apply > patchdate:
@@ -46,8 +46,11 @@ with cd(DIR):
                 else:
                     pass
 
+        try:
+            print(s, " applying patch ", patchfile)
+        except NameError:
+            patchfile = max(patches)
 
-        print(s, " applying patch ", patchfile)
 
         #Take the latest one and use this
         copyfile(patchfile, "./mpmd.patch")
