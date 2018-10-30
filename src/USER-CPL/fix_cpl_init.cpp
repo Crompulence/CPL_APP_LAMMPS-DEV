@@ -13,7 +13,7 @@
 
                          C P L  -  L I B R A R Y
 
-           Copyright (C) 2012-2015 Edward Smith & David Trevelyan
+           Copyright (C) 2012-2018 Edward Smith & David Trevelyan
 
 License
 
@@ -44,15 +44,14 @@ Author(s)
 
 
 
-#include "fix_cpl_init.h"
 #include<iostream>
 #include <string.h>
-#include "error.h"
 #include <stdlib.h>
 
-#include<iostream>
-#include "fix_cpl_init.h"
 #include "update.h"
+#include "error.h"
+
+#include "fix_cpl_init.h"
 
 fixCPLInit::fixCPLInit(LAMMPS_NS::LAMMPS *lammps, int narg, char **arg)
     		: Fix (lammps, narg, arg) 
@@ -170,8 +169,22 @@ fixCPLInit::fixCPLInit(LAMMPS_NS::LAMMPS *lammps, int narg, char **arg)
 //        lammps->error->all(FLERR,"Drag Forcetype (or its derivatives) required for sendtype granfull");
 //    }
 
+}
+
+void fixCPLInit::init(){
 
 }
+
+void fixCPLInit::setas_last_fix() {
+   int ifix = lmp->modify->find_fix("cplfix");
+   LAMMPS_NS::Fix* fix_aux = lmp->modify->fix[ifix];
+   int nfix = lmp->modify->nfix; 
+   lmp->modify->fix[ifix] = lmp->modify->fix[nfix-1];
+   lmp->modify->fix[nfix-1] = fix_aux;
+   lmp->modify->fmask[ifix] = lmp->modify->fix[ifix]->setmask();
+   lmp->modify->fmask[nfix-1] = lmp->modify->fix[nfix-1]->setmask();
+}
+
 
 int fixCPLInit::setmask() {
   int mask = 0;
@@ -179,12 +192,11 @@ int fixCPLInit::setmask() {
   return mask;
 }
 
-
-void fixCPLInit::init()
-{
+void fixCPLInit::post_constructor() {
 	
     //Setup what to send and how to apply forces
     cplsocket.setupFixMDtoCFD(lmp, sendbitflag);
+
     //Note that constraint fix is setup through lammps input system
     cplsocket.setupFixCFDtoMD(lmp, forcetype, forcetype_args);
 
@@ -221,4 +233,5 @@ void fixCPLInit::post_force(int vflag)
 fixCPLInit::~fixCPLInit() {
 	cplsocket.finalizeComms();
 }
+
 

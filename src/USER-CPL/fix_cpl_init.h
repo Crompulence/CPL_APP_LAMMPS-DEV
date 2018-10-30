@@ -50,10 +50,15 @@ FixStyle(cpl/init, fixCPLInit)
 #ifndef LMP_FIX_CPL_INIT_H
 #define LMP_FIX_CPL_INIT_H
 
+#include <memory>
+
 #include "fix.h"
+
 #include "cpl/cpl.h"
+//#include "cpl/TransmittingField.h"
+
 #include "CPLSocketLAMMPS.h"
-#include<memory>
+
 
 class fixCPLInit : public LAMMPS_NS::Fix {
 
@@ -65,6 +70,12 @@ public:
     void init (); 
     void setup (int vflag); 
 	void post_force(int vflag);
+    void post_constructor();
+    void setas_last_fix();
+
+    // Pool of boundary conditions for CFD
+    //CPL::OutgoingFieldPool bcPool;
+    //CPL::IncomingFieldPool cnstPool;
 
     CPLSocketLAMMPS cplsocket;
     std::shared_ptr<std::string> forcetype;
