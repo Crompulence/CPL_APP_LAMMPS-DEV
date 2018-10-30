@@ -76,40 +76,43 @@ void FixCPLForce::setup(int vflag)
     //This is a factory
     std::string fxyzType(*forcetype);
     if (fxyzType.compare("Flekkoy") == 0) {
-        fxyz = std::make_unique<CPLForceFlekkoy>(9, cfdBuf->shape(1), 
-                                                    cfdBuf->shape(2), 
-                                                    cfdBuf->shape(3));
-    } else if (fxyzType.compare("test") == 0) {
-        fxyz = std::make_unique<CPLForceTest>(3, cfdBuf->shape(1), 
+        fxyz = std::make_unique<CPLForceFlekkoy>(cfdBuf->shape(0), 
+                                                 cfdBuf->shape(1), 
                                                  cfdBuf->shape(2), 
                                                  cfdBuf->shape(3));
+    } else if (fxyzType.compare("test") == 0) {
+        fxyz = std::make_unique<CPLForceTest>(cfdBuf->shape(0), 
+                                              cfdBuf->shape(1), 
+                                              cfdBuf->shape(2), 
+                                              cfdBuf->shape(3));
     } else if (fxyzType.compare("Velocity") == 0) {
-        fxyz = std::make_unique<CPLForceVelocity>(3, cfdBuf->shape(1), 
-                                                     cfdBuf->shape(2), 
-                                                     cfdBuf->shape(3));
+        fxyz = std::make_unique<CPLForceVelocity>(cfdBuf->shape(0), 
+                                                  cfdBuf->shape(1), 
+                                                  cfdBuf->shape(2), 
+                                                  cfdBuf->shape(3));
     } else if (fxyzType.compare("Drag") == 0) {
-        fxyz = std::make_unique<CPLForceDrag>(9, 
+        fxyz = std::make_unique<CPLForceDrag>(cfdBuf->shape(0), 
                                               cfdBuf->shape(1), 
                                               cfdBuf->shape(2), 
                                               cfdBuf->shape(3), 
                                               args_map);
         //fxyz->calc_preforce = 1;
     } else if (fxyzType.compare("Di_Felice") == 0) {
-        fxyz = std::make_unique<CPLForceGranular>(9, 
+        fxyz = std::make_unique<CPLForceGranular>(cfdBuf->shape(0), 
                                                   cfdBuf->shape(1), 
                                                   cfdBuf->shape(2), 
                                                   cfdBuf->shape(3), 
                                                   args_map);  
 
     } else if (fxyzType.compare("Ergun") == 0) {
-        fxyz = std::make_unique<CPLForceErgun>(9, 
+        fxyz = std::make_unique<CPLForceErgun>(cfdBuf->shape(0), 
                                                cfdBuf->shape(1), 
                                                cfdBuf->shape(2), 
                                                cfdBuf->shape(3), 
                                                args_map); 
 
     } else if (fxyzType.compare("BVK") == 0) {
-        fxyz = std::make_unique<CPLForceBVK>(9, 
+        fxyz = std::make_unique<CPLForceBVK>(cfdBuf->shape(0), 
                                              cfdBuf->shape(1), 
                                              cfdBuf->shape(2), 
                                              cfdBuf->shape(3), 
@@ -148,6 +151,7 @@ void FixCPLForce::setup(int vflag)
     apply(1);
 }
 
+
 //NOTE -- Not actually called post force, for some reason
 // this no longer works reliably in LAMMPS, instead call
 // explicitly in CPLInit!
@@ -164,6 +168,7 @@ void FixCPLForce::apply(int nevery) {
     double **f = atom->f;
     double *rmass = atom->rmass;
     double *radius = atom->radius;
+
     int *mask = atom->mask;
     int nlocal = atom->nlocal;
     // This will get the total number of molecules including halos
@@ -209,8 +214,10 @@ void FixCPLForce::apply(int nevery) {
            		if (mask[i] & groupbit)
             	{
 		            //Get local molecule data
-		            mi = rmass[i];
-		            radi = radius[i];
+		            if (atom->rmass_flag) {mi = rmass[i];}
+                    else {mi = 1;}
+		            if (atom->radius_flag) {radi = radius[i];}
+                    else {radi = 1;}
 		            for (int n=0; n<3; n++){
 		                xi[n]=x[i][n]; 
 		                vi[n]=v[i][n]; 
@@ -240,8 +247,10 @@ void FixCPLForce::apply(int nevery) {
         {
 
             //Get local molecule data
-            mi = rmass[i];
-            radi = radius[i];
+            if (atom->rmass_flag) {mi = rmass[i];}
+            else {mi = 1;}
+            if (atom->radius_flag) {radi = radius[i];}
+            else {radi = 1;}
             for (int n=0; n<3; n++){
                 xi[n]=x[i][n]; 
                 vi[n]=v[i][n]; 

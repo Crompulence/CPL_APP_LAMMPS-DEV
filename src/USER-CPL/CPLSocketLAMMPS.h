@@ -54,7 +54,9 @@ Author(s)
 #include "cpl/cpl.h"
 #include "cpl/CPL_ndArray.h"
 #include "cpl/CPL_force.h"
+#include "cpl/CPL_field.h"
 #include "fix_cpl_force.h"
+#include "cpl/CPLSocket.h"
 
 const int AVG_MODE_ABOVE = 0;
 const int AVG_MODE_BELOW = 1;
@@ -79,10 +81,17 @@ public:
     int nsteps;
     int timestep_ratio;
     int units;
+
+    // Data preparation and communication 
+//    void setTimingInfo();
+//    void setCartCommInfo();
+//    void setRealmDomainInfo();
+//    void setLammps(LAMMPS_NS::LAMMPS* lammps) {lmp = lammps;}
     
     // Initialisation routines 
     void initComms ();
     void initMD (LAMMPS_NS::LAMMPS *lammps);
+    void init();
 
     // Data preparation and communication 
     void packVelocity(const LAMMPS_NS::LAMMPS *lammps);
@@ -107,7 +116,7 @@ public:
 
     // Fix that applies the momentum constrain
     FixCPLForce* cplfix;
-
+    LAMMPS_NS::LAMMPS* lmp;
 
     //Bitwise mask coefficients
     int const VEL = 1; // 2^0, bit 0

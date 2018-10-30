@@ -42,6 +42,8 @@ Author(s)
 
 */
 #include<iostream>
+#include <iomanip>
+
 #include "update.h"
 #include "modify.h"
 #include "fix_ave_chunk.h"
@@ -50,8 +52,10 @@ Author(s)
 #include "input.h"
 #include "comm.h"
 #include "error.h"
+
 #include "CPLSocketLAMMPS.h"
 #include "cpl/CPL_cartCreate.h"
+
 
 void CPLSocketLAMMPS::initComms() {
 
@@ -128,10 +132,6 @@ void CPLSocketLAMMPS::getCellTopology() {
 //Pack general using bitflag
 void CPLSocketLAMMPS::allocateBuffers(const LAMMPS_NS::LAMMPS *lammps, int sendbitflag) {
 
-    // Received Buf field
-    int recvShape[4] = {9, cnstFCells[0], cnstFCells[1], cnstFCells[2]};
-    recvBuf.resize(4, recvShape);
-
     //Check what is to be packed and sent
     int packsize=0;
     if ((sendbitflag & VEL) == VEL){
@@ -173,10 +173,15 @@ void CPLSocketLAMMPS::setBndryAvgMode(int mode) {
 		bndry_shift_above = 0.0;
 		bndry_shift_below = dy;
 	}
-	else {
+	else if (mode == AVG_MODE_MIDPLANE) {
 		std::cout << "MODE MIDPLANE" << std::endl;
 		bndry_shift_above = dy/2.0;
 		bndry_shift_below = dy/2.0;
+	}
+	else {
+		std::cout << "MODE NO SHIFT" << std::endl;
+		bndry_shift_above = 0.0;
+		bndry_shift_below = 0.0;
 	}
 }
 
@@ -192,6 +197,11 @@ void CPLSocketLAMMPS::setupFixMDtoCFD(LAMMPS_NS::LAMMPS *lammps, int sendbitflag
 
     double topRight[3];
     CPL::map_cell2coord(velBCRegion[1] , velBCRegion[3], velBCRegion[5], topRight);
+
+
+    std::cout << "Extents " << botLeft[0] << " " <<  botLeft[1] << " " <<  botLeft[2] 
+                    << " " << topRight[0] << " " << topRight[1] << " " << topRight[2] << std::endl;
+
     topRight[0] += dx;
     topRight[1] += bndry_shift_above;
     topRight[2] += dz;
@@ -232,6 +242,24 @@ void CPLSocketLAMMPS::setupFixMDtoCFD(LAMMPS_NS::LAMMPS *lammps, int sendbitflag
     //////////////////////////////////////////
     //This code sets the compute
     //////////////////////////////////////////
+
+
+    //New way using LAMMPS One
+    std::stringstream cmp_str;
+    cmp_str << std::setprecision(16) << "compute "  << "cfdbccompute "\
+            << "all " << "chunk/atom bin/3d "\
+            << "x lower " << dx << " "\
+            << "y lower " << dy << " "\
+            << "z lower " << dz << " "\
+            << "ids every region " << "cfdbcregion "\
+            << "units box " << " "\
+            << "bound x " << botLeft[0] << " " << topRight[0] << " "\
+            << "bound y " << botLeft[1] << " " << topRight[1] << " "\
+            << "bound z " << botLeft[2] << " " << topRight[2];
+    std::cout << "compute: " << cmp_str.str() << std::endl;
+    lammps->input->one(cmp_str.str().c_str());
+
+    //Old way passing a char array
     char dxstr[20], dystr[20], dzstr[20];
     char low_x[20], hi_x[20], low_y[20], hi_y[20], low_z[20], hi_z[20];
     ret = sprintf(dxstr, "%f", dx);
@@ -277,11 +305,11 @@ void CPLSocketLAMMPS::setupFixMDtoCFD(LAMMPS_NS::LAMMPS *lammps, int sendbitflag
     computearg[28] = (char *) "z";
     computearg[29] = (char *) low_z;
     computearg[30] = (char *) hi_z;
-    lammps->modify->add_compute(31, computearg);
+    //lammps->modify->add_compute(31, computearg);
     //Get handle for compute
     int icompute = lammps->modify->find_compute("cfdbccompute");
     if (icompute < 0)
-		lammps->error->all(FLERR,"Fix ID for compute cfdbccompute does not exist");
+		lammps->error->all(FLERR,"Compute ID for compute cfdbccompute does not exist");
     cfdbccompute = lammps->modify->compute[icompute];
     delete [] computearg;
 
@@ -300,13 +328,22 @@ void CPLSocketLAMMPS::setupFixMDtoCFD(LAMMPS_NS::LAMMPS *lammps, int sendbitflag
     // next output would be an average from 190, 192, 194, 196, 198 and
     // 200 (and so on).
     int Nfreq = timestep_ratio;
-    int Nrepeat = 1;
+    int Nrepeat = timestep_ratio;
     int Nevery = 1;
 
     char Neverystr[20], Nrepeatstr[20], Nfreqstr[20];
     ret = sprintf(Neverystr, "%d", Nevery);
     ret = sprintf(Nrepeatstr, "%d", Nrepeat);
     ret = sprintf(Nfreqstr, "%d", Nfreq);
+
+    std::stringstream fix_str;
+    fix_str << "fix "  << "cfdbcfix "\
+         << "all " << "ave/chunk "\
+         << Neverystr << " " << Nrepeatstr << " "\
+         << Nfreqstr << " "\
+         << "cfdbccompute vx vy vz norm all";
+    std::cout << "CPL: " << fix_str.str() << std::endl;
+    lammps->input->one(fix_str.str().c_str());
 
     char **fixarg = new char*[12];
     fixarg[0] = (char *) "cfdbcfix";
@@ -415,6 +452,24 @@ void CPLSocketLAMMPS::setupFixCFDtoMD(LAMMPS_NS::LAMMPS *lammps,
     //Upcast Fix to child class FixCPLForce
     cplfix = dynamic_cast<FixCPLForce*>(lammps->modify->fix[ifix]);
 
+    // Allocate received Buf field
+    std::string fxyzType(*forcetype);
+    int nval;
+    if (fxyzType.compare("Flekkoy") == 0) {nval = 9; } 
+    else if (fxyzType.compare("test") == 0) {nval = 3; } 
+    else if (fxyzType.compare("Velocity") == 0) {nval = 3; } 
+    else if (fxyzType.compare("Drag") == 0) {nval = 9; } 
+    else if (fxyzType.compare("Di_Felice") == 0){nval = 9; } 
+    else if (fxyzType.compare("Ergun") == 0) {nval = 9; }
+    else if (fxyzType.compare("BVK") == 0) {nval = 9; }
+    else {
+        std::string cmd("CPLForce type ");
+        cmd += fxyzType + " not defined";
+        throw std::runtime_error(cmd);
+    }
+    int recvShape[4] = {nval, cnstFCells[0], cnstFCells[1], cnstFCells[2]};
+    recvBuf.resize(4, recvShape);
+
 	//Setup pointer to recieve buffer
 	cplfix->setupBuf(recvBuf, cnstFPortion);
 
@@ -458,7 +513,7 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendbitflag) {
                  } else {
                     double vx = cfdbcfix->compute_array(row, 4);  
                     double vy = cfdbcfix->compute_array(row, 5);  
-                    double vz = cfdbcfix->compute_array(row, 6);  
+                    double vz = cfdbcfix->compute_array(row, 6);
 
                     sendBuf(npack+0, ic, jc, kc) = vx;
                     sendBuf(npack+1, ic, jc, kc) = vy;
@@ -466,6 +521,15 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendbitflag) {
                     //lammps->error->all(FLERR," Array value vSums required by sendtype not collected in forcetype");
                 }
                 npack += VELSIZE;
+
+                if (ic ==3 && jc == 3 && kc == 3){
+                    std::cout << "CPLSocketLAMMPS::pack " << ic << " " << jc << " " << kc 
+                              << " " <<  sendBuf(npack-3, ic, jc, kc)
+                              << " " <<  sendBuf(npack-2, ic, jc, kc)
+                              << " " <<  sendBuf(npack-1, ic, jc, kc) 
+                              << " " << (field_ptr != nullptr) <<  std::endl;
+                }
+
             }
             if ((sendbitflag & NBIN) == NBIN){
                 //Get FSums internal to CPLForceTest
@@ -539,12 +603,22 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendbitflag) {
 void CPLSocketLAMMPS::send() {
 
     // Send the data to CFD
+//    std::cout << "CPLSocketLAMMPS::send "
+//              << " " << sendBuf.shape(0) 
+//              << " " << sendBuf.shape(1) 
+//              << " " << sendBuf.shape(2) 
+//              << " " << sendBuf.shape(3) << std::endl;
     CPL::send(sendBuf.data(), sendBuf.shapeData(), velBCRegion.data());
 };
 
 void CPLSocketLAMMPS::receive() {
     // Receive from CFD
     CPL::recv(recvBuf.data(), recvBuf.shapeData(), cnstFRegion.data());
+//    std::cout << "CPLSocketLAMMPS::recv "
+//              << " " << recvBuf.shape(0) 
+//              << " " << recvBuf.shape(1) 
+//              << " " << recvBuf.shape(2) 
+//              << " " << recvBuf.shape(3) << std::endl;
 
 };
 
