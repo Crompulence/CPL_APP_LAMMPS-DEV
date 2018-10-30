@@ -56,7 +56,7 @@ Author(s)
 #include "cpl/CPL_force.h"
 #include "cpl/CPL_field.h"
 #include "fix_cpl_force.h"
-#include "cpl/CPLSocket.h"
+//#include "cpl/CPLSocket.h"
 
 const int AVG_MODE_ABOVE = 0;
 const int AVG_MODE_BELOW = 1;
