@@ -531,7 +531,7 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendbitflag) {
                 std::string name("vSums");
                 auto field_ptr = cplfix->fxyz->get_internal_fields(name);
 
-                std::cout << "pack " <<  (field_ptr != nullptr) << " " << cfdbcfix->compute_array(row, 4) << " "  <<  std::endl;
+                //std::cout << "pack " <<  (field_ptr != nullptr) << " " << cfdbcfix->compute_array(row, 4) << " "  <<  std::endl;
                 if (field_ptr != nullptr){
                     sendBuf(npack+0, ic, jc, kc) = field_ptr->get_array_value(0, ic, jc, kc);
                     sendBuf(npack+1, ic, jc, kc) = field_ptr->get_array_value(1, ic, jc, kc);
@@ -548,13 +548,13 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendbitflag) {
                 }
                 npack += VELSIZE;
 
-                if (ic ==3 && jc == 3 && kc == 3){
-                    std::cout << "CPLSocketLAMMPS::pack " << ic << " " << jc << " " << kc 
-                              << " " <<  sendBuf(npack-3, ic, jc, kc)
-                              << " " <<  sendBuf(npack-2, ic, jc, kc)
-                              << " " <<  sendBuf(npack-1, ic, jc, kc) 
-                              << " " << (field_ptr != nullptr) <<  std::endl;
-                }
+//                if (ic ==3 && jc == 3 && kc == 3){
+//                    std::cout << "CPLSocketLAMMPS::pack " << ic << " " << jc << " " << kc 
+//                              << " " <<  sendBuf(npack-3, ic, jc, kc)
+//                              << " " <<  sendBuf(npack-2, ic, jc, kc)
+//                              << " " <<  sendBuf(npack-1, ic, jc, kc) 
+//                              << " " << (field_ptr != nullptr) <<  std::endl;
+//                }
 
             }
             if ((sendbitflag & NBIN) == NBIN){

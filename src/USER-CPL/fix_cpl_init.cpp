@@ -269,11 +269,11 @@ void fixCPLInit::end_of_step()
 {
     //Get step number in this simulation run
     int step = update->ntimestep - update->firststep;
-    std::cout << "fixCPLInit " << Nfreq << " " << update->ntimestep << " " << 
-                update->ntimestep%Nfreq << " " << step << " " <<  update->dt << " " << std::endl;   
     
     // Recieve and unpack from CFD
     if (update->ntimestep%Nfreq == 0){
+        std::cout << "Recving " << Nfreq << " " << update->ntimestep << " " << 
+                    update->ntimestep%Nfreq << " " << step << " " <<  update->dt << " " << std::endl;   
         if (step >= Nfreq) { //Skip first step
             cplsocket.receive();
         }
@@ -282,6 +282,8 @@ void fixCPLInit::end_of_step()
 
     //Pack and send to CFD
     if (update->ntimestep%Nfreq == 0){
+        std::cout << "Sending " << Nfreq << " " << update->ntimestep << " " << 
+                    update->ntimestep%Nfreq << " " << step << " " <<  update->dt << " " << std::endl;   
         if (step >= Nfreq) { //Skip first step
             cplsocket.pack(lmp, sendbitflag);
             cplsocket.send();
