@@ -58,6 +58,7 @@ Author(s)
 #include "fix_cpl_force.h"
 //#include "cpl/CPLSocket.h"
 
+const int AVG_MODE_NONE = -1;
 const int AVG_MODE_ABOVE = 0;
 const int AVG_MODE_BELOW = 1;
 const int AVG_MODE_MIDPLANE = 2;
@@ -109,7 +110,7 @@ public:
     // Clean up MPI/CPL communicators
     void finalizeComms();
 
-    void setupFixMDtoCFD(LAMMPS_NS::LAMMPS *lammps, int sendtype);
+    void setupFixMDtoCFD(LAMMPS_NS::LAMMPS *lammps, int sendtype, int Nfreq, int Nrepeat, int Nevery);
     void setupFixCFDtoMD(LAMMPS_NS::LAMMPS *lammps, std::shared_ptr<std::string> forcetype, 
                                       std::vector<std::shared_ptr<std::string>> forcetype_args);  
 	void setBndryAvgMode(int mode);

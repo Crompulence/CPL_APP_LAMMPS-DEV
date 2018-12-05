@@ -25,7 +25,7 @@ public:
     int setmask();
 	void setup(int vflag);
 	void setupBuf(CPL::ndArray<double>& Buf, std::vector<int>& portion);
-    void apply(int nevery);
+    void apply(int Nfreq, int Nrepeat, int Nevery);
     void updateProcPortion (std::vector<int>& portion);
     std::shared_ptr<std::string> forcetype;
     std::unique_ptr<CPLForce> fxyz;
@@ -47,6 +47,7 @@ private:
     bool calcperatom; 
     double **fddata; 
     int numcols = 3;
+    int irepeat = 0;
 };
 
 #endif

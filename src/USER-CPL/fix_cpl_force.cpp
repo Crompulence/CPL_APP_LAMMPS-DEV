@@ -247,14 +247,15 @@ void FixCPLForce::setup(int vflag)
     fxyz->set_minmax(min, max);
 
     //Call apply for first step
-    apply(1);
+    apply(1, 1, 1);
+    irepeat = 1;
 }
 
 
 //NOTE -- Not actually called post force, for some reason
 // this no longer works reliably in LAMMPS, instead call
 // explicitly in CPLInit!
-void FixCPLForce::apply(int nevery) {
+void FixCPLForce::apply(int Nfreq, int Nrepeat, int Nevery) {
 
     bool time = false;
     high_resolution_clock::time_point begin;
@@ -299,12 +300,19 @@ void FixCPLForce::apply(int nevery) {
         begin = high_resolution_clock::now();
     }
 
-    //Only recalculate preforce everytime we recieve data
-    if ((update->ntimestep%nevery == 0) | (fxyz->calc_preforce_everytime))
+    // Only recalculate preforce everytime we recieve data
+    // or Nevery as this accumulates data for send as required
+    if ((update->ntimestep%Nevery == 0) | (fxyz->calc_preforce_everytime))
     {
 
         //Should we reset sums here?
-        fxyz->resetsums();
+        if (irepeat == Nrepeat){
+            fxyz->resetsums();
+            irepeat = 0;
+        } else {
+            std::cout <<  " irepeat " << irepeat << " Nrepeat " << Nrepeat << std::endl;
+            irepeat++;
+        }
 
         //Pre-force calculation, get quantities from discrete system needed to apply force
         if (fxyz->calc_preforce) {

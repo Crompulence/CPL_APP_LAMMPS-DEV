@@ -69,7 +69,7 @@ public:
     int setmask();
     void init (); 
     void setup (int vflag); 
-	void post_force(int vflag);
+	void end_of_step();
     void post_constructor();
     void setas_last_fix();
 
@@ -83,6 +83,8 @@ public:
     std::shared_ptr<std::string> bndryavg;
     int sendbitflag;
     std::vector<std::shared_ptr<std::string>> forcetype_args;
+    //Send averaging frequencies
+    int Nfreq, Nrepeat, Nevery;
 
 private:
 
