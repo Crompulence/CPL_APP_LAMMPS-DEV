@@ -53,6 +53,7 @@ FixStyle(cpl/init, fixCPLInit)
 #include <memory>
 
 #include "fix.h"
+#include "modify.h"
 
 #include "cpl/cpl.h"
 //#include "cpl/TransmittingField.h"
