@@ -78,6 +78,7 @@ public:
     //CPL::IncomingFieldPool cnstPool;
 
     CPLSocketLAMMPS cplsocket;
+
     std::shared_ptr<std::string> forcetype;
     std::shared_ptr<std::string> sendtype;
     std::shared_ptr<std::string> bndryavg;
@@ -87,6 +88,8 @@ public:
     int Nfreq, Nrepeat, Nevery;
 
 private:
+
+    LAMMPS_NS::LAMMPS* lmp;
 
 };
 

@@ -62,7 +62,7 @@ Author(s)
 fixCPLInit::fixCPLInit(LAMMPS_NS::LAMMPS *lammps, int narg, char **arg)
     		: Fix (lammps, narg, arg) 
 {
-    class LAMMPS_NS::LAMMPS *lmp=lammps;
+    lmp=lammps;
     cplsocket.initComms();
     cplsocket.initMD(lmp);
 
