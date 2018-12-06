@@ -23,7 +23,7 @@ ncxyz = [8, 8, 8]
 #Setup coupled simulation
 cart_comm = MD_COMM.Create_cart([npxyz[0], npxyz[1], npxyz[2]])
 CPL.setup_cfd(cart_comm, xyzL, xyz_orig, ncxyz)
-recv_array, send_array = CPL.get_arrays(recv_size=4, send_size=9)
+recv_array, send_array = CPL.get_arrays(recv_size=4, send_size=3)
 
 print("After CPL setup")
 
