@@ -91,7 +91,6 @@ void CPLSocketLAMMPS::initMD(LAMMPS_NS::LAMMPS *lammps) {
                       &icomm_grid);
    
     //TODO: get the origin from LAMMPS 
-
     double *xyz_orig = lammps->domain->boxlo;
     double *global_domain = lammps->domain->boxhi;
     //double xyz_orig[3] = {0.0 ,0.0, 0.0};
@@ -218,15 +217,12 @@ void CPLSocketLAMMPS::setupFixMDtoCFD(LAMMPS_NS::LAMMPS *lammps, int sendbitflag
 //              << " Domain y = " << global_domain[1] << " CPL region y = " << topRight[1]-botLeft[1] 
 //              << " Domain z = " << global_domain[2] << " CPL region z = " << topRight[2]-botLeft[2] << std::endl;
 
-
-
 //    std::cout << "Domain lo = " << lammps->domain->boxlo[0] << " "  
 //                                << lammps->domain->boxlo[1] << " " 
 //                                << lammps->domain->boxlo[2] << " "
 //              << "Domain hi = " << lammps->domain->boxhi[0] << " "  
 //                                << lammps->domain->boxhi[1] << " " 
 //                                << lammps->domain->boxhi[2] << std::endl;
-
     //////////////////////////////////////////
     //This is the code sets the region
     //////////////////////////////////////////
@@ -336,25 +332,6 @@ void CPLSocketLAMMPS::setupFixMDtoCFD(LAMMPS_NS::LAMMPS *lammps, int sendbitflag
     
     delete [] computearg;
 
-    //////////////////////////////////////////
-    //This code sets the fix
-    //////////////////////////////////////////
-    // CFD BC averaging fix 
-    // Average values are generated every Nfreq time steps, taken
-    // from the average of the Nrepeat preceeding timesteps separated
-    // by Nevery. For example, consider 
-    // 
-    //       Nfreq = 100;   Nrepeat = 6;   Nevery = 2;
-    //
-    // The average here would be taken over instantaneous snapshots at
-    // timesteps 90, 92, 94, 96, 98, and 100 for the first value. The
-    // next output would be an average from 190, 192, 194, 196, 198 and
-    // 200 (and so on).
-
-    //int Nfreq = timestep_ratio;
-    //int Nrepeat = timestep_ratio;
-    //int Nevery = 1;
-
     char Neverystr[20], Nrepeatstr[20], Nfreqstr[20];
     ret = sprintf(Neverystr, "%d", Nevery);
     ret = sprintf(Nrepeatstr, "%d", Nrepeat);
@@ -369,7 +346,7 @@ void CPLSocketLAMMPS::setupFixMDtoCFD(LAMMPS_NS::LAMMPS *lammps, int sendbitflag
     std::cout << "CPL: " << fix_str.str() << std::endl;
     lammps->input->one(fix_str.str().c_str());
 
-    char **fixarg = new char*[14];
+    char **fixarg = new char*[12];
     fixarg[0] = (char *) "cfdbcfix";
     fixarg[1] = (char *) "all";
     fixarg[2] = (char *) "ave/chunk";
@@ -382,9 +359,9 @@ void CPLSocketLAMMPS::setupFixMDtoCFD(LAMMPS_NS::LAMMPS *lammps, int sendbitflag
     fixarg[9] = (char *) "vz";
     fixarg[10] = (char *) "norm";
     fixarg[11] = (char *) "all";
-    fixarg[12] = (char *) "file";
-    fixarg[13] = (char *) "cplchunk";
-    lammps->modify->add_fix(14, fixarg);
+    //fixarg[12] = (char *) "file";
+    //fixarg[13] = (char *) "cplchunk";
+    lammps->modify->add_fix(12, fixarg);
     delete [] fixarg;
 
     //~ Set pointers for this newly-created fix
@@ -530,8 +507,6 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendbitflag) {
                 //Get FSums internal to CPLForceTest
                 std::string name("vSums");
                 auto field_ptr = cplfix->fxyz->get_internal_fields(name);
-
-                //std::cout << "pack " <<  (field_ptr != nullptr) << " " << cfdbcfix->compute_array(row, 4) << " "  <<  std::endl;
                 if (field_ptr != nullptr){
                     sendBuf(npack+0, ic, jc, kc) = field_ptr->get_array_value(0, ic, jc, kc);
                     sendBuf(npack+1, ic, jc, kc) = field_ptr->get_array_value(1, ic, jc, kc);

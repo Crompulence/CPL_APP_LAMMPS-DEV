@@ -247,8 +247,8 @@ void FixCPLForce::setup(int vflag)
     fxyz->set_minmax(min, max);
 
     //Call apply for first step
-    //apply(1, 1, 1);
-    //irepeat = 0;
+    apply(1, 1, 1);
+    irepeat = 0;
 }
 
 
@@ -300,28 +300,13 @@ void FixCPLForce::apply(int Nfreq, int Nrepeat, int Nevery) {
         begin = high_resolution_clock::now();
     }
 
-    // Only recalculate preforce everytime we recieve data
+    //Only recalculate preforce everytime we recieve data
     // or Nevery as this accumulates data for send as required
-    if ((update->ntimestep%Nevery == 0) | (fxyz->calc_preforce_everytime))
+    if ((update->ntimestep%nevery == 0) | (fxyz->calc_preforce_everytime))
     {
 
         //Should we reset sums here?
-//        if ((irepeat == Nrepeat) & !(update->ntimestep%Nfreq == 0)) {
-//            std::cout <<  "Error cpl/force irepeat == Nrepeat not a multiple of Nfreq for send/recv. irepeat= " 
-//                << irepeat << " Nrepeat= " << Nrepeat << " update->ntimestep= " << update->ntimestep << " Nfreq = " Nfreq << std::endl;
-//            throw std::runtime_error("Error");
-//        }
-//        std::cout <<  "irepeat " << irepeat << " Nrepeat " << Nrepeat << "update->ntimestep%Nfreq " << update->ntimestep%Nfreq << std::endl;
-//        if (irepeat == Nrepeat){
-
-        //Instead of nrepeat, we always reset after send!
-        if (update->ntimestep%Nfreq == Nevery | (irepeat == Nrepeat)){
-            std::cout <<  "Resetting sums " <<  irepeat  << " Nrepeat " <<  Nrepeat << std::endl;
-            fxyz->resetsums();
-            irepeat = 1;
-        } else {
-            irepeat++;
-        }
+        fxyz->resetsums();
 
         //Pre-force calculation, get quantities from discrete system needed to apply force
         if (fxyz->calc_preforce) {

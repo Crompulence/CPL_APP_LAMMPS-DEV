@@ -71,6 +71,7 @@ fixCPLInit::fixCPLInit(LAMMPS_NS::LAMMPS *lammps, int narg, char **arg)
     std::vector<std::shared_ptr<std::string>> sendtype_list;
     bndryavg = std::make_shared<std::string>("above");     //default to above if not specified
 
+
     for (int iarg=0; iarg<narg; iarg+=1){
         std::cout << "Lammps cpl/init input arg "  << iarg << " is " << arg[iarg] << std::endl;
         std::string arguments(arg[iarg]);
@@ -139,6 +140,7 @@ fixCPLInit::fixCPLInit(LAMMPS_NS::LAMMPS *lammps, int narg, char **arg)
 
     //Create appropriate bitflag to determine what is sent
     sendbitflag = 0; bool skipnext; int i=-1;
+
     // Average values are generated every Nfreq time steps, taken
     // from the average of the Nrepeat preceeding timesteps separated
     // by Nevery. For example, consider 
@@ -150,8 +152,8 @@ fixCPLInit::fixCPLInit(LAMMPS_NS::LAMMPS *lammps, int narg, char **arg)
     // next output would be an average from 190, 192, 194, 196, 198 and
     // 200 (and so on).
     Nfreq=cplsocket.timestep_ratio;
-    Nevery=1; 
     Nrepeat=cplsocket.timestep_ratio;
+    Nevery=1; 
     for ( auto &sendtype : sendtype_list ) {
         i++;
         if (skipnext) {
@@ -160,6 +162,12 @@ fixCPLInit::fixCPLInit(LAMMPS_NS::LAMMPS *lammps, int narg, char **arg)
         }
 
         std::string sendType(*sendtype);
+
+        std::cout << "sendtype: "  << sendType <<  " " <<
+                sendType.compare("Nfreq") << " " <<
+                sendType.compare("Nevery") << " " << 
+                sendType.compare("Nrepeat") << " " << std::endl;
+
         //Pick 'n' mix send types
         if (sendType.compare("VEL") == 0){
             sendbitflag = sendbitflag | cplsocket.VEL;
@@ -214,7 +222,7 @@ fixCPLInit::fixCPLInit(LAMMPS_NS::LAMMPS *lammps, int narg, char **arg)
 
     //nevery determines how often end_of_step is called
     // which is every time to apply force and then Nfreq, Nrepeat and Nevery are used
-    nevery = 1;
+    nevery = cplsocket.timestep_ratio;
 
 }
 
@@ -239,7 +247,7 @@ void fixCPLInit::setas_last_fix() {
 
 int fixCPLInit::setmask() {
   int mask = 0;
-  mask |= LAMMPS_NS::FixConst::END_OF_STEP;
+  mask |= LAMMPS_NS::FixConst::POST_FORCE;
   return mask;
 }
 
@@ -251,43 +259,34 @@ void fixCPLInit::post_constructor() {
     //Note that constraint fix is setup through lammps input system
     cplsocket.setupFixCFDtoMD(lmp, forcetype, forcetype_args);
 
-    // Reorder fixes so cpl_init is last, ensuring calculated 
-    // properties are ready when data is sent
-    setas_last_fix();
-
 }
 
 
 void fixCPLInit::setup(int vflag)
 {
-  	end_of_step();
+  	post_force(vflag);
 }
 
 
 
-void fixCPLInit::end_of_step()
+void fixCPLInit::post_force(int vflag)
 {
+
     //Get step number in this simulation run
     int step = update->ntimestep - update->firststep;
     
     // Recieve and unpack from CFD
-    if (update->ntimestep%Nfreq == 0){
-        std::cout << "Recving " << Nfreq << " " << update->ntimestep << " " << 
-                    update->ntimestep%Nfreq << " " << step << " " <<  update->dt << " " << std::endl;   
-        if (step >= Nfreq) { //Skip first step
-            cplsocket.receive();
-        }
+    if (update->ntimestep%nevery == 0){
+        cplsocket.receive();
     }
+
+    //Apply coupling force
     cplsocket.cplfix->apply(Nfreq, Nrepeat, Nevery);
 
     //Pack and send to CFD
-    if (update->ntimestep%Nfreq == 0){
-        std::cout << "Sending " << Nfreq << " " << update->ntimestep << " " << 
-                    update->ntimestep%Nfreq << " " << step << " " <<  update->dt << " " << std::endl;   
-        if (step >= Nfreq) { //Skip first step
-            cplsocket.pack(lmp, sendbitflag);
-            cplsocket.send();
-        }
+    if (update->ntimestep%nevery == 0){
+        cplsocket.pack(lmp, sendbitflag);
+        cplsocket.send();
     }
 
 

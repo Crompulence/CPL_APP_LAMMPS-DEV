@@ -70,7 +70,7 @@ public:
     int setmask();
     void init (); 
     void setup (int vflag); 
-	void end_of_step();
+	void post_force(int vflag);
     void post_constructor();
     void setas_last_fix();
 
@@ -79,7 +79,6 @@ public:
     //CPL::IncomingFieldPool cnstPool;
 
     CPLSocketLAMMPS cplsocket;
-
     std::shared_ptr<std::string> forcetype;
     std::shared_ptr<std::string> sendtype;
     std::shared_ptr<std::string> bndryavg;
@@ -89,7 +88,6 @@ public:
     int Nfreq, Nrepeat, Nevery;
 
 private:
-
     LAMMPS_NS::LAMMPS* lmp;
 
 };
