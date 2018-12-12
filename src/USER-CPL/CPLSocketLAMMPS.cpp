@@ -581,6 +581,7 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendbitflag) {
                 if (field_ptr != nullptr){
                     //Send sum of volume directly
                     sendBuf(npack, ic, jc, kc) = field_ptr->get_array_value(0, ic, jc, kc);
+                    //std::cout << "CPLSocketLAMMPS::pack " << ic << " " << jc << " " << kc << " " <<  sendBuf(0, ic, jc, kc) << std::endl;
 //                    double phi = field_ptr->get_array_value(0, ic, jc, kc)/Vcell;
 //                    if (phi > 1.) {
 //                        //std::cout << "Warning, eps = 0 so set to 0.1 in CPLSocketLAMMPS::packGran" << std::endl;

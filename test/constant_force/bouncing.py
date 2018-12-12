@@ -47,7 +47,7 @@ def check_bouncing_error_vs_gravity(D=3.5e-4, g=9.81, plot=False):
         error.append([ta, (z[m:mp1]-za)/za])
         if plot:
             print(i, mins)
-            plt.plot(ta, za, 'r--')
+            plt.plot(ta, za, 'ro')
             plt.plot(t, z, 'k-')
             plt.show()
 

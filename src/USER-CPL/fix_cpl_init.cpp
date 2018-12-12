@@ -222,7 +222,7 @@ fixCPLInit::fixCPLInit(LAMMPS_NS::LAMMPS *lammps, int narg, char **arg)
 
     //nevery determines how often end_of_step is called
     // which is every time to apply force and then Nfreq, Nrepeat and Nevery are used
-    nevery = 1; //cplsocket.timestep_ratio;
+    nevery = 1;
 
 }
 
@@ -247,6 +247,7 @@ void fixCPLInit::setas_last_fix() {
 
 int fixCPLInit::setmask() {
   int mask = 0;
+  //mask |= LAMMPS_NS::FixConst::END_OF_STEP;
   mask |= LAMMPS_NS::FixConst::POST_FORCE;
   return mask;
 }
@@ -259,6 +260,10 @@ void fixCPLInit::post_constructor() {
     //Note that constraint fix is setup through lammps input system
     cplsocket.setupFixCFDtoMD(lmp, forcetype, forcetype_args);
 
+    // Reorder fixes so cpl_init is last, ensuring calculated 
+    // properties are ready when data is sent
+    setas_last_fix();
+
 }
 
 
@@ -267,10 +272,10 @@ void fixCPLInit::setup(int vflag)
   	post_force(vflag);
 }
 
-
-
 void fixCPLInit::post_force(int vflag)
 {
+
+    std::cout << "post_force: "  << update->ntimestep << std::endl;
 
     //Get step number in this simulation run
     int step = update->ntimestep - update->firststep;
@@ -289,8 +294,31 @@ void fixCPLInit::post_force(int vflag)
         cplsocket.send();
     }
 
-
 }
+
+//void fixCPLInit::end_of_step()
+//{
+
+//    std::cout << "end_of_step: "  << update->ntimestep << std::endl;
+
+//    //Get step number in this simulation run
+//    int step = update->ntimestep - update->firststep;
+//    
+//    // Recieve and unpack from CFD
+//    if (update->ntimestep%Nfreq == 0){
+//        cplsocket.receive();
+//    }
+
+//    //Apply coupling force
+//    cplsocket.cplfix->apply(Nfreq, Nrepeat, Nevery);
+
+//    //Pack and send to CFD
+//    if (update->ntimestep%Nfreq == 0){
+//        cplsocket.pack(lmp, sendbitflag);
+//        cplsocket.send();
+//    }
+
+//}
 
 fixCPLInit::~fixCPLInit() {
 	cplsocket.finalizeComms();

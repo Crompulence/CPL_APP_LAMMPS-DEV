@@ -64,7 +64,7 @@ def execute(cmd, blocking=True):
         raise sp.CalledProcessError(return_code, cmd)
 
 
-MD_EXEC = "../../bin/lmp_cpl"
+MD_EXEC = "lmp_cpl"
 CFD_EXEC = "./CFD_single_ball.py"
 TEST_DIR = os.path.dirname(os.path.realpath(__file__))
 

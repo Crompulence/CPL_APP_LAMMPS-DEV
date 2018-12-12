@@ -40,7 +40,7 @@ variable	vz equal vz[1]
 variable	forcez equal fz[1]
 
 fix 		4 all print 5 "${step} ${xz} ${vz} ${forcez}" file thermo_output.txt screen yes
-fix         5 all cpl/init region all forcetype test sendtype velocity
+fix         5 all cpl/init region all forcetype test sendtype velocity Nfreq 50 Nrepeat 50 Nevery 1 
 
 #dump        6 all dcd 10 vmd_out.dcd
 

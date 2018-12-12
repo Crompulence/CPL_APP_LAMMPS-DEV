@@ -247,7 +247,7 @@ void FixCPLForce::setup(int vflag)
     fxyz->set_minmax(min, max);
 
     //Call apply for first step
-    apply(1, 1, 1);
+    //apply(1, 1, 1);
     irepeat = 0;
 }
 
@@ -302,11 +302,17 @@ void FixCPLForce::apply(int Nfreq, int Nrepeat, int Nevery) {
 
     //Only recalculate preforce everytime we recieve data
     // or Nevery as this accumulates data for send as required
-    if ((update->ntimestep%nevery == 0) | (fxyz->calc_preforce_everytime))
+    if ((update->ntimestep%Nevery == 0) | (fxyz->calc_preforce_everytime))
     {
 
-        //Should we reset sums here?
-        fxyz->resetsums();
+        //Instead of nrepeat, we always reset after send!
+         if (update->ntimestep%Nfreq == Nevery | (irepeat == Nrepeat)){
+             std::cout <<  "Resetting sums " <<  irepeat  << " Nrepeat " <<  Nrepeat << std::endl;
+             fxyz->resetsums();
+             irepeat = 1;
+         } else {
+             irepeat++;
+         }
 
         //Pre-force calculation, get quantities from discrete system needed to apply force
         if (fxyz->calc_preforce) {
