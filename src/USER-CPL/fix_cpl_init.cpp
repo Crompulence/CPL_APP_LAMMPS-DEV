@@ -222,7 +222,7 @@ fixCPLInit::fixCPLInit(LAMMPS_NS::LAMMPS *lammps, int narg, char **arg)
 
     //nevery determines how often end_of_step is called
     // which is every time to apply force and then Nfreq, Nrepeat and Nevery are used
-    nevery = cplsocket.timestep_ratio;
+    nevery = 1; //cplsocket.timestep_ratio;
 
 }
 
@@ -276,7 +276,7 @@ void fixCPLInit::post_force(int vflag)
     int step = update->ntimestep - update->firststep;
     
     // Recieve and unpack from CFD
-    if (update->ntimestep%nevery == 0){
+    if (update->ntimestep%Nfreq == 0){
         cplsocket.receive();
     }
 
@@ -284,7 +284,7 @@ void fixCPLInit::post_force(int vflag)
     cplsocket.cplfix->apply(Nfreq, Nrepeat, Nevery);
 
     //Pack and send to CFD
-    if (update->ntimestep%nevery == 0){
+    if (update->ntimestep%Nfreq == 0){
         cplsocket.pack(lmp, sendbitflag);
         cplsocket.send();
     }
