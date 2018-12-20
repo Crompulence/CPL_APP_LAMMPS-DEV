@@ -70,7 +70,7 @@ public:
     int setmask();
     void init (); 
     void setup (int vflag); 
-	//void end_of_step();
+	void post_integrate();
 	void post_force(int vflag);
     void post_constructor();
     void setas_last_fix();

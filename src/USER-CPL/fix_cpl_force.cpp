@@ -252,16 +252,8 @@ void FixCPLForce::setup(int vflag)
 }
 
 
-//NOTE -- Not actually called post force, for some reason
-// this no longer works reliably in LAMMPS, instead call
-// explicitly in CPLInit!
-void FixCPLForce::apply(int Nfreq, int Nrepeat, int Nevery) {
 
-    bool time = false;
-    high_resolution_clock::time_point begin;
-    high_resolution_clock::time_point end;
-
-    if (time) begin = high_resolution_clock::now();
+void FixCPLForce::pre_force(int Nfreq, int Nrepeat, int Nevery){
 
     double **x = atom->x;
     double **v = atom->v;
@@ -271,51 +263,34 @@ void FixCPLForce::apply(int Nfreq, int Nrepeat, int Nevery) {
 
     int *mask = atom->mask;
     int nlocal = atom->nlocal;
-    // This will get the total number of molecules including halos
-    // However, acceleration won't be held for ghost cells so 
-    // probably not possible to use this. Instead collect pre force
-    // values and exchange these using CPL_swaphalos.
-    int nall = atom->nlocal + atom->nghost;
 
-    char* groupstr = "cplforcegroup";
-    char* regionstr = "cplforceregion";
-
-    int cplforcegroup = group->find(groupstr);
-    int groupbit = group->bitmask[cplforcegroup];
-
-    int rid = domain->find_region (regionstr);
-    auto cplforceregion = domain->regions[rid];
-
-    //Update CFD field buffer with latest recieved value
-    fxyz->set_field(*cfdBuf);
-
-    double fx=0., fy=0., fz=0.;
     double mi, radi, pot, xi[3], vi[3], ai[3];
     pot = 1.0; //Interaction Potential should be set here
 
-    if (time) {
-        end = high_resolution_clock::now();
-        std::cout << " step " << update->ntimestep << " time allocation = " 
-                 << duration_cast<microseconds>( end - begin ).count() << "e-6 s"   << std::endl;
-        begin = high_resolution_clock::now();
-    }
+    //Update CFD field buffer with latest recieved value
+    fxyz->set_field(*cfdBuf);
 
     //Only recalculate preforce everytime we recieve data
     // or Nevery as this accumulates data for send as required
     if ((update->ntimestep%Nevery == 0) | (fxyz->calc_preforce_everytime))
     {
 
-        //Instead of nrepeat, we always reset after send!
-         if (update->ntimestep%Nfreq == Nevery | (irepeat == Nrepeat)){
-             std::cout <<  "Resetting sums " <<  irepeat  << " Nrepeat " <<  Nrepeat << std::endl;
-             fxyz->resetsums();
-             irepeat = 1;
+         //If Nrepeat, then reset sums
+         if (irepeat == Nrepeat){
+            std::cout <<  "Resetting sums " <<  irepeat << " " << Nrepeat << std::endl;
+            reset_sums();
          } else {
-             irepeat++;
+            irepeat++;
+            std::cout <<  "irepeat = " <<  irepeat << " of " << Nrepeat << std::endl;
          }
 
         //Pre-force calculation, get quantities from discrete system needed to apply force
         if (fxyz->calc_preforce) {
+
+            //Increment pre-force counter
+            fxyz->Npre_force++;
+
+            //All local particles
         	for (int i = 0; i < nlocal; ++i)
         	{
            		if (mask[i] & groupbit)
@@ -336,16 +311,31 @@ void FixCPLForce::apply(int Nfreq, int Nrepeat, int Nevery) {
 
             	}
             }
-
         }
     }
 
-    if (time) {
-        end = high_resolution_clock::now();
-        std::cout << " step " << update->ntimestep << " time pre force = "
-                 << duration_cast<microseconds>( end - begin ).count() << "e-6 s"   << std::endl;
-        begin = high_resolution_clock::now();
-    }
+}
+
+
+void FixCPLForce::apply_force(int Nfreq, int Nrepeat, int Nevery){
+
+    double **x = atom->x;
+    double **v = atom->v;
+    double **f = atom->f;
+    double *rmass = atom->rmass;
+    double *radius = atom->radius;
+
+    int *mask = atom->mask;
+    int nlocal = atom->nlocal;
+
+    double mi, radi, pot, xi[3], vi[3], ai[3];
+    pot = 1.0; //Interaction Potential should be set here
+
+    //Update CFD field buffer with latest recieved value
+    fxyz->set_field(*cfdBuf);
+
+    //Increment force counter
+    fxyz->Nforce++;
 
     // Calculate force and apply
     for (int i = 0; i < nlocal; ++i)
@@ -374,14 +364,110 @@ void FixCPLForce::apply(int Nfreq, int Nrepeat, int Nevery) {
                 if (calcperatom) fddata[i][n] = fi[n]*force->ftm2v;
             }
 
-
-//            std::cout.precision(17);
-//            std::cout << "Force " << i << " " << xi[2] <<  " " << vi[2] << " " << ai[2] << " " <<
-//                          mi << " " << fi[0] << " " << fi[1] << " " << fi[2] << " "  
-//                          << f[i][0] << " " << f[i][1] << " " << f[i][2] << std::endl;
+            //std::cout.precision(17);
+            //std::cout << "Force " <<  update->ntimestep << " " << i << " " << mi << " " 
+            //          << xi[1] <<  " " << vi[1] << " " << ai[1] << " " << fi[1] << " " 
+            //              << f[i][0] << " " << f[i][1] << " " << f[i][2] << std::endl;
 
         }
     }
+
+}
+
+
+void FixCPLForce::post_constraint_force(int Nfreq, int Nrepeat, int Nevery){
+
+    double **x = atom->x;
+    double **v = atom->v;
+    double **f = atom->f;
+    double *rmass = atom->rmass;
+    double *radius = atom->radius;
+
+    int *mask = atom->mask;
+    int nlocal = atom->nlocal;
+
+    double mi, radi, pot, xi[3], vi[3], ai[3];
+    pot = 1.0; //Interaction Potential should be set here
+
+    // Only recalculate post force everytime we recieve data
+    // or Nevery as this accumulates data for send as required
+    if ((update->ntimestep%Nevery == 0)) //| (fxyz->calc_postforce_everytime))
+    {
+
+        //We cannot reset sums here as we would lose Fsum
+
+        //Post-force calculation, get quantities from discrete system needed to apply force
+        if (fxyz->calc_postforce) {
+
+            //Increment post force counter
+            fxyz->Npost_force++;
+
+            //All local atoms
+        	for (int i = 0; i < nlocal; ++i)
+        	{
+           		if (mask[i] & groupbit)
+            	{
+	                //Get local molecule data
+	                if (atom->rmass_flag) {mi = rmass[i];}
+                    else {mi = 1;}
+	                if (atom->radius_flag) {radi = radius[i];}
+                    else {radi = 1;}
+	                for (int n=0; n<3; n++){
+	                    xi[n]=x[i][n]; 
+	                    vi[n]=v[i][n]; 
+	                    ai[n]=f[i][n];
+	                }
+
+	                // Sum all the weights for each cell.
+	                fxyz->post_force(xi, vi, ai, mi, radi, pot);
+
+            	}
+            }
+        }
+
+    }
+
+}
+
+//NOTE -- Not actually called post force, for some reason
+// this no longer works reliably in LAMMPS, instead call
+// explicitly in CPLInit!
+void FixCPLForce::apply(int Nfreq, int Nrepeat, int Nevery) {
+
+    bool time = false;
+    high_resolution_clock::time_point begin;
+    high_resolution_clock::time_point end;
+
+    if (time) begin = high_resolution_clock::now();
+
+//    char* groupstr = "cplforcegroup";
+//    char* regionstr = "cplforceregion";
+
+//    int cplforcegroup = group->find(groupstr);
+//    int groupbit = group->bitmask[cplforcegroup];
+
+//    int rid = domain->find_region (regionstr);
+//    auto cplforceregion = domain->regions[rid];
+
+    if (time) {
+        end = high_resolution_clock::now();
+        std::cout << " step " << update->ntimestep << " time allocation = " 
+                 << duration_cast<microseconds>( end - begin ).count() << "e-6 s"   << std::endl;
+        begin = high_resolution_clock::now();
+    }
+
+    // Do calculations required before applying force
+    pre_force(Nfreq, Nrepeat, Nevery);
+
+    if (time) {
+        end = high_resolution_clock::now();
+        std::cout << " step " << update->ntimestep << " time pre force = "
+                 << duration_cast<microseconds>( end - begin ).count() << "e-6 s"   << std::endl;
+        begin = high_resolution_clock::now();
+    }
+
+    //Apply force
+    apply_force(Nfreq, Nrepeat, Nevery);
 
     if (time) {
         end = high_resolution_clock::now();
@@ -392,7 +478,7 @@ void FixCPLForce::apply(int Nfreq, int Nrepeat, int Nevery) {
 }
 
 
-void FixCPLForce::setupBuf (CPL::ndArray<double>& Buf, std::vector<int>& portion) {
+void FixCPLForce::setupBuf(CPL::ndArray<double>& Buf, std::vector<int>& portion) {
     cfdBuf = &Buf;
 	updateProcPortion(portion);
 }
@@ -404,6 +490,13 @@ void FixCPLForce::updateProcPortion (std::vector<int>& portion) {
     for (int i = 0; i < 6; ++i) {
         procPortion[i] = portion[i];
     }
+}
+
+
+void FixCPLForce::reset_sums(){
+     std::cout <<  "Resetting sums " <<  irepeat << std::endl;
+     fxyz->resetsums();
+     irepeat = 0;
 }
 
 
@@ -451,3 +544,9 @@ int FixCPLForce::unpack_exchange(int nlocal, double *buf)
 
   return numcols;
 }
+
+// This will get the total number of molecules including halos
+// However, acceleration won't be held for ghost cells so 
+// probably not possible to use this. Instead collect pre force
+// values and exchange these using CPL_swaphalos.
+//int nall = atom->nlocal + atom->nghost;

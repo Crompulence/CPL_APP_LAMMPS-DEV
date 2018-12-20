@@ -247,7 +247,7 @@ void fixCPLInit::setas_last_fix() {
 
 int fixCPLInit::setmask() {
   int mask = 0;
-  //mask |= LAMMPS_NS::FixConst::END_OF_STEP;
+  mask |= LAMMPS_NS::FixConst::POST_INTEGRATE;
   mask |= LAMMPS_NS::FixConst::POST_FORCE;
   return mask;
 }
@@ -270,15 +270,40 @@ void fixCPLInit::post_constructor() {
 void fixCPLInit::setup(int vflag)
 {
   	post_force(vflag);
+    //post_integrate();
+}
+
+
+// We need to send back to the CFD after 
+// we've used the force to update the velocity
+void fixCPLInit::post_integrate()
+{
+
+    std::cout << "qqq post_integrate: "  << update->ntimestep << std::endl;
+
+    //Add up all velocties after forces applied
+    cplsocket.cplfix->post_constraint_force(Nfreq, Nrepeat, Nevery);
+
+    //Pack and send to CFD
+    if (update->ntimestep%Nfreq == 0){
+        cplsocket.pack(lmp, sendbitflag);
+        cplsocket.send();
+
+        //Instead of nrepeat, we always reset after send!
+        cplsocket.cplfix->reset_sums();
+    }
+
 }
 
 void fixCPLInit::post_force(int vflag)
 {
 
-    std::cout << "post_force: "  << update->ntimestep << std::endl;
+    std::cout << "qqq post_force: "  << update->ntimestep << " " << update->laststep << std::endl;
+    //No need to recieve data last step
+    if (update->ntimestep == update->laststep) return;
 
     //Get step number in this simulation run
-    int step = update->ntimestep - update->firststep;
+    //int step = update->ntimestep - update->firststep;
     
     // Recieve and unpack from CFD
     if (update->ntimestep%Nfreq == 0){
@@ -286,39 +311,14 @@ void fixCPLInit::post_force(int vflag)
     }
 
     //Apply coupling force
-    cplsocket.cplfix->apply(Nfreq, Nrepeat, Nevery);
+    cplsocket.cplfix->pre_force(Nfreq, Nrepeat, Nevery);
+    cplsocket.cplfix->apply_force(Nfreq, Nrepeat, Nevery);
 
-    //Pack and send to CFD
-    if (update->ntimestep%Nfreq == 0){
-        cplsocket.pack(lmp, sendbitflag);
-        cplsocket.send();
-    }
+    //lmp->error->all(FLERR," LIMITED TO ONE ITER IN fixCPLInit::post_force");
+
+
 
 }
-
-//void fixCPLInit::end_of_step()
-//{
-
-//    std::cout << "end_of_step: "  << update->ntimestep << std::endl;
-
-//    //Get step number in this simulation run
-//    int step = update->ntimestep - update->firststep;
-//    
-//    // Recieve and unpack from CFD
-//    if (update->ntimestep%Nfreq == 0){
-//        cplsocket.receive();
-//    }
-
-//    //Apply coupling force
-//    cplsocket.cplfix->apply(Nfreq, Nrepeat, Nevery);
-
-//    //Pack and send to CFD
-//    if (update->ntimestep%Nfreq == 0){
-//        cplsocket.pack(lmp, sendbitflag);
-//        cplsocket.send();
-//    }
-
-//}
 
 fixCPLInit::~fixCPLInit() {
 	cplsocket.finalizeComms();

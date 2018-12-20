@@ -470,6 +470,7 @@ void CPLSocketLAMMPS::setupFixCFDtoMD(LAMMPS_NS::LAMMPS *lammps,
     }
     int recvShape[4] = {nval, cnstFCells[0], cnstFCells[1], cnstFCells[2]};
     recvBuf.resize(4, recvShape);
+    recvBuf.zero();
 
 	//Setup pointer to recieve buffer
 	cplfix->setupBuf(recvBuf, cnstFPortion);
@@ -508,9 +509,11 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendbitflag) {
                 std::string name("vSums");
                 auto field_ptr = cplfix->fxyz->get_internal_fields(name);
                 if (field_ptr != nullptr){
-                    sendBuf(npack+0, ic, jc, kc) = field_ptr->get_array_value(0, ic, jc, kc);
-                    sendBuf(npack+1, ic, jc, kc) = field_ptr->get_array_value(1, ic, jc, kc);
-                    sendBuf(npack+2, ic, jc, kc) = field_ptr->get_array_value(2, ic, jc, kc);
+                    //Divide by number of records to give average
+                    float Nrecs = cplfix->fxyz->Npre_force + cplfix->fxyz->Npost_force;
+                    sendBuf(npack+0, ic, jc, kc) = field_ptr->get_array_value(0, ic, jc, kc)/Nrecs;
+                    sendBuf(npack+1, ic, jc, kc) = field_ptr->get_array_value(1, ic, jc, kc)/Nrecs;
+                    sendBuf(npack+2, ic, jc, kc) = field_ptr->get_array_value(2, ic, jc, kc)/Nrecs;
                  } else {
                     double vx = cfdbcfix->compute_array(row, 4);  
                     double vy = cfdbcfix->compute_array(row, 5);  
@@ -524,11 +527,12 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendbitflag) {
                 npack += VELSIZE;
 
 //                if (ic ==3 && jc == 3 && kc == 3){
-//                    std::cout << "CPLSocketLAMMPS::pack " << ic << " " << jc << " " << kc 
-//                              << " " <<  sendBuf(npack-3, ic, jc, kc)
-//                              << " " <<  sendBuf(npack-2, ic, jc, kc)
-//                              << " " <<  sendBuf(npack-1, ic, jc, kc) 
-//                              << " " << (field_ptr != nullptr) <<  std::endl;
+                if (field_ptr->get_array_value(npack-3, ic, jc, kc) != 0.)
+                    std::cout << lammps->update->ntimestep <<  " CPLSocketLAMMPS::pack velocity " 
+                              << ic << "  " << jc << "  " << kc 
+                              << " " <<  sendBuf(npack-3, ic, jc, kc)
+                              << " " <<  sendBuf(npack-2, ic, jc, kc)
+                              << " " <<  sendBuf(npack-1, ic, jc, kc) <<  std::endl;
 //                }
 
             }
@@ -537,7 +541,9 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendbitflag) {
                 std::string name("nSums");
                 auto field_ptr = cplfix->fxyz->get_internal_fields(name);
                 if (field_ptr != nullptr){
-                    sendBuf(npack+0, ic, jc, kc) = field_ptr->get_array_value(0, ic, jc, kc);
+                    //Divide by number of records to give average
+                    float Nrecs = cplfix->fxyz->Npre_force + cplfix->fxyz->Npost_force;
+                    sendBuf(npack+0, ic, jc, kc) = field_ptr->get_array_value(0, ic, jc, kc)/Nrecs;
                  } else {
                     double ncount = cfdbcfix->compute_array(row, 3);
                     sendBuf(npack, ic, jc, kc) = ncount; 
@@ -555,34 +561,61 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendbitflag) {
                 std::string name("FSums");
                 auto field_ptr = cplfix->fxyz->get_internal_fields(name);
                 if (field_ptr != nullptr){
-                    sendBuf(npack+0, ic, jc, kc) = field_ptr->get_array_value(0, ic, jc, kc);
-                    sendBuf(npack+1, ic, jc, kc) = field_ptr->get_array_value(1, ic, jc, kc);
-                    sendBuf(npack+2, ic, jc, kc) = field_ptr->get_array_value(2, ic, jc, kc);
+                    //Divide by number of records to give average
+                    float Nrecs = cplfix->fxyz->Nforce;
+                    sendBuf(npack+0, ic, jc, kc) = field_ptr->get_array_value(0, ic, jc, kc)/Nrecs;
+                    sendBuf(npack+1, ic, jc, kc) = field_ptr->get_array_value(1, ic, jc, kc)/Nrecs;
+                    sendBuf(npack+2, ic, jc, kc) = field_ptr->get_array_value(2, ic, jc, kc)/Nrecs;
                  } else {
                     lammps->error->all(FLERR," Array value FSums required by sendtype not collected in forcetype");
                 }
                 npack += FORCESIZE;
+
+                if (field_ptr->get_array_value(npack-3, ic, jc, kc) != 0.)
+                    std::cout << lammps->update->ntimestep <<  " CPLSocketLAMMPS::pack FORCE " 
+                              << ic << "  " << jc << "  " << kc 
+                              << " " <<  sendBuf(npack-3, ic, jc, kc)
+                              << " " <<  sendBuf(npack-2, ic, jc, kc)
+                              << " " <<  sendBuf(npack-1, ic, jc, kc) <<  std::endl;
+
             }
             if ((sendbitflag & FORCECOEFF) == FORCECOEFF){
 
                 std::string name("FcoeffSums");
                 auto field_ptr = cplfix->fxyz->get_internal_fields(name);
                 if (field_ptr != nullptr){
-                    sendBuf(npack+0, ic, jc, kc) = field_ptr->get_array_value(0, ic, jc, kc);
+                    //Divide by number of records to give average
+                    float Nrecs = cplfix->fxyz->Nforce;
+                    sendBuf(npack+0, ic, jc, kc) = field_ptr->get_array_value(0, ic, jc, kc)/Nrecs;
                 } else {
                     lammps->error->all(FLERR," Array value FcoeffSums required by sendtype not collected in forcetype");
                 }
                 npack += FORCECOEFFSIZE;
+
+                if (field_ptr->get_array_value(npack-1, ic, jc, kc) != 0.)
+                    std::cout << lammps->update->ntimestep <<  " CPLSocketLAMMPS::pack FcoeffSums " 
+                              << ic << "  " << jc << "  " << kc 
+                              << " " <<  sendBuf(npack-1, ic, jc, kc) <<  std::endl;
             }
             if ((sendbitflag & VOIDRATIO) == VOIDRATIO){
 
                 std::string name("volSums");
                 auto field_ptr = cplfix->fxyz->get_internal_fields(name);
                 if (field_ptr != nullptr){
+                    //Divide by number of records to give average
+                    float Nrecs = cplfix->fxyz->Npre_force + cplfix->fxyz->Npost_force;
                     //Send sum of volume directly
-                    sendBuf(npack, ic, jc, kc) = field_ptr->get_array_value(0, ic, jc, kc);
-                    //std::cout << "CPLSocketLAMMPS::pack " << ic << " " << jc << " " << kc << " " <<  sendBuf(0, ic, jc, kc) << std::endl;
-//                    double phi = field_ptr->get_array_value(0, ic, jc, kc)/Vcell;
+                    sendBuf(npack, ic, jc, kc) = field_ptr->get_array_value(0, ic, jc, kc)/Nrecs;
+                    if (field_ptr->get_array_value(0, ic, jc, kc) != 0.){
+                        std::cout << lammps->update->ntimestep << 
+                                 " CPLSocketLAMMPS::pack vol " << 
+                                ic << "  " << jc << "  " << kc << "  "
+                                <<  field_ptr->get_array_value(0, ic, jc, kc) << 
+                                " " << cplfix->fxyz->Npre_force << "  " << 
+                                cplfix->fxyz->Nforce << "  " << cplfix->fxyz->Npost_force << std::endl;
+
+                    }
+//                  double phi = field_ptr->get_array_value(0, ic, jc, kc)/Vcell;
 //                    if (phi > 1.) {
 //                        //std::cout << "Warning, eps = 0 so set to 0.1 in CPLSocketLAMMPS::packGran" << std::endl;
 //                        sendBuf(npack, ic, jc, kc) = 0.01;

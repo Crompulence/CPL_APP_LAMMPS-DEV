@@ -25,8 +25,12 @@ public:
     int setmask();
 	void setup(int vflag);
 	void setupBuf(CPL::ndArray<double>& Buf, std::vector<int>& portion);
+    void pre_force(int Nfreq, int Nrepeat, int Nevery);
+    void apply_force(int Nfreq, int Nrepeat, int Nevery);
+    void post_constraint_force(int Nfreq, int Nrepeat, int Nevery);
     void apply(int Nfreq, int Nrepeat, int Nevery);
     void updateProcPortion (std::vector<int>& portion);
+    void reset_sums();
     std::shared_ptr<std::string> forcetype;
     std::unique_ptr<CPLForce> fxyz;
     void grow_arrays(int);
