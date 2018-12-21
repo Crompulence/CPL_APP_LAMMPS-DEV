@@ -514,13 +514,14 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendbitflag) {
                     sendBuf(npack+0, ic, jc, kc) = field_ptr->get_array_value(0, ic, jc, kc)/Nrecs;
                     sendBuf(npack+1, ic, jc, kc) = field_ptr->get_array_value(1, ic, jc, kc)/Nrecs;
                     sendBuf(npack+2, ic, jc, kc) = field_ptr->get_array_value(2, ic, jc, kc)/Nrecs;
-                    //Debug Debug
+#if DEBUG
                     if (field_ptr->get_array_value(npack-3, ic, jc, kc) != 0.)
                         std::cout << lammps->update->ntimestep <<  " CPLSocketLAMMPS::pack velocity " 
                               << ic << "  " << jc << "  " << kc 
                               << " " <<  sendBuf(npack-3, ic, jc, kc)
                               << " " <<  sendBuf(npack-2, ic, jc, kc)
                               << " " <<  sendBuf(npack-1, ic, jc, kc) <<  std::endl;
+#endif
                  } else {
                     double vx = cfdbcfix->compute_array(row, 4);  
                     double vy = cfdbcfix->compute_array(row, 5);  
@@ -564,13 +565,14 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendbitflag) {
                     sendBuf(npack+0, ic, jc, kc) = field_ptr->get_array_value(0, ic, jc, kc)/Nrecs;
                     sendBuf(npack+1, ic, jc, kc) = field_ptr->get_array_value(1, ic, jc, kc)/Nrecs;
                     sendBuf(npack+2, ic, jc, kc) = field_ptr->get_array_value(2, ic, jc, kc)/Nrecs;
-                    //Debug Debug
+#if DEBUG
                     if (field_ptr->get_array_value(npack-3, ic, jc, kc) != 0.)
                         std::cout << lammps->update->ntimestep <<  " CPLSocketLAMMPS::pack FORCE " 
                                   << ic << "  " << jc << "  " << kc 
                                   << " " <<  sendBuf(npack-3, ic, jc, kc)
                                   << " " <<  sendBuf(npack-2, ic, jc, kc)
                                   << " " <<  sendBuf(npack-1, ic, jc, kc) <<  std::endl;
+#endif
                  } else {
                     lammps->error->all(FLERR," Array value FSums required by sendtype not collected in forcetype");
                 }
@@ -584,11 +586,12 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendbitflag) {
                     //Divide by number of records to give average
                     float Nrecs = cplfix->fxyz->Nforce;
                     sendBuf(npack+0, ic, jc, kc) = field_ptr->get_array_value(0, ic, jc, kc)/Nrecs;
-                    //Debug Debug
+#if DEBUG
                     if (field_ptr->get_array_value(npack-1, ic, jc, kc) != 0.)
                         std::cout << lammps->update->ntimestep <<  " CPLSocketLAMMPS::pack FcoeffSums " 
                                   << ic << "  " << jc << "  " << kc 
                                   << " " <<  sendBuf(npack-1, ic, jc, kc) <<  std::endl;
+#endif
                 } else {
                     lammps->error->all(FLERR," Array value FcoeffSums required by sendtype not collected in forcetype");
                 }
@@ -603,7 +606,7 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendbitflag) {
                     float Nrecs = cplfix->fxyz->Npre_force + cplfix->fxyz->Npost_force;
                     //Send sum of volume directly
                     sendBuf(npack, ic, jc, kc) = field_ptr->get_array_value(0, ic, jc, kc)/Nrecs;
-                    //Debug Debug
+#if DEBUG
                     if (field_ptr->get_array_value(0, ic, jc, kc) != 0.){
                         std::cout << lammps->update->ntimestep << 
                                  " CPLSocketLAMMPS::pack vol " << 
@@ -611,8 +614,9 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendbitflag) {
                                 <<  field_ptr->get_array_value(0, ic, jc, kc) << 
                                 " " << cplfix->fxyz->Npre_force << "  " << 
                                 cplfix->fxyz->Nforce << "  " << cplfix->fxyz->Npost_force << std::endl;
-
                     }
+#endif
+
 //                  double phi = field_ptr->get_array_value(0, ic, jc, kc)/Vcell;
 //                    if (phi > 1.) {
 //                        sendBuf(npack, ic, jc, kc) = 0.01;

@@ -277,11 +277,15 @@ void FixCPLForce::pre_force(int Nfreq, int Nrepeat, int Nevery){
 
          //If Nrepeat, then reset sums
          if (irepeat == Nrepeat){
+#if DEBUG
             std::cout <<  "Resetting sums " <<  irepeat << " " << Nrepeat << std::endl;
+#endif
             reset_sums();
          } else {
             irepeat++;
+#if DEBUG
             std::cout <<  "irepeat = " <<  irepeat << " of " << Nrepeat << std::endl;
+#endif
          }
 
         //Pre-force calculation, get quantities from discrete system needed to apply force
@@ -494,7 +498,9 @@ void FixCPLForce::updateProcPortion (std::vector<int>& portion) {
 
 
 void FixCPLForce::reset_sums(){
+#if DEBUG
      std::cout <<  "Resetting sums " <<  irepeat << std::endl;
+#endif
      fxyz->resetsums();
      irepeat = 0;
 }
