@@ -279,7 +279,7 @@ void fixCPLInit::setup(int vflag)
 void fixCPLInit::post_integrate()
 {
 
-    std::cout << "qqq post_integrate: "  << update->ntimestep << std::endl;
+    std::cout << "post_integrate: "  << update->ntimestep << std::endl;
 
     //Add up all velocties after forces applied
     cplsocket.cplfix->post_constraint_force(Nfreq, Nrepeat, Nevery);
@@ -298,7 +298,7 @@ void fixCPLInit::post_integrate()
 void fixCPLInit::post_force(int vflag)
 {
 
-    std::cout << "qqq post_force: "  << update->ntimestep << " " << update->laststep << std::endl;
+    std::cout << "post_force: "  << update->ntimestep << " " << update->laststep << std::endl;
     //No need to recieve data last step
     if (update->ntimestep == update->laststep) return;
 

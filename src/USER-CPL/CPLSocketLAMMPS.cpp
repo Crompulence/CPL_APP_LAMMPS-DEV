@@ -514,6 +514,13 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendbitflag) {
                     sendBuf(npack+0, ic, jc, kc) = field_ptr->get_array_value(0, ic, jc, kc)/Nrecs;
                     sendBuf(npack+1, ic, jc, kc) = field_ptr->get_array_value(1, ic, jc, kc)/Nrecs;
                     sendBuf(npack+2, ic, jc, kc) = field_ptr->get_array_value(2, ic, jc, kc)/Nrecs;
+                    //Debug Debug
+                    if (field_ptr->get_array_value(npack-3, ic, jc, kc) != 0.)
+                        std::cout << lammps->update->ntimestep <<  " CPLSocketLAMMPS::pack velocity " 
+                              << ic << "  " << jc << "  " << kc 
+                              << " " <<  sendBuf(npack-3, ic, jc, kc)
+                              << " " <<  sendBuf(npack-2, ic, jc, kc)
+                              << " " <<  sendBuf(npack-1, ic, jc, kc) <<  std::endl;
                  } else {
                     double vx = cfdbcfix->compute_array(row, 4);  
                     double vy = cfdbcfix->compute_array(row, 5);  
@@ -525,15 +532,6 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendbitflag) {
                     //lammps->error->all(FLERR," Array value vSums required by sendtype not collected in forcetype");
                 }
                 npack += VELSIZE;
-
-//                if (ic ==3 && jc == 3 && kc == 3){
-                if (field_ptr->get_array_value(npack-3, ic, jc, kc) != 0.)
-                    std::cout << lammps->update->ntimestep <<  " CPLSocketLAMMPS::pack velocity " 
-                              << ic << "  " << jc << "  " << kc 
-                              << " " <<  sendBuf(npack-3, ic, jc, kc)
-                              << " " <<  sendBuf(npack-2, ic, jc, kc)
-                              << " " <<  sendBuf(npack-1, ic, jc, kc) <<  std::endl;
-//                }
 
             }
             if ((sendbitflag & NBIN) == NBIN){
@@ -566,18 +564,17 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendbitflag) {
                     sendBuf(npack+0, ic, jc, kc) = field_ptr->get_array_value(0, ic, jc, kc)/Nrecs;
                     sendBuf(npack+1, ic, jc, kc) = field_ptr->get_array_value(1, ic, jc, kc)/Nrecs;
                     sendBuf(npack+2, ic, jc, kc) = field_ptr->get_array_value(2, ic, jc, kc)/Nrecs;
+                    //Debug Debug
+                    if (field_ptr->get_array_value(npack-3, ic, jc, kc) != 0.)
+                        std::cout << lammps->update->ntimestep <<  " CPLSocketLAMMPS::pack FORCE " 
+                                  << ic << "  " << jc << "  " << kc 
+                                  << " " <<  sendBuf(npack-3, ic, jc, kc)
+                                  << " " <<  sendBuf(npack-2, ic, jc, kc)
+                                  << " " <<  sendBuf(npack-1, ic, jc, kc) <<  std::endl;
                  } else {
                     lammps->error->all(FLERR," Array value FSums required by sendtype not collected in forcetype");
                 }
                 npack += FORCESIZE;
-
-                if (field_ptr->get_array_value(npack-3, ic, jc, kc) != 0.)
-                    std::cout << lammps->update->ntimestep <<  " CPLSocketLAMMPS::pack FORCE " 
-                              << ic << "  " << jc << "  " << kc 
-                              << " " <<  sendBuf(npack-3, ic, jc, kc)
-                              << " " <<  sendBuf(npack-2, ic, jc, kc)
-                              << " " <<  sendBuf(npack-1, ic, jc, kc) <<  std::endl;
-
             }
             if ((sendbitflag & FORCECOEFF) == FORCECOEFF){
 
@@ -587,15 +584,15 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendbitflag) {
                     //Divide by number of records to give average
                     float Nrecs = cplfix->fxyz->Nforce;
                     sendBuf(npack+0, ic, jc, kc) = field_ptr->get_array_value(0, ic, jc, kc)/Nrecs;
+                    //Debug Debug
+                    if (field_ptr->get_array_value(npack-1, ic, jc, kc) != 0.)
+                        std::cout << lammps->update->ntimestep <<  " CPLSocketLAMMPS::pack FcoeffSums " 
+                                  << ic << "  " << jc << "  " << kc 
+                                  << " " <<  sendBuf(npack-1, ic, jc, kc) <<  std::endl;
                 } else {
                     lammps->error->all(FLERR," Array value FcoeffSums required by sendtype not collected in forcetype");
                 }
                 npack += FORCECOEFFSIZE;
-
-                if (field_ptr->get_array_value(npack-1, ic, jc, kc) != 0.)
-                    std::cout << lammps->update->ntimestep <<  " CPLSocketLAMMPS::pack FcoeffSums " 
-                              << ic << "  " << jc << "  " << kc 
-                              << " " <<  sendBuf(npack-1, ic, jc, kc) <<  std::endl;
             }
             if ((sendbitflag & VOIDRATIO) == VOIDRATIO){
 
@@ -606,6 +603,7 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendbitflag) {
                     float Nrecs = cplfix->fxyz->Npre_force + cplfix->fxyz->Npost_force;
                     //Send sum of volume directly
                     sendBuf(npack, ic, jc, kc) = field_ptr->get_array_value(0, ic, jc, kc)/Nrecs;
+                    //Debug Debug
                     if (field_ptr->get_array_value(0, ic, jc, kc) != 0.){
                         std::cout << lammps->update->ntimestep << 
                                  " CPLSocketLAMMPS::pack vol " << 
@@ -617,12 +615,9 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendbitflag) {
                     }
 //                  double phi = field_ptr->get_array_value(0, ic, jc, kc)/Vcell;
 //                    if (phi > 1.) {
-//                        //std::cout << "Warning, eps = 0 so set to 0.1 in CPLSocketLAMMPS::packGran" << std::endl;
 //                        sendBuf(npack, ic, jc, kc) = 0.01;
 //                    } else {
 //                        sendBuf(npack, ic, jc, kc) = 1.0 - phi;
-//                        //if (phi != 0.0)
-//                        //    std::cout << "CPLSocketLAMMPS::pack " << ic << " " << jc << " " << kc << " " <<  sendBuf(npack, ic, jc, kc) << std::endl;
 //                    }
                 } else {
                     lammps->error->all(FLERR," Array value volSums required by sendtype not collected in forcetype");

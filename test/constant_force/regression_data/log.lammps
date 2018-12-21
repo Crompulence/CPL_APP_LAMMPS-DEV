@@ -24,7 +24,7 @@ comm_modify	mode single vel yes
 atom_modify 	map array # specifies how neighbour list is set up
 read_data	Bouncing_Ball.lj
   orthogonal box = (0 0 0) to (0.0015 0.0015 0.0025)
-  1 by 1 by 1 MPI processor grid
+  2 by 2 by 2 MPI processor grid
   reading atoms ...
   1 atoms
   reading velocities ...
@@ -67,6 +67,7 @@ dynamic group cplforcegroup defined
 #dump        6 all dcd 10 vmd_out.dcd
 
 run		    5000
+WARNING: One or more dynamic groups may not be updated at correct point in timestep (../fix_group.cpp:153)
 Neighbor list info ...
   update every 50 steps, delay 0 steps, check yes
   max neighbors/atom: 2000, page size: 100000
@@ -79,7 +80,8 @@ Neighbor list info ...
       pair build: half/size/bin/newtoff
       stencil: half/bin/3d/newtoff
       bin: standard
-Per MPI rank memory allocation (min/avg/max) = 10.22 | 10.22 | 10.22 Mbytes
+WARNING: Proc sub-domain size < neighbor skin, could lead to lost atoms (../domain.cpp:968)
+Per MPI rank memory allocation (min/avg/max) = 10.49 | 10.49 | 10.49 Mbytes
 Step Temp E_pair E_mol TotEng Press 
        0            0            0            0            0            0 
 5 0.0011999877375 -0.0004905 -5.8360316255694e-07
@@ -1081,28 +1083,28 @@ Step Temp E_pair E_mol TotEng Press
 4985 0.000811466895168128 0.0873095586121809 -5.8360316255694e-07
 4990 0.000815820110598737 0.0868190586121809 -5.8360316255694e-07
 4995 0.000820148801029346 0.086328558612181 -5.8360316255694e-07
-5000 0.000824452966459955 0.0858380586121811 -5.8360316255694e-07
+5000 0.000824452966459955 0.085887108612181 0
     5000            0            0            0            0            0 
-Loop time of 0.109418 on 1 procs for 5000 steps with 1 atoms
+Loop time of 0.212354 on 8 procs for 5000 steps with 1 atoms
 
-72.7% CPU use with 1 MPI tasks x no OpenMP threads
+85.0% CPU use with 8 MPI tasks x no OpenMP threads
 
 MPI task timing breakdown:
 Section |  min time  |  avg time  |  max time  |%varavg| %total
 ---------------------------------------------------------------
-Pair    | 0.0028131  | 0.0028131  | 0.0028131  |   0.0 |  2.57
-Neigh   | 1.0729e-05 | 1.0729e-05 | 1.0729e-05 |   0.0 |  0.01
-Comm    | 0.001132   | 0.001132   | 0.001132   |   0.0 |  1.03
-Output  | 1.0014e-05 | 1.0014e-05 | 1.0014e-05 |   0.0 |  0.01
-Modify  | 0.10413    | 0.10413    | 0.10413    |   0.0 | 95.17
-Other   |            | 0.001318   |            |       |  1.20
+Pair    | 0.0036643  | 0.0040762  | 0.0043294  |   0.3 |  1.92
+Neigh   | 7.1526e-06 | 9.0897e-06 | 1.1206e-05 |   0.0 |  0.00
+Comm    | 0.049801   | 0.057457   | 0.06332    |   1.8 | 27.06
+Output  | 2.1935e-05 | 2.3603e-05 | 2.5988e-05 |   0.0 |  0.01
+Modify  | 0.14042    | 0.14656    | 0.15395    |   1.2 | 69.02
+Other   |            | 0.004226   |            |       |  1.99
 
-Nlocal:    1 ave 1 max 1 min
-Histogram: 1 0 0 0 0 0 0 0 0 0
-Nghost:    5 ave 5 max 5 min
-Histogram: 1 0 0 0 0 0 0 0 0 0
+Nlocal:    0.125 ave 1 max 0 min
+Histogram: 7 0 0 0 0 0 0 0 0 1
+Nghost:    4.875 ave 6 max 4 min
+Histogram: 4 0 0 0 0 1 0 0 0 3
 Neighs:    0 ave 0 max 0 min
-Histogram: 1 0 0 0 0 0 0 0 0 0
+Histogram: 8 0 0 0 0 0 0 0 0 0
 
 Total # of neighbors = 0
 Ave neighs/atom = 0

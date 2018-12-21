@@ -30,7 +30,7 @@ recv_array, send_array = CPL.get_arrays(recv_size=4, send_size=3)
 print("After CPL setup")
 
 ft = True
-for time in range(101):
+for time in range(100):
 
     # send data to update
     send_array[2,:,:,:] = mi*g
