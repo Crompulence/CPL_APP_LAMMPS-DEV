@@ -70,6 +70,10 @@ def test_newtest(timestep, g):
         run.setup()
         run.execute(blocking=True, print_output=True)
 
+        #Seems that blocking is not working correctly, add a wait here to see if the problem is simply this
+        import time
+        time.sleep(10)
+
     #Check error
     import bouncing
     error = bouncing.check_bouncing_error_vs_gravity(g=g, logfile=rundir + '/log.lammps', 
