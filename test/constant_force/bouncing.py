@@ -9,6 +9,8 @@ def read_data(logfile='./log.lammps',
               datafile='./thermo_output.txt'):
 
     #Get data from file
+    import os
+    print(os.path.dirname(os.path.realpath(__file__)), os.getcwd())
     with open(logfile) as f:
         for l in f.readlines():
             if l.find("timestep") != -1:
@@ -25,9 +27,12 @@ def read_data(logfile='./log.lammps',
     return t, z, v, f
 
 
-def check_bouncing_error_vs_gravity(D=3.5e-4, g=9.81, plot=False):
+def check_bouncing_error_vs_gravity(D=3.5e-4, g=9.81, 
+                                    logfile='./log.lammps', 
+                                    datafile='./thermo_output.txt',
+                                    plot=False):
 
-    t, z, v, f = read_data()
+    t, z, v, f = read_data(logfile, datafile)
 
     #Get section between bounces
     zp = np.copy(z)

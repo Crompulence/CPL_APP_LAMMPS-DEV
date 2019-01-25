@@ -39,7 +39,8 @@ for time in range(100):
     # recv data and plot
     recv_array, ierr = CPL.recv(recv_array)
 
-    print("CFD time = ", time)
+    if time%10 == 0:
+        print("CFD time = ", time)
 
 comm.Barrier()
 CPL.finalize()
