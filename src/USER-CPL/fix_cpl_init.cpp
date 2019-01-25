@@ -139,7 +139,7 @@ fixCPLInit::fixCPLInit(LAMMPS_NS::LAMMPS *lammps, int narg, char **arg)
     }
 
     //Create appropriate bitflag to determine what is sent
-    sendbitflag = 0; bool skipnext; int i=-1;
+    sendbitflag = 0; bool skipnext=false; int i=-1;
 
     // Average values are generated every Nfreq time steps, taken
     // from the average of the Nrepeat preceeding timesteps separated
@@ -314,7 +314,6 @@ void fixCPLInit::post_force(int vflag)
     //Apply coupling force
     cplsocket.cplfix->pre_force(Nfreq, Nrepeat, Nevery);
     cplsocket.cplfix->apply_force(Nfreq, Nrepeat, Nevery);
-
     //lmp->error->all(FLERR," LIMITED TO ONE ITER IN fixCPLInit::post_force");
 
 

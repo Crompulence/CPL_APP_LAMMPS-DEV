@@ -267,6 +267,14 @@ void FixCPLForce::pre_force(int Nfreq, int Nrepeat, int Nevery){
     double mi, radi, pot, xi[3], vi[3], ai[3];
     pot = 1.0; //Interaction Potential should be set here
 
+    char* groupstr = "cplforcegroup";
+    int cplforcegroup = group->find(groupstr);
+    int groupbit = group->bitmask[cplforcegroup];
+
+    char* regionstr = "cplforceregion";
+    int rid = domain->find_region (regionstr);
+    auto cplforceregion = domain->regions[rid];
+
     //Update CFD field buffer with latest recieved value
     fxyz->set_field(*cfdBuf);
 
@@ -335,6 +343,17 @@ void FixCPLForce::apply_force(int Nfreq, int Nrepeat, int Nevery){
     double mi, radi, pot, xi[3], vi[3], ai[3];
     pot = 1.0; //Interaction Potential should be set here
 
+    char* groupstr = "cplforcegroup";
+    int cplforcegroup = group->find(groupstr);
+    int groupbit = group->bitmask[cplforcegroup];
+
+    char* regionstr = "cplforceregion";
+    int rid = domain->find_region (regionstr);
+    auto cplforceregion = domain->regions[rid];
+
+    //std::cout << "pre set field " << fxyz->Nforce << " " << cfdBuf->shape(0) << " " << 
+    //          cfdBuf->shape(1) << " " << cfdBuf->shape(2) << " " << cfdBuf->shape(3) << std::endl;
+
     //Update CFD field buffer with latest recieved value
     fxyz->set_field(*cfdBuf);
 
@@ -369,9 +388,9 @@ void FixCPLForce::apply_force(int Nfreq, int Nrepeat, int Nevery){
             }
 
             //std::cout.precision(17);
-            //std::cout << "Force " <<  update->ntimestep << " " << i << " " << mi << " " 
-            //          << xi[1] <<  " " << vi[1] << " " << ai[1] << " " << fi[1] << " " 
-            //              << f[i][0] << " " << f[i][1] << " " << f[i][2] << std::endl;
+//            std::cout << "Force " <<  update->ntimestep << " " << i << " " << mi << " " 
+//                      << xi[1] <<  " " << vi[0] << " " << ai[0] << " " << fi[0] << " " 
+//                          << f[i][0] << " " << f[i][1] << " " << f[i][2] << std::endl;
 
         }
     }
@@ -392,6 +411,14 @@ void FixCPLForce::post_constraint_force(int Nfreq, int Nrepeat, int Nevery){
 
     double mi, radi, pot, xi[3], vi[3], ai[3];
     pot = 1.0; //Interaction Potential should be set here
+
+    char* groupstr = "cplforcegroup";
+    int cplforcegroup = group->find(groupstr);
+    int groupbit = group->bitmask[cplforcegroup];
+
+    char* regionstr = "cplforceregion";
+    int rid = domain->find_region (regionstr);
+    auto cplforceregion = domain->regions[rid];
 
     // Only recalculate post force everytime we recieve data
     // or Nevery as this accumulates data for send as required
