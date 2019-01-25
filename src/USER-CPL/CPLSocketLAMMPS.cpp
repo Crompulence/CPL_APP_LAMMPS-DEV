@@ -158,6 +158,7 @@ void CPLSocketLAMMPS::allocateBuffers(const LAMMPS_NS::LAMMPS *lammps, int sendb
 
     // LAMMPS computed velocity field
     int sendShape[4] = {packsize, velBCCells[0], velBCCells[1], velBCCells[2]};
+    std::cout << "velBCCells: " << velBCCells[0]  << " " <<  velBCCells[1]  << " " <<  velBCCells[2] << " " << std::endl;
     sendBuf.resize(4, sendShape);
 
     if (sendbitflag > 63)
@@ -252,6 +253,7 @@ void CPLSocketLAMMPS::setupFixMDtoCFD(LAMMPS_NS::LAMMPS *lammps, int sendbitflag
     delete [] regionarg;
 
     // CFD BC region 
+    //char cfdbcregionname[12] = "cfdbcregion";
     int iregion = lammps->domain->find_region("cfdbcregion");
     if (iregion < 0) lammps->error->all(FLERR,"Fix ID for iregion cfdbcregion does not exist");
     cfdbcregion = lammps->domain->regions[iregion];
@@ -423,29 +425,32 @@ void CPLSocketLAMMPS::setupFixCFDtoMD(LAMMPS_NS::LAMMPS *lammps,
 
     // Create a FixCPLForce instance
     std::string str = *forcetype;
-    char * writable = new char[str.size() + 1];
-    std::copy(str.begin(), str.end(), writable);
-    writable[str.size()] = '\0'; // terminating 0
-    char **fixarg = new char*[7+forcetype_args.size()];
-    fixarg[0] = (char *) "cplforcefix";
-    fixarg[1] = (char *) "all";
-    fixarg[2] = (char *) "cpl/force";
-    fixarg[3] = (char *) "region";
-    fixarg[4] = (char *) "cplforceregion"; 
-    fixarg[5] = (char *) "forcetype";
-    fixarg[6] = writable;
-    int i=0;
-    for(int i=0; i != forcetype_args.size(); i++) {
-        auto arg = forcetype_args[i];
-        std::string str(*arg);
+    //Added scope here to deallocate all char strings
+    {
         char * writable = new char[str.size() + 1];
         std::copy(str.begin(), str.end(), writable);
         writable[str.size()] = '\0'; // terminating 0
-        fixarg[7+i] = writable;
+        char **fixarg = new char*[7+forcetype_args.size()];
+        fixarg[0] = (char *) "cplforcefix";
+        fixarg[1] = (char *) "all";
+        fixarg[2] = (char *) "cpl/force";
+        fixarg[3] = (char *) "region";
+        fixarg[4] = (char *) "cplforceregion"; 
+        fixarg[5] = (char *) "forcetype";
+        fixarg[6] = writable;
+        int i=0;
+        for(int i=0; i != forcetype_args.size(); i++) {
+            auto arg = forcetype_args[i];
+            std::string str(*arg);
+            char * writable = new char[str.size() + 1];
+            std::copy(str.begin(), str.end(), writable);
+            writable[str.size()] = '\0'; // terminating 0
+            fixarg[7+i] = writable;
+        }
+        lammps->modify->add_fix(7+forcetype_args.size(), fixarg);
     }
-    lammps->modify->add_fix(7+forcetype_args.size(), fixarg);
-    delete writable;
-    delete [] fixarg;
+    //delete writable;
+    //delete [] fixarg;
 
     int ifix = lammps->modify->find_fix("cplforcefix");
     if (ifix < 0) lammps->error->all(FLERR,"Fix ID for fix cplforcefix does not exist");
@@ -469,6 +474,7 @@ void CPLSocketLAMMPS::setupFixCFDtoMD(LAMMPS_NS::LAMMPS *lammps,
         throw std::runtime_error(cmd);
     }
     int recvShape[4] = {nval, cnstFCells[0], cnstFCells[1], cnstFCells[2]};
+    std::cout << "cnstFCells: " << cnstFCells[0]  << " " <<  cnstFCells[1]  << " " <<  cnstFCells[2] << " " << std::endl;
     recvBuf.resize(4, recvShape);
     recvBuf.zero();
 
@@ -527,6 +533,10 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendbitflag) {
                     double vy = cfdbcfix->compute_array(row, 5);  
                     double vz = cfdbcfix->compute_array(row, 6);
 
+//                    std::cout << lammps->update->ntimestep << " CPLSocketLAMMPS::pack vSums " << 
+//                                ic << "  " << jc << "  " << kc << "  " << row << " " 
+//                                <<  vx << " " << vy << "  " << vz << std::endl;
+
                     sendBuf(npack+0, ic, jc, kc) = vx;
                     sendBuf(npack+1, ic, jc, kc) = vy;
                     sendBuf(npack+2, ic, jc, kc) = vz; 
@@ -543,9 +553,15 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendbitflag) {
                     //Divide by number of records to give average
                     float Nrecs = cplfix->fxyz->Npre_force + cplfix->fxyz->Npost_force;
                     sendBuf(npack+0, ic, jc, kc) = field_ptr->get_array_value(0, ic, jc, kc)/Nrecs;
+//                    std::cout << lammps->update->ntimestep << 
+//                                 " CPLSocketLAMMPS::pack nSums " << 
+//                                ic << "  " << jc << "  " << kc << "  "
+//                                <<  field_ptr->get_array_value(0, ic, jc, kc) << 
+//                                " " << Nrecs << "  " << cfdbcfix->compute_array(row, 3) << std::endl;
+
                  } else {
                     double ncount = cfdbcfix->compute_array(row, 3);
-                    sendBuf(npack, ic, jc, kc) = ncount; 
+                    sendBuf(npack, ic, jc, kc) = ncount;
 //                    lammps->error->all(FLERR," Array value nSums required by sendtype not collected in forcetype");
                 }
                 npack += NBINSIZE;
