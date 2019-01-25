@@ -64,11 +64,11 @@ clean-all: clean
 	cd $(LAMMPS_SRC_DIR) && $(MAKE) clean-all
 
 test:
-	py.test -v ./test
+	pytest -v ./test
 
 test-single:
-	py.test -vs ./test/constant_force
+	pytest -vs ./test/constant_force
 
 test-simwrap:
-	py.test -vs ./test/Example_simwrap/
+	pytest -vs ./test/Example_simwrap/
 
