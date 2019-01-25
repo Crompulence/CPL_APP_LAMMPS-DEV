@@ -68,11 +68,11 @@ def test_newtest(timestep, g):
 
         #Run the case
         run.setup()
-        run.execute(blocking=True, print_output=True)
+        run.execute(blocking=True, print_output=True, extra_cmds="-Mv")
 
         #Seems that blocking is not working correctly, add a wait here to see if the problem is simply this
-        import time
-        time.sleep(10)
+        #import time
+        #time.sleep(10)
 
     #Check error
     import bouncing
