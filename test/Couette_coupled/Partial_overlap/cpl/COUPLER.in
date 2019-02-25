@@ -1,0 +1,75 @@
+DENSITY_CFD
+0.5
+
+FULL_OVERLAP
+.false.
+
+TIMESTEP_RATIO
+50
+
+
+###############################################################################
+#
+#   overlap_extents (6 * integers)
+#     - define the global cell boundaries of the overlap region
+#
+#     1. icmin_olap
+#     2. icmax_olap
+#     3. jcmin_olap
+#     4. jcmax_olap
+#     5. kcmin_olap
+#     6. kcmax_olap
+#
+# -----------------------------------------------------------------------------
+OVERLAP_EXTENTS
+1
+8
+1
+3
+1
+8
+
+##############################################################################
+##
+##   Specify constraint information
+##
+##      1. constraint_algo 0-off, 1-OCT, 2-NCER, 3-Flekkoy 4-CV
+##      2. constraint_CVflag -- Use CV form of constraint 0-Off 1-On
+##      3. icmin_cnst
+##      4. icmax_cnst
+##      5. jcmin_cnst
+##      6. jcmax_cnst
+##      7. kcmin_cnst
+##      8. kcmax_cnst
+##
+## -----------------------------------------------------------------------------
+CONSTRAINT_INFO
+2
+1
+1
+8
+2
+2
+1
+8
+
+###############################################################################
+#
+#   boundary_extents (6 * integers)
+#     - define the CFD boundary region cells
+#
+#     1. icmin_bnry
+#     2. icmax_bnry
+#     3. jcmin_bnry
+#     4. jcmax_bnry
+#     5. kcmin_bnry
+#     6. kcmax_bnry
+#
+# -----------------------------------------------------------------------------
+BOUNDARY_EXTENTS
+1
+8
+1
+1
+1
+8
