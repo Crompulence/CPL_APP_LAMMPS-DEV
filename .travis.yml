@@ -84,6 +84,7 @@ before_script:
 script:
     - make test-single
     - make test-simwrap
+    - make test-couette
 
 after_success:
      - echo "Build Success"

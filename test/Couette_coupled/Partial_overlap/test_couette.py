@@ -34,7 +34,8 @@ TEST_DIR = os.path.dirname(os.path.realpath(__file__))
 
 #Parameterise range of cases
 params = []
-Uwall = [0.6, 0.7, 0.8, 0.9, 1.0]
+#Uwall = [0.6, 0.7, 0.8, 0.9, 1.0]
+Uwall = [0.6, 1.0]
 for u in Uwall:
     params.append(u)
 @pytest.mark.parametrize("wallvel", params)

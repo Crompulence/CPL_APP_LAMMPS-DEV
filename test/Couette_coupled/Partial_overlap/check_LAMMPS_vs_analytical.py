@@ -107,6 +107,6 @@ def check_LAMMPS_vs_Analytical(fdir, uwall=1., plotevolve=False):
 
 
 if __name__ == "__main__":
-    fdir = "./run[0.8]"
+    fdir = "./run0.8"
     check_LAMMPS_vs_Analytical(fdir, uwall=0.8, plotevolve=True)
 
