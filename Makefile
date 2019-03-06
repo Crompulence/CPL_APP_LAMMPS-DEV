@@ -72,3 +72,5 @@ test-single:
 test-simwrap:
 	pytest -vs ./test/Example_simwrap/
 
+test-couette:
+	pytest -vs ./test/Couette_coupled/Partial_overlap/
