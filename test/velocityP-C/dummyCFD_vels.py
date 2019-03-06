@@ -37,6 +37,7 @@ try:
     Lz = params["lz"]
 except:
     print("ERROR: ", sys.exc_info()[0], file=sys.stderr)
+    raise
     MPI.COMM_WORLD.Abort(errorcode=1)
 
 nsteps = 2
@@ -55,7 +56,7 @@ if (nprocs_realm != NProcs):
     MPI.COMM_WORLD.Abort(errorcode=1)
 
 # Create cartesian communicator and initialize
-cpllib.set_timing(0, nsteps, dt)
+#cpllib.set_timing(0, nsteps, dt)
 cart_comm = realm_comm.Create_cart([NPx, NPy, NPz])
 cpllib.setup_cfd(cart_comm, xyzL, xyz_orig, ncxyz)
 

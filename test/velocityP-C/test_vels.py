@@ -68,7 +68,7 @@ def compare_vels(tol, lammps_fname="lammps_vels.dat",
 
 
 @pytest.mark.parametrize("cfdprocs, mdprocs, err_msg", [
-                         ((3, 3, 3), (3, 3, 3),  ""),
+                         ((1, 1, 1), (1, 1, 1),  ""),
                          ((1, 1, 1), (3, 3, 3),  "")])
 def test_velocitiesP2C(prepare_config_fix, cfdprocs, mdprocs, err_msg):
     MD_PARAMS = {"lx": 300.0, "ly": 300.0, "lz": 300.0}

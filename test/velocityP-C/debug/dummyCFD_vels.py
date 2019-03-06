@@ -55,7 +55,7 @@ if (nprocs_realm != NProcs):
     MPI.COMM_WORLD.Abort(errorcode=1)
 
 # Create cartesian communicator and initialize
-cpllib.set_timing(0, nsteps, dt)
+#cpllib.set_timing(0, nsteps, dt)
 cart_comm = realm_comm.Create_cart([NPx, NPy, NPz])
 cpllib.setup_cfd(cart_comm, xyzL, xyz_orig, ncxyz)
 
@@ -92,7 +92,8 @@ for step in xrange(nsteps):
 # TODO: Make this multistep
 #    cpllib.dump_region(velBCRegion, recv_array, "cfd_vels%d.dat"%step, realm_comm,                                                                                                                                                            
 #            components={0:None, 1:None, 2:None}, coords="other")
-
+print ("HOLA")
 cpllib.dump_region(velBCRegion, recv_array, "cfd_vels.dat", realm_comm,                                                                                                                                                            
         components={0:None, 1:None, 2:None}, coords="other")
+print ("ADIOS")
 cpllib.finalize()
