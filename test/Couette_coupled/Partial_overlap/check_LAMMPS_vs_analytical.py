@@ -36,7 +36,7 @@ def check_LAMMPS_vs_Analytical(fdir, uwall=1., plotevolve=False):
     nu = 1.7
     Ly = 40.3103
     liquidstart = 0.13*Ly
-    liquidend = 0.77*Ly
+    liquidend = 0.82*Ly
     liquidregion = liquidend-liquidstart
     liquidbins = y.shape[0]
     Re = liquidregion/nu 
@@ -103,7 +103,7 @@ def check_LAMMPS_vs_Analytical(fdir, uwall=1., plotevolve=False):
                 plt.legend()
                 ft = False
             #plt.xlim([-0.1, 1.2])
-            plt.pause(.05)
+            plt.pause(.2)
             plt.cla()
         elif "summary" in plotevolve:
             pass
@@ -129,5 +129,5 @@ def check_LAMMPS_vs_Analytical(fdir, uwall=1., plotevolve=False):
 if __name__ == "__main__":
     for uwall in [0.6,0.7,0.8,0.9,1.0]:
         fdir = "./run" + str(uwall)
-        check_LAMMPS_vs_Analytical(fdir, uwall=uwall, plotevolve="summary")
+        check_LAMMPS_vs_Analytical(fdir, uwall=uwall, plotevolve="dynamic")
 

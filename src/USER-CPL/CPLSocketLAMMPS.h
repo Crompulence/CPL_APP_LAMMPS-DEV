@@ -126,6 +126,8 @@ public:
     int const STRESS = 8;  // 2^3, bit 3
     int const FORCECOEFF = 16;  // 2^4, bit 4
     int const VOIDRATIO = 32;  // 2^5, bit 5
+    int const TEMPERATURE = 64;  // 2^6, bit 6
+    int const  PRESSURE = 128;  // 2^7, bit 7
 
 private:
 
@@ -186,6 +188,8 @@ private:
     int const STRESSSIZE = 9;  // 9 Nine stress components
     int const FORCECOEFFSIZE = 1;  // 1 Sum of force coefficients
     int const VOIDRATIOSIZE = 1;  // 1 Void ratio
+    int const TEMPERATURESIZE = 1;  // 1 Temperature
+    int const PRESSURESIZE = 1;  // 1 Pressure
 
 };
 

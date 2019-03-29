@@ -103,7 +103,8 @@ FixCPLForce::FixCPLForce ( LAMMPS_NS::LAMMPS *lammps, int narg, char **arg)
                         //Check if we have read another argument type
                         std::string forceType_arg(*forcetype_arg);
                         if (  forceType_arg.compare("sendtype") == 0 
-                            | forceType_arg.compare("bndryavg") == 0) {
+                            | forceType_arg.compare("bndryavg") == 0
+                            | forceType_arg.compare("shiftconstraint") == 0) {
                             break;
                         } else if (forceType_arg.compare("calcperatom") == 0) {
                             calcperatom = true;
@@ -114,6 +115,7 @@ FixCPLForce::FixCPLForce ( LAMMPS_NS::LAMMPS *lammps, int narg, char **arg)
                             std::string forceType(*forcetype);
                             std::cout << "Lammps FixCPLForce forcetype: "  << forceType << " with args "
                                       <<  forceType_arg << std::endl;
+                            
                             forcetype_args.push_back(forcetype_arg);
                         }
                     }
@@ -179,22 +181,26 @@ void FixCPLForce::setup(int vflag)
                                                  cfdBuf->shape(1), 
                                                  cfdBuf->shape(2), 
                                                  cfdBuf->shape(3));
+        use_CPL_field = false;
     } else if (fxyzType.compare("test") == 0) {
         fxyz = std::make_unique<CPLForceTest>(cfdBuf->shape(0), 
                                               cfdBuf->shape(1), 
                                               cfdBuf->shape(2), 
                                               cfdBuf->shape(3));
+        use_CPL_field = false;
     } else if (fxyzType.compare("Velocity") == 0) {
         fxyz = std::make_unique<CPLForceVelocity>(cfdBuf->shape(0), 
                                                   cfdBuf->shape(1), 
                                                   cfdBuf->shape(2), 
                                                   cfdBuf->shape(3));
+        use_CPL_field = false;
     } else if (fxyzType.compare("Drag") == 0) {
         fxyz = std::make_unique<CPLForceDrag>(cfdBuf->shape(0), 
                                               cfdBuf->shape(1), 
                                               cfdBuf->shape(2), 
                                               cfdBuf->shape(3), 
                                               args_map);
+        use_CPL_field = true;
         //fxyz->calc_preforce = 1;
     } else if (fxyzType.compare("Di_Felice") == 0) {
         fxyz = std::make_unique<CPLForceGranular>(cfdBuf->shape(0), 
@@ -202,20 +208,21 @@ void FixCPLForce::setup(int vflag)
                                                   cfdBuf->shape(2), 
                                                   cfdBuf->shape(3), 
                                                   args_map);  
-
+        use_CPL_field = true;
     } else if (fxyzType.compare("Ergun") == 0) {
         fxyz = std::make_unique<CPLForceErgun>(cfdBuf->shape(0), 
                                                cfdBuf->shape(1), 
                                                cfdBuf->shape(2), 
                                                cfdBuf->shape(3), 
                                                args_map); 
-
+        use_CPL_field = true;
     } else if (fxyzType.compare("BVK") == 0) {
         fxyz = std::make_unique<CPLForceBVK>(cfdBuf->shape(0), 
                                              cfdBuf->shape(1), 
                                              cfdBuf->shape(2), 
                                              cfdBuf->shape(3), 
                                              args_map); 
+        use_CPL_field = true;
     } else {
         std::string cmd("CPLForce type ");
         cmd += fxyzType + " not defined";
@@ -271,6 +278,7 @@ void FixCPLForce::pre_force(int Nfreq, int Nrepeat, int Nevery){
     int cplforcegroup = group->find(groupstr);
     int groupbit = group->bitmask[cplforcegroup];
 
+    //Would it be better to use region value of this force fix?
     char* regionstr = "cplforceregion";
     int rid = domain->find_region (regionstr);
     auto cplforceregion = domain->regions[rid];
@@ -309,14 +317,21 @@ void FixCPLForce::pre_force(int Nfreq, int Nrepeat, int Nevery){
             	{
 		            //Get local molecule data
 		            if (atom->rmass_flag) {mi = rmass[i];}
-                    else {mi = 1;}
+                    else {mi = 1.0;}
 		            if (atom->radius_flag) {radi = radius[i];}
-                    else {radi = 1;}
+                    else {radi = 1.0;}
 		            for (int n=0; n<3; n++){
 		                xi[n]=x[i][n]; 
 		                vi[n]=v[i][n]; 
 		                ai[n]=f[i][n];
 		            }
+
+//                    if (update->ntimestep > 11100) {
+//                        std::cout << "pre_force " << i << " " << mi << " " << 
+//                                    xi[0] << " " << xi[1] << " " << xi[2] << " " << 
+//                                    vi[0] << " " << vi[1] << " " << vi[2] <<  std::endl;
+//                     
+//                    }
 
 		            // Sum all the weights for each cell.
 		            fxyz->pre_force(xi, vi, ai, mi, radi, pot);
@@ -363,6 +378,7 @@ void FixCPLForce::apply_force(int Nfreq, int Nrepeat, int Nevery){
     // Calculate force and apply
     for (int i = 0; i < nlocal; ++i)
     {
+
         if (mask[i] & groupbit)
         {
 
@@ -515,7 +531,7 @@ void FixCPLForce::setupBuf(CPL::ndArray<double>& Buf, std::vector<int>& portion)
 }
     
 
-void FixCPLForce::updateProcPortion (std::vector<int>& portion) {
+void FixCPLForce::updateProcPortion(std::vector<int>& portion) {
 
     procPortion.resize(6);
     for (int i = 0; i < 6; ++i) {

@@ -142,6 +142,12 @@ void CPLSocketLAMMPS::allocateBuffers(const LAMMPS_NS::LAMMPS *lammps, int sendb
     if ((sendbitflag & NBIN) == NBIN){
         packsize += NBINSIZE;
     }
+    if ((sendbitflag & TEMPERATURE) == TEMPERATURE){
+        packsize += TEMPERATURESIZE;
+    }
+    if ((sendbitflag & PRESSURE) == PRESSURE){
+        packsize += PRESSURESIZE;
+    }
     if ((sendbitflag & STRESS) == STRESS){
         packsize += STRESSSIZE;
         lammps->error->all(FLERR," sendbitflag stress not developed. Aborting.");
@@ -158,10 +164,11 @@ void CPLSocketLAMMPS::allocateBuffers(const LAMMPS_NS::LAMMPS *lammps, int sendb
 
     // LAMMPS computed velocity field
     int sendShape[4] = {packsize, velBCCells[0], velBCCells[1], velBCCells[2]};
-    std::cout << "velBCCells: " << velBCCells[0]  << " " <<  velBCCells[1]  << " " <<  velBCCells[2] << " " << std::endl;
+    std::cout << "velBCCells: " << packsize << " " << velBCCells[0] 
+              << " " <<  velBCCells[1]  << " " <<  velBCCells[2] << " " << std::endl;
     sendBuf.resize(4, sendShape);
 
-    if (sendbitflag > 63)
+    if (sendbitflag > 255)
         lammps->error->all(FLERR," sendbitflag bit flag unknown type. Aborting.");
 }
 
@@ -193,6 +200,8 @@ void CPLSocketLAMMPS::setBndryAvgMode(int mode) {
 void CPLSocketLAMMPS::setupFixMDtoCFD(LAMMPS_NS::LAMMPS *lammps, int sendbitflag,
                                       int Nfreq, int Nrepeat, int Nevery)
 {
+
+    bool print_fix_debug = false;
 
     //Allocate buffers
     allocateBuffers(lammps, sendbitflag);
@@ -264,13 +273,17 @@ void CPLSocketLAMMPS::setupFixMDtoCFD(LAMMPS_NS::LAMMPS *lammps, int sendbitflag
 
 
     //New way using LAMMPS One
+    // Note I've removed 
+    //<< "region cfdbcregion "\
+    // as I this seems redundent with bounds
     std::stringstream cmp_str;
+    double eps = 0.0; //Small value to ensure correct number of cells in domain
     cmp_str << std::setprecision(16) << "compute "  << "cfdbccompute "\
             << "all " << "chunk/atom bin/3d "\
             << "x lower " << dx << " "\
             << "y lower " << dy << " "\
             << "z lower " << dz << " "\
-            << "ids every region " << "cfdbcregion "\
+            << "ids every " \
             << "units box " << " "\
             << "bound x " << botLeft[0] << " " << topRight[0] << " "\
             << "bound y " << botLeft[1] << " " << topRight[1] << " "\
@@ -278,93 +291,111 @@ void CPLSocketLAMMPS::setupFixMDtoCFD(LAMMPS_NS::LAMMPS *lammps, int sendbitflag
     std::cout << "compute: " << cmp_str.str() << std::endl;
     lammps->input->one(cmp_str.str().c_str());
 
+
+    //lammps->error->all(FLERR,"STOPPED IN SETUP AFTER cfdbccompute");
+
     //Old way passing a char array
-    char dxstr[20], dystr[20], dzstr[20];
-    char low_x[20], hi_x[20], low_y[20], hi_y[20], low_z[20], hi_z[20];
-    ret = sprintf(dxstr, "%f", dx);
-    ret = sprintf(dystr, "%f", dy);
-    ret = sprintf(dzstr, "%f", dz);
-    ret = sprintf(low_x, "%f", botLeft[0]);
-    ret = sprintf(hi_x, "%f", topRight[0]);
-    ret = sprintf(low_y, "%f", botLeft[1]);
-    ret = sprintf(hi_y, "%f", topRight[1]);
-    ret = sprintf(low_z, "%f", botLeft[2]);
-    ret = sprintf(hi_z, "%f", topRight[2]);
+//    char dxstr[20], dystr[20], dzstr[20];
+//    char low_x[20], hi_x[20], low_y[20], hi_y[20], low_z[20], hi_z[20];
+//    ret = sprintf(dxstr, "%f", dx);
+//    ret = sprintf(dystr, "%f", dy);
+//    ret = sprintf(dzstr, "%f", dz);
+//    ret = sprintf(low_x, "%f", botLeft[0]);
+//    ret = sprintf(hi_x, "%f", topRight[0]);
+//    ret = sprintf(low_y, "%f", botLeft[1]);
+//    ret = sprintf(hi_y, "%f", topRight[1]);
+//    ret = sprintf(low_z, "%f", botLeft[2]);
+//    ret = sprintf(hi_z, "%f", topRight[2]);
 
     // CFD BC compute chunk 3d bins in y slice
-    char **computearg = new char*[31];
-    computearg[0] = (char *) "cfdbccompute";
-    computearg[1] = (char *) "all";
-    computearg[2] = (char *) "chunk/atom";
-    computearg[3] = (char *) "bin/3d";
-    computearg[4] = (char *) "x";
-    computearg[5] = (char *) "lower";
-    computearg[6] = (char *) dxstr;
-    computearg[7] = (char *) "y";
-    computearg[8] = (char *) "lower";
-    computearg[9] = (char *) dystr;
-    computearg[10] = (char *) "z";
-    computearg[11] = (char *) "lower";
-    computearg[12] = (char *) dzstr;
-    computearg[13] = (char *) "ids";
-    computearg[14] = (char *) "every";
-    computearg[15] = (char *) "region";
-    computearg[16] = (char *) "cfdbcregion";
-    computearg[17] = (char *) "units";
-    computearg[18] = (char *) "box";
-    computearg[19] = (char *) "bound";
-    computearg[20] = (char *) "x";
-    computearg[21] = (char *) low_x;
-    computearg[22] = (char *) hi_x;
-    computearg[23] = (char *) "bound";
-    computearg[24] = (char *) "y";
-    computearg[25] = (char *) low_y;
-    computearg[26] = (char *) hi_y;
-    computearg[27] = (char *) "bound";
-    computearg[28] = (char *) "z";
-    computearg[29] = (char *) low_z;
-    computearg[30] = (char *) hi_z;
+//    char **computearg = new char*[31];
+//    computearg[0] = (char *) "cfdbccompute";
+//    computearg[1] = (char *) "all";
+//    computearg[2] = (char *) "chunk/atom";
+//    computearg[3] = (char *) "bin/3d";
+//    computearg[4] = (char *) "x";
+//    computearg[5] = (char *) "lower";
+//    computearg[6] = (char *) dxstr;
+//    computearg[7] = (char *) "y";
+//    computearg[8] = (char *) "lower";
+//    computearg[9] = (char *) dystr;
+//    computearg[10] = (char *) "z";
+//    computearg[11] = (char *) "lower";
+//    computearg[12] = (char *) dzstr;
+//    computearg[13] = (char *) "ids";
+//    computearg[14] = (char *) "every";
+//    computearg[15] = (char *) "region";
+//    computearg[16] = (char *) "cfdbcregion";
+//    computearg[17] = (char *) "units";
+//    computearg[18] = (char *) "box";
+//    computearg[19] = (char *) "bound";
+//    computearg[20] = (char *) "x";
+//    computearg[21] = (char *) low_x;
+//    computearg[22] = (char *) hi_x;
+//    computearg[23] = (char *) "bound";
+//    computearg[24] = (char *) "y";
+//    computearg[25] = (char *) low_y;
+//    computearg[26] = (char *) hi_y;
+//    computearg[27] = (char *) "bound";
+//    computearg[28] = (char *) "z";
+//    computearg[29] = (char *) low_z;
+//    computearg[30] = (char *) hi_z;
     //lammps->modify->add_compute(31, computearg);
+    //delete [] computearg;
+
     //Get handle for compute
     int icompute = lammps->modify->find_compute("cfdbccompute");
     if (icompute < 0)
 		lammps->error->all(FLERR,"Compute ID for compute cfdbccompute does not exist");
     cfdbccompute = lammps->modify->compute[icompute];
-    std::cout << "cfdbccompute: " << cfdbccompute << " " << std::endl;
     
-    delete [] computearg;
-
     char Neverystr[20], Nrepeatstr[20], Nfreqstr[20];
     ret = sprintf(Neverystr, "%d", Nevery);
     ret = sprintf(Nrepeatstr, "%d", Nrepeat);
     ret = sprintf(Nfreqstr, "%d", Nfreq);
 
+    //Create sum over stresses for pressure
+    if ((sendbitflag & PRESSURE) == PRESSURE){
+        std::stringstream prssre_str;
+        prssre_str << std::setprecision(16) 
+                   << "compute P all stress/atom NULL"
+                   << std::endl;
+        lammps->input->one(prssre_str.str().c_str());
+    }
+    
     std::stringstream fix_str;
     fix_str << "fix "  << "cfdbcfix "\
          << "all " << "ave/chunk "\
          << Neverystr << " " << Nrepeatstr << " "\
          << Nfreqstr << " "\
-         << "cfdbccompute vx vy vz norm all";
+         << "cfdbccompute vx vy vz ";
+    if ((sendbitflag & TEMPERATURE) == TEMPERATURE)
+        fix_str << "temp ";
+    if ((sendbitflag & PRESSURE) == PRESSURE)
+        fix_str << " c_P[1] ";
+    fix_str << " norm none";
+    if (print_fix_debug)
+        fix_str << " file cfdbcfix_debug";
     std::cout << "CPL: " << fix_str.str() << std::endl;
     lammps->input->one(fix_str.str().c_str());
 
-    char **fixarg = new char*[12];
-    fixarg[0] = (char *) "cfdbcfix";
-    fixarg[1] = (char *) "all";
-    fixarg[2] = (char *) "ave/chunk";
-    fixarg[3] = (char *) Neverystr;
-    fixarg[4] = (char *) Nrepeatstr; 
-    fixarg[5] = (char *) Nfreqstr; 
-    fixarg[6] = (char *) "cfdbccompute";
-    fixarg[7] = (char *) "vx";
-    fixarg[8] = (char *) "vy";
-    fixarg[9] = (char *) "vz";
-    fixarg[10] = (char *) "norm";
-    fixarg[11] = (char *) "all";
-    //fixarg[12] = (char *) "file";
-    //fixarg[13] = (char *) "cplchunk";
-    lammps->modify->add_fix(12, fixarg);
-    delete [] fixarg;
+//    char **fixarg = new char*[14];
+//    fixarg[0] = (char *) "cfdbcfix";
+//    fixarg[1] = (char *) "all";
+//    fixarg[2] = (char *) "ave/chunk";
+//    fixarg[3] = (char *) Neverystr;
+//    fixarg[4] = (char *) Nrepeatstr; 
+//    fixarg[5] = (char *) Nfreqstr; 
+//    fixarg[6] = (char *) "cfdbccompute";
+//    fixarg[7] = (char *) "vx";
+//    fixarg[8] = (char *) "vy";
+//    fixarg[9] = (char *) "vz";
+//    fixarg[10] = (char *) "norm";
+//    fixarg[11] = (char *) "all";
+//    fixarg[12] = (char *) "file";
+//    fixarg[13] = (char *) "cfdbcfix_debug";
+//    lammps->modify->add_fix(14, fixarg);
+//    delete [] fixarg;
 
     //~ Set pointers for this newly-created fix
     int ifix = lammps->modify->find_fix("cfdbcfix");
@@ -386,9 +417,32 @@ void CPLSocketLAMMPS::setupFixCFDtoMD(LAMMPS_NS::LAMMPS *lammps,
 
     double topRight[3];
     CPL::map_cell2coord(cnstFRegion[1], cnstFRegion[3], cnstFRegion[5], topRight);
+
+    std::cout << "cnstFRegion before shift x " << botLeft[0] << " " << topRight[0] << " "
+              << "cnstFRegion before shift y " << botLeft[1] << " " << topRight[1] << " "
+              << "cnstFRegion before shift z " << botLeft[2] << " " << topRight[2]  << std::endl;
+
+    //This is needed as the velocity constraint needs to be 
+    //applied about half a cell above region to work correctly
+    for(int i=0; i != forcetype_args.size(); i++) {
+        auto arg = forcetype_args[i];
+        std::string str(*arg);
+        std::cout << "forcetype str " << str  << std::endl;
+        if (str.compare("shiftconstraint") == 0 ){
+            //lammps->error->all(FLERR,"STOPPED IN shiftconstraint");
+            botLeft[1] += dy/2.;
+            break;
+        }
+    }
+
     topRight[0] += dx;
     topRight[1] += dy;
     topRight[2] += dz;
+
+    std::cout << "cnstFRegion after shift x " << botLeft[0] << " " << topRight[0] << " "
+              << "cnstFRegion after shift y " << botLeft[1] << " " << topRight[1] << " "
+              << "cnstFRegion after shift z " << botLeft[2] << " " << topRight[2]  << std::endl;
+
 
     // Tell LAMMPS to keep track of atoms in constrained region
     int ret;
@@ -413,6 +467,12 @@ void CPLSocketLAMMPS::setupFixCFDtoMD(LAMMPS_NS::LAMMPS *lammps,
     regionarg[8] = (char *) "units";
     regionarg[9] = (char *) "box";
     lammps->domain->add_region(10, regionarg);
+    std::cout << "cplforceregion " << regionarg[2] << " " 
+                                   << regionarg[3] << " " 
+                                   << regionarg[4] << " " 
+                                   << regionarg[5] << " "  
+                                   << regionarg[6] << " " 
+                                   << regionarg[7] << " " << std::endl;
     delete [] regionarg;
 
     int iregion = lammps->domain->find_region("cplforceregion");
@@ -514,7 +574,7 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendbitflag) {
                 //Get FSums internal to CPLForceTest
                 std::string name("vSums");
                 auto field_ptr = cplfix->fxyz->get_internal_fields(name);
-                if (field_ptr != nullptr){
+                if (field_ptr != nullptr & cplfix->use_CPL_field){
                     //Divide by number of records to give average
                     float Nrecs = cplfix->fxyz->Npre_force + cplfix->fxyz->Npost_force;
                     sendBuf(npack+0, ic, jc, kc) = field_ptr->get_array_value(0, ic, jc, kc)/Nrecs;
@@ -522,7 +582,8 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendbitflag) {
                     sendBuf(npack+2, ic, jc, kc) = field_ptr->get_array_value(2, ic, jc, kc)/Nrecs;
 #if DEBUG
                     if (field_ptr->get_array_value(npack-3, ic, jc, kc) != 0.)
-                        std::cout << lammps->update->ntimestep <<  " CPLSocketLAMMPS::pack velocity " 
+                        std::cout << lammps->update->ntimestep <<  
+                            " CPLSocketLAMMPS::pack velocity " 
                               << ic << "  " << jc << "  " << kc 
                               << " " <<  sendBuf(npack-3, ic, jc, kc)
                               << " " <<  sendBuf(npack-2, ic, jc, kc)
@@ -532,11 +593,11 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendbitflag) {
                     double vx = cfdbcfix->compute_array(row, 4);  
                     double vy = cfdbcfix->compute_array(row, 5);  
                     double vz = cfdbcfix->compute_array(row, 6);
-
-//                    std::cout << lammps->update->ntimestep << " CPLSocketLAMMPS::pack vSums " << 
-//                                ic << "  " << jc << "  " << kc << "  " << row << " " 
-//                                <<  vx << " " << vy << "  " << vz << std::endl;
-
+#if DEBUG
+                    std::cout << lammps->update->ntimestep << " CPLSocketLAMMPS::pack vSums " << 
+                                ic << "  " << jc << "  " << kc << "  " << row << " " 
+                                <<  vx << " " << vy << "  " << vz << std::endl;
+#endif
                     sendBuf(npack+0, ic, jc, kc) = vx;
                     sendBuf(npack+1, ic, jc, kc) = vy;
                     sendBuf(npack+2, ic, jc, kc) = vz; 
@@ -549,19 +610,27 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendbitflag) {
                 //Get FSums internal to CPLForceTest
                 std::string name("nSums");
                 auto field_ptr = cplfix->fxyz->get_internal_fields(name);
-                if (field_ptr != nullptr){
+                if (field_ptr != nullptr & cplfix->use_CPL_field){
                     //Divide by number of records to give average
                     float Nrecs = cplfix->fxyz->Npre_force + cplfix->fxyz->Npost_force;
                     sendBuf(npack+0, ic, jc, kc) = field_ptr->get_array_value(0, ic, jc, kc)/Nrecs;
-//                    std::cout << lammps->update->ntimestep << 
-//                                 " CPLSocketLAMMPS::pack nSums " << 
-//                                ic << "  " << jc << "  " << kc << "  "
-//                                <<  field_ptr->get_array_value(0, ic, jc, kc) << 
-//                                " " << Nrecs << "  " << cfdbcfix->compute_array(row, 3) << std::endl;
+#if DEBUG
+                    std::cout << lammps->update->ntimestep << 
+                                 " CPLSocketLAMMPS::pack nSums " << 
+                                ic << "  " << jc << "  " << kc << "  "
+                                <<  field_ptr->get_array_value(0, ic, jc, kc) << 
+                                " " << Nrecs << "  " << cfdbcfix->compute_array(row, 3) 
+                                << std::endl;
+#endif
 
                  } else {
                     double ncount = cfdbcfix->compute_array(row, 3);
                     sendBuf(npack, ic, jc, kc) = ncount;
+#if DEBUG
+                    std::cout << lammps->update->ntimestep << " CPLSocketLAMMPS::pack nSums " << 
+                                ic << "  " << jc << "  " << kc << "  " << row << " " 
+                                <<  ncount << std::endl;
+#endif
 //                    lammps->error->all(FLERR," Array value nSums required by sendtype not collected in forcetype");
                 }
                 npack += NBINSIZE;
@@ -575,7 +644,7 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendbitflag) {
                 //Get FSums internal to CPLForceTest
                 std::string name("FSums");
                 auto field_ptr = cplfix->fxyz->get_internal_fields(name);
-                if (field_ptr != nullptr){
+                if (field_ptr != nullptr & cplfix->use_CPL_field){
                     //Divide by number of records to give average
                     float Nrecs = cplfix->fxyz->Nforce;
                     sendBuf(npack+0, ic, jc, kc) = field_ptr->get_array_value(0, ic, jc, kc)/Nrecs;
@@ -598,7 +667,7 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendbitflag) {
 
                 std::string name("FcoeffSums");
                 auto field_ptr = cplfix->fxyz->get_internal_fields(name);
-                if (field_ptr != nullptr){
+                if (field_ptr != nullptr & cplfix->use_CPL_field){
                     //Divide by number of records to give average
                     float Nrecs = cplfix->fxyz->Nforce;
                     sendBuf(npack+0, ic, jc, kc) = field_ptr->get_array_value(0, ic, jc, kc)/Nrecs;
@@ -617,7 +686,7 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendbitflag) {
 
                 std::string name("volSums");
                 auto field_ptr = cplfix->fxyz->get_internal_fields(name);
-                if (field_ptr != nullptr){
+                if (field_ptr != nullptr & cplfix->use_CPL_field){
                     //Divide by number of records to give average
                     float Nrecs = cplfix->fxyz->Npre_force + cplfix->fxyz->Npost_force;
                     //Send sum of volume directly
@@ -644,6 +713,26 @@ void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendbitflag) {
                 }
                 //std::cout << i << " " << j << " " << k << " " << 1. - Granfxyz.volSums(i,j,k)/Vcell << std::endl;
                 npack += VOIDRATIOSIZE;
+            }
+            // Temperature is record 7 if defined
+            if ((sendbitflag & TEMPERATURE) == TEMPERATURE){
+                //lammps->error->all(FLERR," sendbitflag TEMPERATURE not developed. Aborting.");
+                double T = cfdbcfix->compute_array(row, 7);  
+                sendBuf(npack+0, ic, jc, kc) = T;
+                npack += TEMPERATURESIZE;
+            }
+
+            // Pressure is record 8 if temperature is defined
+            // otherwise record 7
+            if ((sendbitflag & PRESSURE) == PRESSURE){
+                double P;
+                if ((sendbitflag & TEMPERATURE) == TEMPERATURE){
+                    P = cfdbcfix->compute_array(row, 8);  
+                } else {
+                    P = cfdbcfix->compute_array(row, 7);  
+                }
+                sendBuf(npack+0, ic, jc, kc) = P;
+                npack += PRESSURESIZE;
             }
         }}}
 

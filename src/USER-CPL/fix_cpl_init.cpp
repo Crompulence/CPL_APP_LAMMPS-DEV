@@ -136,6 +136,8 @@ fixCPLInit::fixCPLInit(LAMMPS_NS::LAMMPS *lammps, int narg, char **arg)
     	cplsocket.setBndryAvgMode(AVG_MODE_MIDPLANE);
     } else if (BndryAvg.compare("none") == 0) {
     	cplsocket.setBndryAvgMode(AVG_MODE_NONE);
+    } else {
+        lammps->error->all(FLERR,"Unrecognised bndryavg value in cpl/init line in LAMMPS input file");
     }
 
     //Create appropriate bitflag to determine what is sent
@@ -163,10 +165,7 @@ fixCPLInit::fixCPLInit(LAMMPS_NS::LAMMPS *lammps, int narg, char **arg)
 
         std::string sendType(*sendtype);
 
-        std::cout << "sendtype: "  << sendType <<  " " <<
-                sendType.compare("Nfreq") << " " <<
-                sendType.compare("Nevery") << " " << 
-                sendType.compare("Nrepeat") << " " << std::endl;
+        std::cout << "sendtype: "  << sendType << std::endl;
 
         //Pick 'n' mix send types
         if (sendType.compare("VEL") == 0){
@@ -181,6 +180,10 @@ fixCPLInit::fixCPLInit(LAMMPS_NS::LAMMPS *lammps, int narg, char **arg)
             sendbitflag = sendbitflag | cplsocket.FORCECOEFF;
         } else if (sendType.compare("VOIDRATIO") == 0) {
             sendbitflag = sendbitflag | cplsocket.VOIDRATIO;
+        } else if (sendType.compare("TEMPERATURE") == 0) {
+            sendbitflag = sendbitflag | cplsocket.TEMPERATURE;
+        } else if (sendType.compare("PRESSURE") == 0) {
+            sendbitflag = sendbitflag | cplsocket.PRESSURE;
         //Predefined sendtypes
         } else if (sendType.compare("velocity") == 0) {
             sendbitflag = sendbitflag | cplsocket.VEL | cplsocket.NBIN;
@@ -220,9 +223,16 @@ fixCPLInit::fixCPLInit(LAMMPS_NS::LAMMPS *lammps, int narg, char **arg)
     if (Nfreq % Nevery || Nrepeat*Nevery > Nfreq)
         error->all(FLERR,"cpl/init Illegal nevery, nrepeat or nfreq");
 
-    //nevery determines how often end_of_step is called
+    // "nevery" determines how often end_of_step is called
     // which is every time to apply force and then Nfreq, Nrepeat and Nevery are used
     nevery = 1;
+
+    std::cout << "Nevery: "  << Nevery <<  " " 
+              << "Nrepeat: "  << Nrepeat <<  " " 
+              << "Nfreq: "  << Nfreq <<  " " 
+              << "timestep_ratio: " <<
+              cplsocket.timestep_ratio << std::endl;
+
 
 }
 

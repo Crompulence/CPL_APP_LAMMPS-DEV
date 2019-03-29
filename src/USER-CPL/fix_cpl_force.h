@@ -38,6 +38,10 @@ public:
     int pack_exchange(int, double *);
     int unpack_exchange(int, double *);
 
+    //Use fields collected by CPL_force or 
+    //ones collected by lammps
+    bool use_CPL_field;
+
 private:
 
 	CPL::ndArray<double>* cfdBuf;

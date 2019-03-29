@@ -106,7 +106,7 @@ fix		        6 all ave/chunk 25 40 1000 layers density/mass vx vy vz temp file p
 #write_data output_equil.dat
 
 #Main Coupled Run
-fix             cplfix all cpl/init region all forcetype Velocity xi 0.01 sendtype velocity bndryavg none
+fix             cplfix all cpl/init region all forcetype Velocity xi 0.01 shiftconstraint sendtype velocity bndryavg none
 run	           25000
 
 
