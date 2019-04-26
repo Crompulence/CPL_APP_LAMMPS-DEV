@@ -127,7 +127,7 @@ def run_case(mdprocs):
 
     return run
 
-@pytest.mark.parametrize("mdprocs", [1, 2, 4, 8])
+@pytest.mark.parametrize("mdprocs", [1, 2, 4])
 def test_gravity(build_run, mdprocs):
 
     #Check vs analystical solution for gravity
@@ -140,7 +140,7 @@ def test_gravity(build_run, mdprocs):
         for e in error[0,1,:]:
             assert np.abs(e) < 1e-11
 
-@pytest.mark.parametrize("mdprocs", [1, 2, 4, 8])
+@pytest.mark.parametrize("mdprocs", [1, 2, 4])
 def test_regression(build_run, mdprocs):
 
     #Check vs analystical solution for gravity
