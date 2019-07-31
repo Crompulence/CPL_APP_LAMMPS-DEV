@@ -78,9 +78,6 @@ void FixCPLBc::post_constructor() {
     (new LAMMPSDepFix("cfdbc_fix", DepListT({"cfdbc_chunks", "cfdbc_property", "cfdbc_vcom"}), this,
                      lmp, &cfdbc_fix_depfunc))->addToPool(depPool);
 
-    // (new LAMMPSDepFix("cfdbc_fix", DepListT({"cfdbc_chunks"}), this,
-    //                  lmp, &cfdbc_fix_depfunc))->addToPool(depPool);
- 
     fixCPLInit->bcPool.setupAll();
     fixCPLInit->bcFixDefined = true;
     // Call this to set fix_cpl_init always as the last fix to be call
@@ -147,19 +144,8 @@ DEPFUNC_IMP(cfdbc_fix_depfunc) {
             << sample_every << " " << samples << " "\
             << cplsocket.timestepRatio << " "\
             << "c_cfdbc_property[*] " << "c_cfdbc_vcom[*][1] "\
-            << "mode vector "\
-            << "file velocity.debug";
-    std::cout << "3:" << str_out.str();
+            << "mode vector ";
+            // << "file velocity.debug";
+    // std::cout << "3:" << str_out.str();
     return str_out.str();
 }
-
-// DEPFUNC_IMP(cfdbc_fix_depfunc) {
-//     std::stringstream str_out;
-//     str_out << "fix "  << "cfdbc_fix "\
-//             << "all " << "ave/chunk "\
-//             << "1 " << cplsocket.timestepRatio << " "\
-//             << cplsocket.timestepRatio << " "\
-//             << "cfdbc_chunks vx vy vz norm all file vels.debug";
-//     std::cout << "CPL: " << str_out.str() << std::endl;
-//     return str_out.str();
-// }

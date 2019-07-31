@@ -50,9 +50,9 @@ int FixCPLInit::setmask() {
 
 void FixCPLInit::init() {
     if (bcFixDefined && !cplsocket.sendBuffAllocated)
-        cplsocket.allocateSendBuffer(bcPool);
+        cplsocket.setOutgoingFieldPool(bcPool);
     if (cnstFixDefined && !cplsocket.recvBuffAllocated)
-        cplsocket.allocateRecvBuffer(cnstPool);
+        cplsocket.setIncomingFieldPool(cnstPool);
 }
 
 void FixCPLInit::setup(int vflag) {
@@ -65,10 +65,12 @@ void FixCPLInit::end_of_step() {
     if (cnstFixDefined && bcFixDefined ||\
         !cplsocket.sendEnabled ||\
         !cplsocket.recvEnabled) {
-        cplsocket.communicate(bcPool, cnstPool);
+        cplsocket.communicate();
     }
 }
 
 FixCPLInit::~FixCPLInit() {
 	cplsocket.finalizeComms();
+    // TODO: MAYBE put this and the end of the running loop
+    cplsocket.printRuntimeInfo();
 }
