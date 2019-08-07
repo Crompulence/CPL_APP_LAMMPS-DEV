@@ -18,12 +18,16 @@
 },
 
 "bc": {
-    "sendtype" : "velocity",
+    "dimension": "$[bin_dimension]d",
     "velocity" : {
+        "enabled": true,
         "compute-mode": "above",
         "components": [1, 1, 1],
         "average-vels": false,
         "samples": 5
+    },
+    "temperature" : {
+        "enabled": false 
     }
 },
 

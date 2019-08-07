@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 import pytest
 import numpy as np
-from cplpy import run_test, prepare_config, get_test_dir
+from cplpy import run_test, prepare_config, get_test_dir, parametrize_file
 import os, sys
 import re
 
@@ -28,33 +28,51 @@ def prepare_config_fix(tmpdir):
 # EXPLANATION: See README-test located in this folder.
 
 
-@pytest.mark.parametrize("cfdprocs, mdprocs, err_msg", [
-                         ((3, 3, 3), (3, 3, 3),  ""),
-                         ((1, 1, 1), (3, 3, 3),  "")])
-def test_velocitiesP2C(prepare_config_fix, cfdprocs, mdprocs, err_msg):
-    MD_PARAMS = {"lx": 300.0, "ly": 300.0, "lz": 300.0}
+@pytest.mark.parametrize("cfdprocs, mdprocs, ncells, ncy_olap, bin_dimension, err_msg", [
+                         ((2, 1, 2), (2, 1, 2), (10, 15, 10),  5, 3, ""),
+                         ((2, 1, 1), (2, 1, 2), (20, 15, 10),  5, 3, ""),
+                         ((1, 1, 2), (1, 1, 2), (5, 15, 10), 3, 3, ""),
+                         ((1, 3, 1), (1, 3, 1), (15, 15, 15), 5, 3, ""),
+                         ((2, 1, 2), (2, 1, 2), (10, 15, 10),  2, 3, ""),
+                         ((2, 1, 1), (2, 1, 2), (20, 15, 10),  2, 3, ""),
+                         ((1, 1, 2), (1, 1, 2), (5, 15, 10), 3, 3, ""),
+                         ((1, 3, 1), (1, 3, 1), (15, 15, 15), 2, 3, ""),
+                         ((2, 1, 2), (2, 1, 2), (10, 15, 10),  5, 1, ""),
+                         ((2, 1, 1), (2, 1, 2), (20, 15, 10),  5, 1, ""),
+                         ((1, 1, 2), (1, 1, 2), (5, 15, 10), 3, 1, ""),
+                         ((1, 3, 1), (1, 3, 1), (15, 15, 15), 5, 1, ""),
+                         ((2, 1, 2), (2, 1, 2), (10, 15, 10),  2, 1, ""),
+                         ((2, 1, 1), (2, 1, 2), (20, 15, 10),  2, 1, ""),
+                         ((1, 1, 2), (1, 1, 2), (5, 15, 10), 3, 1, ""),
+                         ((1, 3, 1), (1, 3, 1), (15, 15, 15), 2, 1, ""),
+                         ((1, 1, 1), (1, 1, 1), (15, 15, 15), 5, 1, "")])
+def test_velocitiesP2C(prepare_config_fix, cfdprocs, mdprocs, ncells, ncy_olap, bin_dimension, err_msg):
+    MD_PARAMS = {"lx": 300.0, "ly": 300.0, "lz": 300.0, "bin_dimension": bin_dimension,
+                  "ncx": ncells[0], "ncy": ncells[1], "ncz": ncells[2], }
     MD_PARAMS["npx"], MD_PARAMS["npy"], MD_PARAMS["npz"] = mdprocs
 
     CFD_PARAMS = {"lx": 300.0, "ly": 300.0, "lz": 300.0,
-                  "ncx": 15, "ncy": 15, "ncz": 15, }
+                  "ncx": ncells[0], "ncy": ncells[1], "ncz": ncells[2], }
     CFD_PARAMS["npx"], CFD_PARAMS["npy"], CFD_PARAMS["npz"] = cfdprocs
 
     CONFIG_PARAMS = {"cfd_bcx": 1, "cfd_bcy": 1, "cfd_bcz": 1,
-                     "olap_xlo": 1, "olap_xhi": 15,
-                     "olap_ylo": 1, "olap_yhi": 5,
-                     "olap_zlo": 1, "olap_zhi": 15,
-                     "cnst_xlo": 1, "cnst_xhi": 15,
-                     "cnst_ylo": 5, "cnst_yhi": 5,
-                     "cnst_zlo": 1, "cnst_zhi": 15,
-                     "bndry_xlo": 1, "bndry_xhi": 15,
+                     "olap_xlo": 1, "olap_xhi": ncells[0],
+                     "olap_ylo": 1, "olap_yhi": ncy_olap,
+                     "olap_zlo": 1, "olap_zhi": ncells[2],
+                     "cnst_xlo": 1, "cnst_xhi": ncells[0],
+                     "cnst_ylo": ncy_olap, "cnst_yhi": ncy_olap,
+                     "cnst_zlo": 1, "cnst_zhi": ncells[2],
+                     "bndry_xlo": 1, "bndry_xhi": ncells[0],
                      "bndry_ylo": 1, "bndry_yhi": 1,
-                     "bndry_zlo": 1, "bndry_zhi": 15,
+                     "bndry_zlo": 1, "bndry_zhi": ncells[2],
                      "tstep_ratio": 5, }
-
+    MD_PARAMS.update(CONFIG_PARAMS)
+    parametrize_file("lammps_vels.in", "lammps_vels.in", MD_PARAMS)
+    parametrize_file("config.cpl", "config.cpl", MD_PARAMS)
     correct = run_test(TEST_TEMPLATE_DIR, CONFIG_PARAMS, MD_EXEC, MD_FNAME, MD_ARGS,
                        CFD_EXEC, CFD_FNAME, CFD_ARGS, MD_PARAMS, CFD_PARAMS, err_msg, True)
     if correct:
-        check_vels(1e-6, steps=3)
+        compare_vels(1e-6, steps=3, bin_dimension=bin_dimension)
 
 
 def name_with_step(fname, step):
@@ -63,8 +81,9 @@ def name_with_step(fname, step):
     split_fname.insert(dot_pos , str(step))
     return "".join(split_fname)
 
-def check_vels(tol, lammps_fname="lammps_vels.dat", cfd_fname="cfd_vels.dat", steps=1, mode="test"):
+def compare_vels(tol, lammps_fname="lammps_vels.dat", cfd_fname="cfd_vels.dat", steps=1, bin_dimension=3, mode="test"):
 
+    assert bin_dimension == 1 or bin_dimension == 3
     # Line format of CFD script file -- > x y z vx vy vz
     for s in xrange(steps):
         with open(name_with_step(cfd_fname, s), "r") as cfd_file:
@@ -97,10 +116,14 @@ def check_vels(tol, lammps_fname="lammps_vels.dat", cfd_fname="cfd_vels.dat", st
             #print "CFD cell: " + str(cfd_cells[k])
             #print "LAMMPS cell: " + str(lammps_cells[k])
             try:
-                diff_vel = abs(cfd_cells[k] - lammps_cells[k])
+                if bin_dimension == 1:
+                    lammps_cell = lammps_cells.values()[0]
+                elif bin_dimension == 3:
+                    lammps_cell = lammps_cells[k]
+                diff_vel = abs(cfd_cells[k] - lammps_cell)
                 if (np.any(diff_vel > tol)):
                     print "Step: %s" % s
-                    print "Cell %s value differs in md : %s and cfd: %s" % (str(k), str(lammps_cells[k]), str(cfd_cells[k]))
+                    print "Cell %s value differs in md : %s and cfd: %s" % (str(k), str(lammps_cell), str(cfd_cells[k]))
                     print "FAILURE"
                     if mode == "test":
                         assert False

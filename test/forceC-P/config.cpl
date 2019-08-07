@@ -4,6 +4,7 @@
 
 "constrain" : {
     "momentum": {
+        "enabled": true,
         "type": "Flekkoy",
         "unit-conversion": "disabled",
         "force-distribution": "divergent",
@@ -18,13 +19,18 @@
 },
 
 "bc": {
-    "sendtype" : "velocity",
+    "dimension": "3d",
     "velocity" : {
+        "enabled": true,
         "compute-mode": "above",
         "components": [1, 1, 1],
         "average-vels": false,
         "samples": 5
+    },
+    "temperature" : {
+        "enabled": false 
     }
+
 },
 
 "initial-conditions" : {

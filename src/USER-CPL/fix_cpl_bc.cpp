@@ -47,21 +47,15 @@ FixCPLBc::FixCPLBc(LAMMPS_NS::LAMMPS *lammps, int narg, char **arg)
     fixCPLInit->bcPool = CPL::OutgoingFieldPool(cplsocket.bcPortionRegion, cplsocket.bcRegion);
     bcPool = &(fixCPLInit->bcPool);
     depPool = &(fixCPLInit->depPool);
-    std::string send_type;
-    CPL::get_file_param("bc", "sendtype", send_type);
-    if (send_type == "Undefined")
-        lammps->error->all(FLERR,"Missing send_type option in cpl/init.");
-    else {
-        if (send_type == "velocity") {
+
+    if (cplsocket.sendEnabled) {
+        bool bc_velocity_enabled, bc_temperature_enabled;
+        CPL::get_file_param("bc", "velocity.enabled", bc_velocity_enabled);
+        CPL::get_file_param("bc", "temperature.enabled", bc_temperature_enabled);
+        if (bc_velocity_enabled) {
             (new VelOutgoingField("1velocity", DepListT({"cfdbc_fix"}), depPool, lammps))->addToPool(bcPool);
             (new NbinOutgoingField("2nbinbc", DepListT({"cfdbc_fix"}), depPool, lammps))->addToPool(bcPool);
         }
-        else if (send_type == "gran") {
-        }
-        else if (send_type == "granfull") {
-        }
-        else
-            lammps->error->all(FLERR,"Missing or invalid argument in send_type option in cpl/init.");
     }
 }
 
@@ -89,7 +83,8 @@ void FixCPLBc::post_constructor() {
 DEPFUNC_IMP(cfdbcregion_depfunc) {
     std::valarray<double> bounds = shiftBc(cplsocket.bcRegion).bounds;
     std::stringstream str_out;
-    str_out << "region " << dep_name << " block "\
+    str_out << std::setprecision(16)\
+            << "region " << dep_name << " block "\
             << "EDGE" << " " << "EDGE" << " "\
             << bounds[2] << " " << bounds[3] << " "\
             << "EDGE" << " " << "EDGE" << " "\
@@ -102,11 +97,23 @@ DEPFUNC_IMP(cfdbcregion_depfunc) {
 DEPFUNC_IMP(cfdbc_chunks_depfunc) {
     std::valarray<double> bounds = shiftBc(cplsocket.bcRegion).bounds;
     std::stringstream str_out;
-    str_out << std::setprecision(16) << "compute "  << "cfdbc_chunks "\
+    std::string bc_dimension;
+    CPL::get_file_param("bc", "dimension", bc_dimension);
+    double dx,dz;
+    if (bc_dimension  == "1d" || bc_dimension == "1D"){
+        dx = bounds[1];
+        dz = bounds[5];
+    }
+    else {
+        dx = cplsocket.dx;
+        dz = cplsocket.dz;
+    }
+    str_out << std::setprecision(16)\
+            << "compute "  << "cfdbc_chunks "\
             << "all " << "chunk/atom bin/3d "\
-            << "x lower " << cplsocket.dx << " "\
+            << "x lower " << dx << " "\
             << "y lower " << cplsocket.dy << " "\
-            << "z lower " << cplsocket.dz << " "\
+            << "z lower " << dz << " "\
             << "ids every region " << "cfdbcregion "\
             << "units box " << " "\
             << "bound x " << bounds[0] << " " << bounds[1] << " "\

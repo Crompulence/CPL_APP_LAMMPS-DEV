@@ -4,6 +4,8 @@ variable	xx equal 300
 variable	yy equal 300
 variable	zz equal 300
 
+processors $[npx] $[npy] $[npz]
+
 
 units		real
 atom_style	atomic
@@ -13,9 +15,19 @@ region		box block 0.0 ${xx} 0.0 ${yy} 0.0 ${zz} units box
 boundary p p p
 create_box	1 box
 
+variable dx equal ${xx}/$[ncx]
+variable dy equal ${yy}/$[ncy]
+variable dz equal ${zz}/$[ncz]
+variable timestep_ratio equal 5
+variable samples equal 5
+variable bin_dimension equal $[bin_dimension]
+
+variable olap_bot equal ${yy}-($[olap_yhi]-$[olap_ylo]+1)*${dy}
+variable bc_lo equal ${olap_bot}+(${dy}*($[bndry_ylo]-1))
+variable bc_hi equal ${bc_lo}+(${dy}*($[bndry_yhi]-$[bndry_ylo]+1))
+
 region fluidregion block 0 ${xx} 0 ${yy} 0 ${zz} units box
-# region constrainreg block 0 ${xx} 200 220  0 ${zz} units box
-region constrainreg block EDGE EDGE 200 220 EDGE EDGE units box
+region constrainreg block EDGE EDGE ${bc_lo} ${bc_hi} EDGE EDGE units box
 
 create_atoms 1 region fluidregion units box
 
@@ -28,13 +40,6 @@ pair_coeff	1 1 2.5 3.4
 
 neighbor	2.0 bin
 neigh_modify delay 0 every 1 check yes
-
-variable dx equal 20
-variable dy equal 20
-variable dz equal 20 
-variable timestep_ratio equal 5
-variable samples equal 5
-
 
 thermo 10
 
@@ -50,7 +55,11 @@ run $(2*v_timestep_ratio+1)
 # IMPORTANT for not messing the internal average for BCs in the CPLSocket for LAMMPS
 reset_timestep 0
 
-compute vfieldcompute all chunk/atom bin/3d x lower ${dx} y  lower ${dy} z  lower ${dz} bound y 200 220  bound x 0 300  bound z 0 300 ids every region constrainreg units box
+if "${bin_dimension} == 1" then &
+    "compute vfieldcompute all chunk/atom bin/3d x lower 300 y  lower ${dy} z  lower 300 bound y ${bc_lo} ${bc_hi}  bound x 0 300  bound z 0 300 ids every region constrainreg units box" &
+elif "${bin_dimension} == 3" &
+    "compute vfieldcompute all chunk/atom bin/3d x lower ${dx} y  lower ${dy} z  lower ${dz} bound y ${bc_lo} ${bc_hi}  bound x 0 300  bound z 0 300 ids every region constrainreg units box"
+
 # The output shows the middle coordinate of each box (10, 10, 10) for the first box in this case
 # fix vfieldfix all ave/chunk  1 ${timestep_ratio} ${timestep_ratio} vfieldcompute vx vy vz norm all file lammps_vels.dat
 compute vcom_comp all vcm/chunk vfieldcompute

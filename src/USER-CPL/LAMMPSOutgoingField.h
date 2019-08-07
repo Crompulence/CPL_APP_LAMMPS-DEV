@@ -26,6 +26,7 @@ class LAMMPSOutgoingField : public CPL::OutgoingField, public DepLoader {
         LAMMPS_NS::LAMMPS* lmp;
         DepListT depList;
         DepPoolT* depPool;
+        std::string bc_dimension;
         virtual ~LAMMPSOutgoingField(){}
 
 };

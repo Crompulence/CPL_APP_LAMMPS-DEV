@@ -29,6 +29,7 @@ pair_coeff	1 1 2.5 3.4
 neighbor	2.0 bin
 neigh_modify delay 0 every 1 check yes
 
+variable bin_dimension equal 1
 variable dx equal 20
 variable dy equal 20
 variable dz equal 20 
@@ -38,7 +39,7 @@ variable samples equal 5
 
 thermo 10
 
-fix		1 all nve
+fix	1 all nve
 
 # This has to be set before equilibration in a real coupled simulation
 fix cplfix all cpl/init
@@ -50,7 +51,11 @@ run $(2*v_timestep_ratio+1)
 # IMPORTANT for not messing the internal average for BCs in the CPLSocket for LAMMPS
 reset_timestep 0
 
-compute vfieldcompute all chunk/atom bin/3d x lower ${dx} y  lower ${dy} z  lower ${dz} bound y 200 220  bound x 0 300  bound z 0 300 ids every region constrainreg units box
+
+if "${bin_dimension} == 1" then &
+    "compute vfieldcompute all chunk/atom bin/3d x lower 300 y  lower ${dy} z  lower 300 bound y 200 220  bound x 0 300  bound z 0 300 ids every region constrainreg units box" &
+elif "${bin_dimension} == 3" &
+    "compute vfieldcompute all chunk/atom bin/3d x lower ${dx}  lower ${dy} z  lower ${dz} bound y 200 220  bound x 0 300  bound z 0 300 ids every region constrainreg units box"
 # The output shows the middle coordinate of each box (10, 10, 10) for the first box in this case
 # fix vfieldfix all ave/chunk  1 ${timestep_ratio} ${timestep_ratio} vfieldcompute vx vy vz norm all file lammps_vels.dat
 compute vcom_comp all vcm/chunk vfieldcompute
