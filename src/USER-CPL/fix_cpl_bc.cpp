@@ -126,14 +126,12 @@ DEPFUNC_IMP(cfdbc_property_depfunc) {
     std::stringstream str_out;
     str_out << "compute cfdbc_property all property/chunk "\
             << "cfdbc_chunks coord1 coord2 coord3 count";
-    std::cout << "1 :" << str_out.str();
     return str_out.str();
 }
 
 DEPFUNC_IMP(cfdbc_vcom_depfunc) {
     std::stringstream str_out;
     str_out << "compute cfdbc_vcom all vcm/chunk cfdbc_chunks";
-    std::cout << "2:" << str_out.str();
     return str_out.str();
 }
 
@@ -153,6 +151,5 @@ DEPFUNC_IMP(cfdbc_fix_depfunc) {
             << "c_cfdbc_property[*] " << "c_cfdbc_vcom[*][1] "\
             << "mode vector ";
             // << "file velocity.debug";
-    // std::cout << "3:" << str_out.str();
     return str_out.str();
 }

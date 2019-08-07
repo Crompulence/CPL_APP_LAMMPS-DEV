@@ -38,27 +38,21 @@ void VelOutgoingField::pack_(const std::vector<int>& glob_cell,
                               *region.nCells[2] + glob_cell[1]\
                               *region.nCells[2] + glob_cell[2];
         if (averageVels) {
-            // std::cout << "Entro 3d average" << std::endl;
             vx = vAvg[0];
             vy = vAvg[1];
             vz = vAvg[2];
-            // std::cout << "Salio 3d average" << std::endl;
         }
         else {
-            // std::cout << "Entro 3d" << std::endl;
             vx = cfdbcfix->compute_array(row, 4);  
             vy = cfdbcfix->compute_array(row, 5);  
             vz = cfdbcfix->compute_array(row, 6);  
-            // std::cout << "Salio 3d" << std::endl;
         }
     }
     // For 1D case
     else {
-        std::cout << "Entro 1d" << std::endl;
         vx = cfdbcfix->compute_array(0, 4);  
         vy = cfdbcfix->compute_array(0, 5);  
         vz = cfdbcfix->compute_array(0, 6);  
-        std::cout << "Salio 1d" << std::endl;
     }
     buffer(0, loc_cell[0], loc_cell[1], loc_cell[2]) = vx;
     buffer(1, loc_cell[0], loc_cell[1], loc_cell[2]) = vy;
