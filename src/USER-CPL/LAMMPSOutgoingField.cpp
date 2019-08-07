@@ -1,5 +1,31 @@
 #include "LAMMPSOutgoingField.h"
 
+void TemperatureOutgoingField::setup() {
+    data_size = 1;
+    CPL::get_file_param("bc", "dimension", bc_dimension);
+    loadDeps(depList, *depPool);
+}
+
+//TODO: Refactor into a function to iterate ave/time vector output array
+void TemperatureOutgoingField::pack_(const std::vector<int>& glob_cell,
+                             const std::vector<int>& loc_cell,
+                             const std::valarray<double>& coord) {
+
+    LAMMPS_NS::Fix* cfdbcfix = static_cast<LAMMPSDepFix*>((*depPool)["cfdbc_fix"])->fix;
+    double T;
+    if (bc_dimension == "3d" || bc_dimension == "3D") {
+            int row = glob_cell[0]*region.nCells[1]\
+                                  *region.nCells[2] + glob_cell[1]\
+                                  *region.nCells[2] + glob_cell[2];
+        T = cfdbcfix->compute_array(row, 7);  
+    }
+    // For 1D case
+    else {
+       T = cfdbcfix->compute_array(0, 7);  
+    }
+    buffer(0, loc_cell[0], loc_cell[1], loc_cell[2]) = T;
+}
+
 void VelOutgoingField::update() {
     // Iterate over the BC region to average velocities
     //

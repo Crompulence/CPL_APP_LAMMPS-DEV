@@ -92,6 +92,6 @@ dA = dx * dz
 # Dump 1, 4 an 7 components of the stress tensor multiplied by the area of the cell
 func = lambda x: x*dA
 cpllib.dump_region(cnstFRegion, send_array, "cfd_forces.dat", realm_comm,                                                                                                                                                            
-        components={1:func, 4:func, 7:func}, coords="other")
+        components={1:func, 4:func, 7:func}, coords="other", dec_figures=15)
 
 cpllib.finalize()

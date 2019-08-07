@@ -56,6 +56,9 @@ FixCPLBc::FixCPLBc(LAMMPS_NS::LAMMPS *lammps, int narg, char **arg)
             (new VelOutgoingField("1velocity", DepListT({"cfdbc_fix"}), depPool, lammps))->addToPool(bcPool);
             (new NbinOutgoingField("2nbinbc", DepListT({"cfdbc_fix"}), depPool, lammps))->addToPool(bcPool);
         }
+
+    if (bc_temperature_enabled)
+        (new TemperatureOutgoingField("3temperature", DepListT({"cfdbc_fix"}), depPool, lammps))->addToPool(bcPool);
     }
 }
 
@@ -69,7 +72,11 @@ void FixCPLBc::post_constructor() {
                      lmp, &cfdbc_property_depfunc))->addToPool(depPool);
     (new LAMMPSDepCompute("cfdbc_vcom", DepListT({"cfdbc_chunks"}), this,
                      lmp, &cfdbc_vcom_depfunc))->addToPool(depPool);
-    (new LAMMPSDepFix("cfdbc_fix", DepListT({"cfdbc_chunks", "cfdbc_property", "cfdbc_vcom"}), this,
+    (new LAMMPSDepCompute("cfdbc_tpartial", DepListT({}), this,
+                     lmp, &cfdbc_tpartial_depfunc))->addToPool(depPool);
+    (new LAMMPSDepCompute("cfdbc_temp", DepListT({"cfdbc_chunks", "cfdbc_tpartial"}), this,
+                     lmp, &cfdbc_temp_depfunc))->addToPool(depPool);
+    (new LAMMPSDepFix("cfdbc_fix", DepListT({"cfdbc_chunks", "cfdbc_property", "cfdbc_vcom", "cfdbc_temp"}), this,
                      lmp, &cfdbc_fix_depfunc))->addToPool(depPool);
 
     fixCPLInit->bcPool.setupAll();
@@ -135,6 +142,20 @@ DEPFUNC_IMP(cfdbc_vcom_depfunc) {
     return str_out.str();
 }
 
+DEPFUNC_IMP(cfdbc_tpartial_depfunc) {
+    std::stringstream str_out;
+    str_out << "compute cfdbc_tpartial all temp/partial"\
+            << " 1 1 0";
+    // std::cout << "4:" << str_out.str() << std::endl;
+    return str_out.str();
+}
+
+DEPFUNC_IMP(cfdbc_temp_depfunc) {
+    std::stringstream str_out;
+    str_out << "compute cfdbc_temp all temp/chunk cfdbc_chunks temp bias cfdbc_tpartial";
+    return str_out.str();
+}
+
 DEPFUNC_IMP(cfdbc_fix_depfunc) {
     int samples;
     CPL::get_file_param("bc.velocity", "samples", samples);
@@ -148,7 +169,8 @@ DEPFUNC_IMP(cfdbc_fix_depfunc) {
             << "all " << "ave/time "\
             << sample_every << " " << samples << " "\
             << cplsocket.timestepRatio << " "\
-            << "c_cfdbc_property[*] " << "c_cfdbc_vcom[*][1] "\
+            // << "c_cfdbc_property[*] " << "c_cfdbc_vcom[*][1] "
+            << "c_cfdbc_property[*] " << "c_cfdbc_vcom[*][1] " << "c_cfdbc_temp[*] "\
             << "mode vector ";
             // << "file velocity.debug";
     return str_out.str();

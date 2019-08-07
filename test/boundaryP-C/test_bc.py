@@ -9,10 +9,10 @@ import re
 
 # EXPLANATION:
 
-MD_FNAME = "lammps_vels.in"
+MD_FNAME = "lammps_bc.in"
 MD_ARGS = "-in " + MD_FNAME
 MD_EXEC = "lmp_cpl"
-CFD_FNAME = "dummyCFD_vels.py"
+CFD_FNAME = "dummyCFD_bc.py"
 CFD_ARGS = CFD_FNAME
 CFD_EXEC = "python2"
 TEST_TEMPLATE_DIR = os.path.join(get_test_dir(), "templates")
@@ -67,12 +67,12 @@ def test_velocitiesP2C(prepare_config_fix, cfdprocs, mdprocs, ncells, ncy_olap, 
                      "bndry_zlo": 1, "bndry_zhi": ncells[2],
                      "tstep_ratio": 5, }
     MD_PARAMS.update(CONFIG_PARAMS)
-    parametrize_file("lammps_vels.in", "lammps_vels.in", MD_PARAMS)
+    parametrize_file("lammps_bc.in", "lammps_bc.in", MD_PARAMS)
     parametrize_file("config.cpl", "config.cpl", MD_PARAMS)
     correct = run_test(TEST_TEMPLATE_DIR, CONFIG_PARAMS, MD_EXEC, MD_FNAME, MD_ARGS,
                        CFD_EXEC, CFD_FNAME, CFD_ARGS, MD_PARAMS, CFD_PARAMS, err_msg, True)
     if correct:
-        compare_vels(1e-6, steps=3, bin_dimension=bin_dimension)
+        compare_bc(1e-6, steps=3, bin_dimension=bin_dimension)
 
 
 def name_with_step(fname, step):
@@ -81,7 +81,7 @@ def name_with_step(fname, step):
     split_fname.insert(dot_pos , str(step))
     return "".join(split_fname)
 
-def compare_vels(tol, lammps_fname="lammps_vels.dat", cfd_fname="cfd_vels.dat", steps=1, bin_dimension=3, mode="test"):
+def compare_bc(tol, lammps_fname="lammps_bc.dat", cfd_fname="cfd_bc.dat", steps=1, bin_dimension=3, mode="test"):
 
     assert bin_dimension == 1 or bin_dimension == 3
     # Line format of CFD script file -- > x y z vx vy vz
@@ -94,7 +94,7 @@ def compare_vels(tol, lammps_fname="lammps_vels.dat", cfd_fname="cfd_vels.dat", 
         for l in cfd_lines:
             cfd_cells[(float(l[0]), float(l[1]), float(l[2]))] = np.array([float(l[3]),
                 float(l[4]),
-                float(l[5])])
+                float(l[5]),float(l[6])])
 
         # Line format of LAMMPS file -- > chunk x y z ncount vx vy vz
         with open(lammps_fname, "r") as lammps_file:
@@ -111,7 +111,7 @@ def compare_vels(tol, lammps_fname="lammps_vels.dat", cfd_fname="cfd_vels.dat", 
             l = filter(None, l)
             lammps_cells[(float(l[1]), float(l[2]), float(l[3]))] = np.array([float(l[5]),
                 float(l[6]),
-                float(l[7])])
+                float(l[7]),float(l[8])])
         for k in cfd_cells.keys():
             #print "CFD cell: " + str(cfd_cells[k])
             #print "LAMMPS cell: " + str(lammps_cells[k])

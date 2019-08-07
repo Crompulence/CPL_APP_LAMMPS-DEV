@@ -27,10 +27,10 @@ def prepare_config_fix(tmpdir):
 # EXPLANATION: See README-test located in this folder.
 
 @pytest.mark.parametrize("cfdprocs, mdprocs, cnst_ncells, err_msg", [
-                         ((3, 3, 3), (3, 3, 3),3, ""),
-                         ((1, 1, 1), (3, 3, 3),3, ""),
-                         ((1, 1, 1), (3, 3, 3),1, ""),
-                         ((1, 1, 1), (3, 3, 3),1, "")])
+                         # ((1, 3, 1), (1, 3, 1),3, ""),
+                         ((1, 1, 1), (1, 3, 3),3, ""),
+                         ((1, 1, 1), (1, 3, 1),1, ""),
+                         ((1, 1, 1), (3, 1, 3),1, "")])
 def test_forcesC2P(prepare_config_fix, cfdprocs, mdprocs, cnst_ncells, err_msg):
     MD_PARAMS = {"lx": 300.0, "ly": 300.0, "lz": 300.0}
     MD_PARAMS["npx"], MD_PARAMS["npy"], MD_PARAMS["npz"] = mdprocs

@@ -69,25 +69,25 @@ cnstFPortion = cpllib.my_proc_portion(cnstFRegion)
 [cnstncx, cnstncy, cnstncz] = cpllib.get_no_cells(cnstFPortion)
 
 # Velocity averaging region cell limits and number of cells
-velBCRegion = cpllib.get_bnry_limits()
-velBCPortion = cpllib.my_proc_portion(velBCRegion)
-[velBCncx, velBCncy, velBCncz] = cpllib.get_no_cells(velBCPortion)
+BCRegion = cpllib.get_bnry_limits()
+BCPortion = cpllib.my_proc_portion(BCRegion)
+[BCncx, BCncy, BCncz] = cpllib.get_no_cells(BCPortion)
 
 # Buffers send/recv
 send_array = np.zeros((9, cnstncx, cnstncy, cnstncz), order='F',
                          dtype=np.float64)
-recv_array = np.zeros((4, velBCncx, velBCncy, velBCncz), order='F',
+recv_array = np.zeros((5, BCncx, BCncy, BCncz), order='F',
                       dtype=np.float64)
 
 # Initial setup communication 
 cpllib.send(send_array, cnstFRegion)
-cpllib.recv(recv_array, velBCRegion)
+cpllib.recv(recv_array, BCRegion)
 
 
 for step in xrange(nsteps):
     cpllib.send(send_array, cnstFRegion)
-    cpllib.recv(recv_array, velBCRegion)
-    cpllib.dump_region(velBCRegion, recv_array, "cfd_vels%d.dat"%step, realm_comm,                                                                                                                                                            
-                       components={0:None, 1:None, 2:None}, coords="other")
+    cpllib.recv(recv_array, BCRegion)
+    cpllib.dump_region(BCRegion, recv_array, "cfd_bc%d.dat"%step, realm_comm,                                                                                                                                                            
+            components={0:None, 1:None, 2:None, 4:None}, coords="other")
     
 cpllib.finalize()

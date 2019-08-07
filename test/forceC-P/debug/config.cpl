@@ -19,13 +19,16 @@
 },
 
 "bc": {
+    "dimension": "3d",
     "velocity" : {
-        "dimension": "3d",
         "enabled": true,
         "compute-mode": "above",
         "components": [1, 1, 1],
         "average-vels": false,
         "samples": 5
+    },
+    "temperature" : {
+        "enabled": false,
     }
 },
 

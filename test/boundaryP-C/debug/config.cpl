@@ -18,7 +18,7 @@
 },
 
 "bc": {
-    "dimension": "$[bin_dimension]d",
+    "dimension": "1d",
     "velocity" : {
         "enabled": true,
         "compute-mode": "above",
@@ -27,7 +27,7 @@
         "samples": 5
     },
     "temperature" : {
-        "enabled": false 
+        "enabled": true 
     }
 },
 

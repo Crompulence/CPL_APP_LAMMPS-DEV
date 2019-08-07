@@ -44,6 +44,16 @@ class VelOutgoingField:  public LAMMPSOutgoingField {
         bool averageVels;
 };
 
+class TemperatureOutgoingField:  public LAMMPSOutgoingField {
+    public:
+        using LAMMPSOutgoingField::LAMMPSOutgoingField;
+        void pack_(const std::vector<int>& glob_cell, 
+                   const std::vector<int>& loc_cell,
+                   const std::valarray<double>& coord);
+        void setup();
+};
+
+
 class NbinOutgoingField:  public LAMMPSOutgoingField {
     public:
         using LAMMPSOutgoingField::LAMMPSOutgoingField;
