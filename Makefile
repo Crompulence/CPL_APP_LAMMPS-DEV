@@ -22,7 +22,7 @@ yes-all:
 
 clean-test:
 	cd test/forceC-P/debug && ./clean.sh
-	cd test/velocityP-C/debug && ./clean.sh
+	cd test/boundaryP-C/debug && ./clean.sh
 
 clean: clean-test
 	rm -rf bin

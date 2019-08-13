@@ -64,7 +64,7 @@ compute temp all temp/chunk vfieldcompute temp  bias tpartial
 # fix vfieldfix all ave/chunk  1 ${timestep_ratio} ${timestep_ratio} vfieldcompute vx vy vz norm all file lammps_vels.dat
 compute vcom_comp all vcm/chunk vfieldcompute
 compute property_comp all property/chunk vfieldcompute coord1 coord2 coord3 count
-fix vfieldfix all ave/time 1 ${samples} ${timestep_ratio} c_property_comp[*] c_vcom_comp[*][1] c_temp[*] mode vector file lammps_bc.dat
+fix vfieldfix all ave/time 1 ${samples} ${timestep_ratio} c_property_comp[*] c_vcom_comp[*][1] c_temp[*] mode vector file lammps_bc.dat format %20.16g
 
 
 # cplifx set variable CPLSTEPS to the total number of steps

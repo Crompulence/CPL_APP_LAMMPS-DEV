@@ -1,9 +1,0 @@
-# Time-averaged data for fix vfieldfix
-# TimeStep Number-of-rows
-# Row c_property_comp[1] c_property_comp[2] c_property_comp[3] c_property_comp[4] c_vcom_comp[1][1] c_vcom_comp[2][1] c_vcom_comp[3][1] c_temp[1]
-5 1
-1 150 210 150 7165 8.62649e-05 0.000641582 0.000122188 685.547
-10 1
-1 150 210 150 7165.2 8.62328e-05 0.000642283 0.000120466 703.601
-15 1
-1 150 210 150 7165.8 8.12227e-05 0.000643607 0.000119669 731.449

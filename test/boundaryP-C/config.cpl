@@ -6,6 +6,7 @@
     "momentum": {
         "type": "Flekkoy",
         "unit-conversion": "disabled",
+        "components": [1, 1, 1],
         "force-distribution": "divergent",
         "K": 1.0
     },

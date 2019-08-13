@@ -14,6 +14,7 @@ FixStyle(cpl/force, FixCPLForce)
 #include "cpl/TransmittingField.h"
 #include <memory>
 #include <string.h>
+#include <vector>
 
 class FixCPLForce : public LAMMPS_NS::Fix {
 
@@ -29,6 +30,8 @@ public:
     void post_force(int vflag);
     bool conversionDisabled;
     std::string forceDistribution;
+    std::vector<int> applyComponent;
+
 
 private:
     double flekkoyGWeight (double y, double ymin, double ymax);

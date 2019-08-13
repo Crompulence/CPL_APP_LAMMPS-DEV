@@ -10,6 +10,8 @@
 #include <fstream>
 #include "cpl/CPL_ndArray.h"
 #include "force.h"
+#include <chrono>
+#include "CPLSocketLAMMPS.h"
 
 FixCPLForce::FixCPLForce (LAMMPS_NS::LAMMPS *lammps, int narg, char **arg) :
 		                  conversionDisabled(false), Fix (lammps, narg, arg) {
@@ -36,12 +38,23 @@ int FixCPLForce::setmask() {
 
 
 void FixCPLForce::setup(int vflag) {
+    applyComponent = std::vector<int>(3);
+    CPL::get_file_param("constrain.momentum", "components", applyComponent);
     post_force(vflag);
 }
 
 /* ---------------------------------------------------------------------- */
 
+#define  get_delta(t1, t2) \
+    std::chrono::duration<double>(t2-t1).count()
+
+#define tic() \
+    std::chrono::high_resolution_clock::now()
+
+
 void FixCPLForce::post_force(int vflag) {
+    std::chrono::time_point<std::chrono::high_resolution_clock> t1, t2;
+    t1 = tic();
     double **x = atom->x;
     double **v = atom->v;
     double **f = atom->f;
@@ -154,15 +167,21 @@ void FixCPLForce::post_force(int vflag) {
                         fx = gdA * cplField->buffer(1, icell, jcell, kcell);
                         fy = gdA * cplField->buffer(4, icell, jcell, kcell);
                         fz = gdA * cplField->buffer(7, icell, jcell, kcell);
-                        
-                        f[i][0] += fx * unit_factor;
-                        f[i][1] += (-gdA * pressure + fy) * unit_factor;
-                        f[i][2] += fz * unit_factor;
+                       
+                        if (applyComponent[0])
+                            f[i][0] += fx * unit_factor;
+                        if (applyComponent[1])
+                            f[i][1] += (-gdA * pressure + fy) * unit_factor;
+                        if (applyComponent[2])
+                            f[i][2] += fz * unit_factor;
                     }
                 }
             }
         }
     }
+    t2 = tic();
+    // This counts as unpack
+    cplsocket.incomingRuntimeInfo["unpack"] += get_delta(t1, t2);
 }
 
 // See Flekkøy, Wagner & Feder, 2000 Europhys. Lett. 52 271, footnote p274

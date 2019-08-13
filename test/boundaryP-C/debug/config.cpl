@@ -7,6 +7,7 @@
         "type": "Flekkoy",
         "unit-conversion": "disabled",
         "force-distribution": "divergent",
+        "components": [1, 1, 1],
         "K": 1.0
     },
     "mass": {

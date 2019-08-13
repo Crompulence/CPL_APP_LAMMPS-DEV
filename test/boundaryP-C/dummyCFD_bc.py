@@ -88,6 +88,6 @@ for step in xrange(nsteps):
     cpllib.send(send_array, cnstFRegion)
     cpllib.recv(recv_array, BCRegion)
     cpllib.dump_region(BCRegion, recv_array, "cfd_bc%d.dat"%step, realm_comm,                                                                                                                                                            
-            components={0:None, 1:None, 2:None, 4:None}, coords="other")
+            components={0:None, 1:None, 2:None, 4:None},  coords="other")
     
 cpllib.finalize()
