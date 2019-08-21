@@ -203,7 +203,7 @@ void FixCPLForce::setup(int vflag)
         use_CPL_field = true;
         //fxyz->calc_preforce = 1;
     } else if (fxyzType.compare("Di_Felice") == 0) {
-        fxyz = std::make_unique<CPLForceGranular>(cfdBuf->shape(0), 
+        fxyz = std::make_unique<CPLForceDi_Felice>(cfdBuf->shape(0), 
                                                   cfdBuf->shape(1), 
                                                   cfdBuf->shape(2), 
                                                   cfdBuf->shape(3), 
