@@ -525,6 +525,7 @@ void CPLSocketLAMMPS::setupFixCFDtoMD(LAMMPS_NS::LAMMPS *lammps,
     else if (fxyzType.compare("test") == 0) {nval = 3; } 
     else if (fxyzType.compare("Velocity") == 0) {nval = 3; } 
     else if (fxyzType.compare("Drag") == 0) {nval = 9; } 
+    else if (fxyzType.compare("Stokes") == 0) {nval = 9; }
     else if (fxyzType.compare("Di_Felice") == 0){nval = 9; } 
     else if (fxyzType.compare("Ergun") == 0) {nval = 9; }
     else if (fxyzType.compare("BVK") == 0) {nval = 9; }

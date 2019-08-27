@@ -202,6 +202,13 @@ void FixCPLForce::setup(int vflag)
                                               args_map);
         use_CPL_field = true;
         //fxyz->calc_preforce = 1;
+    } else if (fxyzType.compare("Stokes") == 0) {
+        fxyz = std::make_unique<CPLForceStokes>(cfdBuf->shape(0), 
+                                              cfdBuf->shape(1), 
+                                              cfdBuf->shape(2), 
+                                              cfdBuf->shape(3), 
+                                              args_map);
+        use_CPL_field = true;
     } else if (fxyzType.compare("Di_Felice") == 0) {
         fxyz = std::make_unique<CPLForceDi_Felice>(cfdBuf->shape(0), 
                                                   cfdBuf->shape(1), 
