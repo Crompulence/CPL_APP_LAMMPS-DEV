@@ -19,6 +19,19 @@ sys.path.append('../python_scripts/')
 from LAMMPS_Input import LAMMPS_Input
 from DragForce import DragForce, Stokes, DiFelice
 
+class cd:
+    """Context manager for changing the current working directory"""
+    def __init__(self, newPath):
+        self.newPath = os.path.expanduser(newPath)
+
+    def __enter__(self):
+        self.savedPath = os.getcwd()
+        os.chdir(self.newPath)
+
+    def __exit__(self, etype, value, traceback):
+        os.chdir(self.savedPath)
+
+
 def run_coupled(run_bash_script='run.sh'):
     try:
         cmd = './' + run_bash_script
@@ -102,8 +115,12 @@ def compare_displacement(xySol_upward, xy, tol):
     # Test final displacement matches analytical solution.
     err = (abs(xySol_upward -xy[-1])/xySol_upward <= tol)
     print("TEST", xySol_upward, xy[-1], (xySol_upward-xy[-1])/xySol_upward, tol, err)
-    assert err, ('Final displacement of {:.6f} does not match analytical' 
-                 +' solution of {:.6f} within {:.2f}% relative error.'.format(xy[-1], xySol_upward, tol*100))
+    assert err, ('Final displacement of {:.6f} does not match analytical'.format(xy[-1])
+                 +' solution of {:.6f} within {:.2f}% relative error.'.format(xySol_upward, tol*100))
+
+
+#Define test directory based on script file
+TEST_DIR = os.path.dirname(os.path.realpath(__file__))
 
 @pytest.fixture(scope="module")
 def setup():
@@ -111,11 +128,13 @@ def setup():
     # Run coupled simulation
     run_coupled()
 
-    # Load print data
-    t, xy = read_print_data('lammps/print_column.txt')
+    with cd(TEST_DIR):
 
-    # Extract input parameters from lammps input script
-    Uf, epsf, ylo, yhi, xySol_settle, xySol_upward = analytical_solution_from_input_parameter('lammps/column.in')
+        # Load print data
+        t, xy = read_print_data('lammps/print_column.txt')
+
+        # Extract input parameters from lammps input script
+        Uf, epsf, ylo, yhi, xySol_settle, xySol_upward = analytical_solution_from_input_parameter('lammps/column.in')
 
     return t, xy, Uf, epsf, ylo, yhi, xySol_settle, xySol_upward
 
