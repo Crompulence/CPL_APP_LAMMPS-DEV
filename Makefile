@@ -74,3 +74,8 @@ test-simwrap:
 
 test-couette:
 	pytest -vs ./test/Couette_coupled/Partial_overlap/
+
+test-granular:
+	cd test/granular 
+	cd suzuki
+	pytest -v test_column.py 
