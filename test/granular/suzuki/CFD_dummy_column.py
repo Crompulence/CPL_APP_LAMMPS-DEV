@@ -40,7 +40,7 @@ CPL.setup_cfd(cart_comm, xyzL, xyz_orig, ncxyz)
 recvbuf, sendbuf = CPL.get_arrays(recv_size=8, send_size=9)
 
 # Main time loop
-for time in range(40000):
+for time in range(400):
 
 	# print(time)
 	

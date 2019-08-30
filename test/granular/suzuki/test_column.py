@@ -2,7 +2,7 @@ import os
 import sys
 import subprocess as sp
 import numpy as np
-import matplotlib.pyplot as plt
+import pytest
 
 # Import postproclib
 sys.path.insert(0, "./pyDataView/")
@@ -97,28 +97,48 @@ def analytical_solution_from_input_parameter(file):
     
     return Uf, epsf, ylo, yhi, xySol_settle, xySol_upward
 
-def test_displacement(tol=0.01):
+
+def compare_displacement(xySol_upward, xy, tol):
     # Test final displacement matches analytical solution.
-    err = abs((xySol_upward -xy[-1])/xySol_upward <= tol)
-    assert err, ('Final displacement of {:.6f} does not match analytical solution of {:.6f} within {:.2f}% relative error.'.format(xy[-1], xySol_upward, tol*100))
+    err = (abs(xySol_upward -xy[-1])/xySol_upward <= tol)
+    print("TEST", xySol_upward, xy[-1], (xySol_upward-xy[-1])/xySol_upward, tol, err)
+    assert err, ('Final displacement of {:.6f} does not match analytical' 
+                 +' solution of {:.6f} within {:.2f}% relative error.'.format(xy[-1], xySol_upward, tol*100))
 
-# ----- Main ----- #
-# Run coupled simulation
-run_coupled()
+@pytest.fixture(scope="module")
+def setup():
 
-# Load print data
-t, xy = read_print_data('lammps/print_column.txt')
+    # Run coupled simulation
+    run_coupled()
 
-# Extract input parameters from lammps input script
-Uf, epsf, ylo, yhi, xySol_settle, xySol_upward = analytical_solution_from_input_parameter('lammps/column.in')
+    # Load print data
+    t, xy = read_print_data('lammps/print_column.txt')
 
-# Plot Displacement Profile
-plt.plot(t, xy, 'r-')
-plt.plot(t, np.ones_like(t)*xySol_upward, 'k--')
-# plt.plot(t, np.ones_like(t)*xySol_settle, 'k:')
-plt.xlabel('Time (s)')
-plt.ylabel('Position of Top Particle (cm)')
-plt.legend(('Numerical', 'Analytical (Upward Flow)'))
-plt.tight_layout()
-plt.savefig('fig_displacement.png')
-plt.close()
+    # Extract input parameters from lammps input script
+    Uf, epsf, ylo, yhi, xySol_settle, xySol_upward = analytical_solution_from_input_parameter('lammps/column.in')
+
+    return t, xy, Uf, epsf, ylo, yhi, xySol_settle, xySol_upward
+
+tols = [1.0, 0.1, 0.01, 0.001, 0.0001, 9e-5]
+@pytest.mark.parametrize("tols", tols)
+def test_displacement(setup, tols):
+
+    t, xy, Uf, epsf, ylo, yhi, xySol_settle, xySol_upward = setup
+
+    compare_displacement(xySol_upward, xy, tols)
+
+if __name__ == "__main__":
+
+    t, xy, Uf, epsf, ylo, yhi, xySol_settle, xySol_upward = setup()
+
+    import matplotlib.pyplot as plt
+    # Plot Displacement Profile
+    plt.plot(t, xy, 'r-')
+    plt.plot(t, np.ones_like(t)*xySol_upward, 'k--')
+    # plt.plot(t, np.ones_like(t)*xySol_settle, 'k:')
+    plt.xlabel('Time (s)')
+    plt.ylabel('Position of Top Particle (cm)')
+    plt.legend(('Numerical', 'Analytical (Upward Flow)'))
+    plt.tight_layout()
+    plt.savefig('fig_displacement.png')
+    plt.close()
