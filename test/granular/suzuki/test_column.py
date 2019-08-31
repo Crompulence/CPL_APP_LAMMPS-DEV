@@ -47,8 +47,8 @@ def run_coupled(run_bash_script='run.sh'):
         print('Error running bash run script' + run_bash_script + ' in base directory.')
         raise
 
-def read_print_data(file):
-    data = np.loadtxt(file, skiprows=1)
+def read_print_data(fname):
+    data = np.loadtxt(fname, skiprows=1)
     t = data[:,0]
     xy = data[:,1]
 
