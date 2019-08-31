@@ -128,13 +128,11 @@ def setup():
     # Run coupled simulation
     run_coupled()
 
-    with cd(TEST_DIR):
+    # Load print data
+    t, xy = read_print_data(TEST_DIR+'/lammps/print_column.txt')
 
-        # Load print data
-        t, xy = read_print_data('lammps/print_column.txt')
-
-        # Extract input parameters from lammps input script
-        Uf, epsf, ylo, yhi, xySol_settle, xySol_upward = analytical_solution_from_input_parameter('lammps/column.in')
+    # Extract input parameters from lammps input script
+    Uf, epsf, ylo, yhi, xySol_settle, xySol_upward = analytical_solution_from_input_parameter(TEST_DIR+'/lammps/column.in')
 
     return t, xy, Uf, epsf, ylo, yhi, xySol_settle, xySol_upward
 
