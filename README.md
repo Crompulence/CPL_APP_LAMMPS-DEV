@@ -1,4 +1,4 @@
-# CPL APP for LAMMPS [![Build Status](https://travis-ci.org/Crompulence/CPL_APP_LAMMPS-DEV.svg?branch=master)](https://travis-ci.org/Crompulence/CPL_APP_LAMMPS-DEV)
+# CPL APP for LAMMPS [![Build Status](https://travis-ci.org/Crompulence/CPL_APP_LAMMPS-DEV.svg?branch=master)](https://travis-ci.org/Crompulence/CPL_APP_LAMMPS-DEV) ![Build Status](https://img.shields.io/docker/cloud/build/cpllibrary/cpl-lammps)
 
 1 ) Pre-requisites for compilation
 =================================
