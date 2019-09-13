@@ -314,6 +314,9 @@ void FixCPLForce::pre_force(int Nfreq, int Nrepeat, int Nevery){
         //Pre-force calculation, get quantities from discrete system needed to apply force
         if (fxyz->calc_preforce) {
 
+            //Reset cumulative values for a timestep
+            fxyz->reset_instant();
+
             //Increment pre-force counter
             fxyz->Npre_force++;
 
