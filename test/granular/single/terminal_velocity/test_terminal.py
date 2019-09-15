@@ -4,7 +4,6 @@ import errno
 import pytest
 import subprocess as sp
 import numpy as np
-import matplotlib.pyplot as plt
 
 # Add python scripts to path and import required classes
 sys.path.append('../../python_scripts/')
@@ -151,7 +150,7 @@ dragModels = ['Drag', 'Stokes']
 dp_values = [0.01, 0.02, 0.03, 0.04, 0.05]
 @pytest.mark.parametrize('dragModel', dragModels)
 @pytest.mark.parametrize('dp', dp_values)
-def test_displacement_velocity(dp, dragModel):
+def test_displacement_velocity(dp, dragModel, plot_results=False):
 
     # Set input parameters
     set_input_parameters(dp, dragModel)
@@ -172,8 +171,10 @@ def test_displacement_velocity(dp, dragModel):
     xySol, vySol, vyTer = analytical_velocity_displacement(t, mObj)
 
     # Plot the results
-    plot_displacement_velocity(t, xy, xySol, vy, vySol, vyTer, 
-        file_name='./results/fig_dp_{}_{}'.format(dp, dragModel))
+    if plot_results:
+        import matplotlib.pyplot as plt
+        plot_displacement_velocity(t, xy, xySol, vy, vySol, vyTer, 
+            file_name='./results/fig_dp_{}_{}'.format(dp, dragModel))
     
     compare_displacement(t, xy, xySol, tol=0.02)
     compare_velocity(t, vy, vySol, tol=0.02)

@@ -4,7 +4,6 @@ import errno
 import pytest
 import subprocess as sp
 import numpy as np
-import matplotlib.pyplot as plt
 
 # Add python scripts to path and import required classes
 sys.path.append('../../python_scripts/')
@@ -94,7 +93,7 @@ vy0_values = [0.5, 1.0, 1.5, 2.0, 2.5]
 @pytest.mark.parametrize('vy0', vy0_values)
 @pytest.mark.parametrize('dragModel', dragModels)
 @pytest.mark.parametrize('dp', dp_values)
-def test_force(dp, dragModel, vy0):
+def test_force(dp, dragModel, vy0, plot_results=False):
     
     # Set input parameters
     set_input_parameters(dp, dragModel, vy0)
@@ -118,14 +117,16 @@ def test_force(dp, dragModel, vy0):
     compare_force(fy, fySol, tol=0.02)
 
     # Save results for plotting
-    file_name = './results/data_{}_dp_{}_vy0_{}.npz'.format(dragModel, dp, vy0)
-    if not os.path.exists(os.path.dirname(file_name)):
-        try:
-            os.makedirs(os.path.dirname(file_name))
-        except OSError as exc:
-            if exc.errno != errno.EEXIST:
-                raise 
-    np.savez(file_name, fy=fy[-2], fySol=fySol)
+    if plot_results:
+        import matplotlib.pyplot as plt
+        file_name = './results/data_{}_dp_{}_vy0_{}.npz'.format(dragModel, dp, vy0)
+        if not os.path.exists(os.path.dirname(file_name)):
+            try:
+                os.makedirs(os.path.dirname(file_name))
+            except OSError as exc:
+                if exc.errno != errno.EEXIST:
+                    raise 
+        np.savez(file_name, fy=fy[-2], fySol=fySol)
 
 if __name__ == "__main__":
     test_force(dp=0.10, dragModel='Ergun', vy0=0.5)

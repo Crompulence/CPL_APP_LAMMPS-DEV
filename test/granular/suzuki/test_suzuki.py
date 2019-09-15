@@ -4,17 +4,6 @@ import errno
 import pytest
 import subprocess as sp
 import numpy as np
-import matplotlib.pyplot as plt
-
-# Import postproclib
-sys.path.insert(0, "./pyDataView/")
-try:
-    import postproclib as ppl
-except ImportError:
-    cmd = "git clone https://github.com/edwardsmith999/pyDataView.git ./pyDataView"
-    downloadout = sp.check_output(cmd, shell=True)
-    sys.path.insert(0, "./pyDataView")
-    import postproclib as ppl
 
 # Add python scripts to path and import required classes
 sys.path.append('../python_scripts/')
@@ -130,7 +119,7 @@ dragModels = ['DiFelice', 'Ergun']
 Uf_values = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5]
 @pytest.mark.parametrize('Uf', Uf_values)
 @pytest.mark.parametrize('dragModel', dragModels)
-def test_displacement(Uf, dragModel):
+def test_displacement(Uf, dragModel, plot_results=False):
 
     # Set input parameters
     set_input_parameters(Uf, dragModel)
@@ -152,8 +141,10 @@ def test_displacement(Uf, dragModel):
     xySol = analytical_displacement(mObj)
 
     # Plot the results
-    plot_displacement(t, xy, xySol,
-        file_name='./results/fig_Uf_{}_{}'.format(Uf, dragModel))
+    if plot_results:
+        import matplotlib.pyplot as plt
+        plot_displacement(t, xy, xySol,
+            file_name='./results/fig_Uf_{}_{}'.format(Uf, dragModel))
 
     # Test analytical solution
     compare_displacement(xy, xySol, tol=0.02)

@@ -79,5 +79,4 @@ test-granular:
 	cd test/granular/single/terminal_velocity && pytest -v ./test_terminal.py
 	cd test/granular/single/constant_velocity && pytest -v ./test_constant.py
 	cd test/granular/single/resting_wall && pytest -v ./test_resting.py
-	cd test/granular/column && pytest -v ./test_column.py
 	cd test/granular/suzuki && pytest -v ./test_suzuki.py

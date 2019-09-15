@@ -4,7 +4,6 @@ import errno
 import pytest
 import subprocess as sp
 import numpy as np
-import matplotlib.pyplot as plt
 
 # Add python scripts to path and import required classes
 sys.path.append('../../python_scripts/')
@@ -131,7 +130,7 @@ Uf_values = [0., 40.]
 @pytest.mark.parametrize('dragModel', dragModels)
 @pytest.mark.parametrize('y0', y0_values)
 @pytest.mark.parametrize('dp', dp_values)
-def test_displacement(dp, y0, dragModel, Uf):
+def test_displacement(dp, y0, dragModel, Uf, plot_results=False):
 
     # Set input parameters
     y0ini = y0
@@ -154,8 +153,10 @@ def test_displacement(dp, y0, dragModel, Uf):
     xySol = analytical_displacement(mObj)
 
     # Plot the results
-    plot_displacement(t, xy, xySol,
-        file_name='./results/fig_{}_dp_{}_Uf_{}_y0_{:.1f}'.format(dragModel, dp, Uf, y0ini))
+    if plot_results:
+        import matplotlib.pyplot as plt
+        plot_displacement(t, xy, xySol,
+            file_name='./results/fig_{}_dp_{}_Uf_{}_y0_{:.1f}'.format(dragModel, dp, Uf, y0ini))
 
     compare_displacement(t, xy, xySol, tol=0.02)
     
