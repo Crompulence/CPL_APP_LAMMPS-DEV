@@ -4,6 +4,7 @@ import errno
 import pytest
 import subprocess as sp
 import numpy as np
+import time
 
 # Add python scripts to path and import required classes
 sys.path.append('../../python_scripts/')
@@ -73,7 +74,14 @@ def analytical_force(mObj):
 
 # Read print data for the top particle on column
 def read_print_data(print_file='./lammps/print_constant.txt'):
-    data = np.loadtxt(print_file, skiprows=1)
+    #I think a file conflict here, try waiting and reading again
+    for i in range(10):
+        try:
+            data = np.genfromtxt(print_file, skip_header=1)
+            break
+        except StopIteration:
+            print("genfromtxt read error, waiting 6 secs and will try again")
+            time.sleep(6)
     fy = data[:,3]
 
     return fy

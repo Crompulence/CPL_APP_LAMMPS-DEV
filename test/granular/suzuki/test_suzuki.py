@@ -4,6 +4,7 @@ import errno
 import pytest
 import subprocess as sp
 import numpy as np
+import time
 
 # Add python scripts to path and import required classes
 sys.path.append('../python_scripts/')
@@ -75,7 +76,14 @@ def analytical_displacement(mObj):
     return xySol
 
 def read_print_data(xy0, print_file='./lammps/print_suzuki.txt'):
-    data = np.loadtxt(print_file, skiprows=1)
+    #I think a file conflict here, try waiting and reading again
+    for i in range(10):
+        try:
+            data = np.genfromtxt(print_file, skip_header=1)
+            break
+        except StopIteration:
+            print("genfromtxt read error, waiting 6 secs and will try again")
+            time.sleep(6)
     t = data[:,0]
     xy = data[:,1]
 
