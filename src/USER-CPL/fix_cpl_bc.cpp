@@ -53,12 +53,12 @@ FixCPLBc::FixCPLBc(LAMMPS_NS::LAMMPS *lammps, int narg, char **arg)
         CPL::get_file_param("bc", "velocity.enabled", bc_velocity_enabled);
         CPL::get_file_param("bc", "temperature.enabled", bc_temperature_enabled);
         if (bc_velocity_enabled) {
-            (new VelOutgoingField("1velocity", DepListT({"cfdbc_fix"}), depPool, lammps))->addToPool(bcPool);
-            (new NbinOutgoingField("2nbinbc", DepListT({"cfdbc_fix"}), depPool, lammps))->addToPool(bcPool);
+            (new VelOutgoingField("1velocity", DepListT(), depPool, lammps))->addToPool(bcPool);
+            (new NbinOutgoingField("2nbinbc", DepListT(), depPool, lammps))->addToPool(bcPool);
         }
 
     if (bc_temperature_enabled)
-        (new TemperatureOutgoingField("3temperature", DepListT({"cfdbc_fix"}), depPool, lammps))->addToPool(bcPool);
+        (new TemperatureOutgoingField("3temperature", DepListT(), depPool, lammps))->addToPool(bcPool);
     }
 }
 
@@ -66,18 +66,18 @@ void FixCPLBc::post_constructor() {
     // Setup dependencies
     (new LAMMPSDepRegion("cfdbcregion", DepListT({}), this, lmp, 
                      &cfdbcregion_depfunc))->addToPool(depPool);
-    (new LAMMPSDepCompute("cfdbc_chunks", DepListT({"cfdbcregion"}), this,
-                     lmp, &cfdbc_chunks_depfunc))->addToPool(depPool);
-    (new LAMMPSDepCompute("cfdbc_property", DepListT({"cfdbc_chunks"}), this,
-                     lmp, &cfdbc_property_depfunc))->addToPool(depPool);
-    (new LAMMPSDepCompute("cfdbc_vcom", DepListT({"cfdbc_chunks"}), this,
-                     lmp, &cfdbc_vcom_depfunc))->addToPool(depPool);
-    (new LAMMPSDepCompute("cfdbc_tpartial", DepListT({}), this,
-                     lmp, &cfdbc_tpartial_depfunc))->addToPool(depPool);
-    (new LAMMPSDepCompute("cfdbc_temp", DepListT({"cfdbc_chunks", "cfdbc_tpartial"}), this,
-                     lmp, &cfdbc_temp_depfunc))->addToPool(depPool);
-    (new LAMMPSDepFix("cfdbc_fix", DepListT({"cfdbc_chunks", "cfdbc_property", "cfdbc_vcom", "cfdbc_temp"}), this,
-                     lmp, &cfdbc_fix_depfunc))->addToPool(depPool);
+    // (new LAMMPSDepCompute("cfdbc_chunks", DepListT({"cfdbcregion"}), this,
+    //                  lmp, &cfdbc_chunks_depfunc))->addToPool(depPool);
+    // (new LAMMPSDepCompute("cfdbc_property", DepListT({"cfdbc_chunks"}), this,
+    //                  lmp, &cfdbc_property_depfunc))->addToPool(depPool);
+    // (new LAMMPSDepCompute("cfdbc_vcom", DepListT({"cfdbc_chunks"}), this,
+    //                  lmp, &cfdbc_vcom_depfunc))->addToPool(depPool);
+    // (new LAMMPSDepCompute("cfdbc_tpartial", DepListT({}), this,
+    //                  lmp, &cfdbc_tpartial_depfunc))->addToPool(depPool);
+    // (new LAMMPSDepCompute("cfdbc_temp", DepListT({"cfdbc_chunks", "cfdbc_tpartial"}), this,
+    //                  lmp, &cfdbc_temp_depfunc))->addToPool(depPool);
+    // (new LAMMPSDepFix("cfdbc_fix", DepListT({"cfdbc_chunks", "cfdbc_property", "cfdbc_vcom", "cfdbc_temp"}), this,
+    //                  lmp, &cfdbc_fix_depfunc))->addToPool(depPool);
 
     fixCPLInit->bcPool.setupAll();
     fixCPLInit->bcFixDefined = true;
