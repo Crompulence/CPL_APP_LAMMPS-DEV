@@ -26,6 +26,7 @@ def run_coupled(run_bash_script='run.sh'):
         print(p.stdout.read())
     except:
         raise RuntimeError('Error running bash run script' + run_bash_script + ' in base directory.')
+    p.wait()
 
 # Extract the input parameters from DEM script for LAMMPS and OpenFOAM case
 # directory. Check that they are consistent.
@@ -74,14 +75,22 @@ def analytical_force(mObj):
 
 # Read print data for the top particle on column
 def read_print_data(print_file='./lammps/print_constant.txt'):
-    #I think a file conflict here, try waiting and reading again
-    for i in range(10):
+    # Try reading the print file. StopIteration error occurs with 'CPL_init
+    # has been called more than once. Returning same COMM' error during
+    # coupled run causing the print_file to exist but be empty (and hence the
+    # skip_header error). Temporary work around is to re-run the coupled
+    # simulation after waiting for 3 seconds. Only attempt this re-run three
+    # times.
+    for i in range(3):
         try:
             data = np.genfromtxt(print_file, skip_header=1)
             break
         except StopIteration:
-            print("genfromtxt read error, waiting 6 secs and will try again")
-            time.sleep(6)
+            print("genfromtxt read error, waiting 3 secs and will try again")
+            time.sleep(3)
+            run_coupled()
+    
+    # Extract data
     fy = data[:,3]
 
     return fy
@@ -108,9 +117,6 @@ def test_force(dp, dragModel, vy0, plot_results=False):
     
     # Run coupled simulation
     run_coupled()
-    if not os.path.exists('lammps/print_constant.txt'):
-        print('Attempting to re-run coupled run.')
-        run_coupled()
 
     # Extract input parameters
     mObj = get_input_parameters()
@@ -124,9 +130,8 @@ def test_force(dp, dragModel, vy0, plot_results=False):
     # Test analytical solution
     compare_force(fy, fySol, tol=0.02)
 
-    # Save results for plotting
+    # Save results
     if plot_results:
-        import matplotlib.pyplot as plt
         file_name = './results/data_{}_dp_{}_vy0_{}.npz'.format(dragModel, dp, vy0)
         if not os.path.exists(os.path.dirname(file_name)):
             try:
@@ -135,6 +140,8 @@ def test_force(dp, dragModel, vy0, plot_results=False):
                 if exc.errno != errno.EEXIST:
                     raise 
         np.savez(file_name, fy=fy[-2], fySol=fySol)
+
+    # time.sleep(5)
 
 if __name__ == "__main__":
     test_force(dp=0.10, dragModel='Ergun', vy0=0.5)

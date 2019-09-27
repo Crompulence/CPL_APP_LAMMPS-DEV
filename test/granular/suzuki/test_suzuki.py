@@ -25,6 +25,7 @@ def run_coupled(run_bash_script='run.sh'):
         print(p.stdout.read())
     except:
         raise RuntimeError('Error running bash run script' + run_bash_script + ' in base directory.')
+    p.wait()
 
 # Extract the input parameters from DEM script for LAMMPS and OpenFOAM case
 # directory. Check that they are consistent.
@@ -76,14 +77,22 @@ def analytical_displacement(mObj):
     return xySol
 
 def read_print_data(xy0, print_file='./lammps/print_suzuki.txt'):
-    #I think a file conflict here, try waiting and reading again
-    for i in range(10):
+    # Try reading the print file. StopIteration error occurs with 'CPL_init
+    # has been called more than once. Returning same COMM' error during
+    # coupled run causing the print_file to exist but be empty (and hence the
+    # skip_header error). Temporary work around is to re-run the coupled
+    # simulation after waiting for 3 seconds. Only attempt this re-run three
+    # times.
+    for i in range(3):
         try:
             data = np.genfromtxt(print_file, skip_header=1)
             break
         except StopIteration:
-            print("genfromtxt read error, waiting 6 secs and will try again")
-            time.sleep(6)
+            print("genfromtxt read error, waiting 3 secs and will try again")
+            time.sleep(3)
+            run_coupled()
+    
+    # Extract data
     t = data[:,0]
     xy = data[:,1]
 
@@ -97,6 +106,9 @@ def read_print_data(xy0, print_file='./lammps/print_suzuki.txt'):
 # and analytical solution. Save the file in the results directory (which is
 # created if required) and also save the data used for plotting as .npz file.
 def plot_displacement(t, xy, xySol, file_name='./fig'):
+    # import matplotlib
+    import matplotlib.pyplot as plt
+
     # Plot displacement
     plt.plot(t, xy, 'r-')
     plt.plot(t, np.ones_like(t)*xySol, 'k--')
@@ -150,7 +162,6 @@ def test_displacement(Uf, dragModel, plot_results=False):
 
     # Plot the results
     if plot_results:
-        import matplotlib.pyplot as plt
         plot_displacement(t, xy, xySol,
             file_name='./results/fig_Uf_{}_{}'.format(Uf, dragModel))
 
