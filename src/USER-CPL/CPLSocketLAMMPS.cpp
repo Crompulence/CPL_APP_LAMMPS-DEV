@@ -528,6 +528,8 @@ void CPLSocketLAMMPS::setupFixCFDtoMD(LAMMPS_NS::LAMMPS *lammps,
     else if (fxyzType.compare("Stokes") == 0) {nval = 9; }
     else if (fxyzType.compare("Di_Felice") == 0){nval = 9; } 
     else if (fxyzType.compare("Ergun") == 0) {nval = 9; }
+    else if (fxyzType.compare("Tang") == 0) {nval = 9; }
+    else if (fxyzType.compare("Tenneti") == 0) {nval = 9; }
     else if (fxyzType.compare("BVK") == 0) {nval = 9; }
     else {
         std::string cmd("CPLForce type ");
