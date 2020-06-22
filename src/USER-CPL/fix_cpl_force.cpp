@@ -230,6 +230,20 @@ void FixCPLForce::setup(int vflag)
                                              cfdBuf->shape(3), 
                                              args_map); 
         use_CPL_field = true;
+    } else if (fxyzType.compare("Tenneti") == 0) {
+        fxyz = std::make_unique<CPLForceTenneti>(cfdBuf->shape(0), 
+                                                 cfdBuf->shape(1), 
+                                                 cfdBuf->shape(2), 
+                                                 cfdBuf->shape(3), 
+                                                 args_map); 
+        use_CPL_field = true;
+    } else if (fxyzType.compare("Tang") == 0) {
+        fxyz = std::make_unique<CPLForceTang>(cfdBuf->shape(0), 
+                                                 cfdBuf->shape(1), 
+                                                 cfdBuf->shape(2), 
+                                                 cfdBuf->shape(3), 
+                                                 args_map); 
+        use_CPL_field = true;
     } else {
         std::string cmd("CPLForce type ");
         cmd += fxyzType + " not defined";
