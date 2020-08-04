@@ -38,7 +38,7 @@ class DragForce(object):
 
 		F = self.B*(Uf - Vp)
 		volume = (np.pi/6.)*(self.dp**3)
-		dP = (1. - self.epsf)*(F/volume)
+		dP = ((1. - self.epsf)/self.epsf)*(F/volume)
 		return dP
 
 class Stokes(DragForce):
@@ -97,7 +97,7 @@ class Ergun(DragForce):
 		if abs(Vp - Uf) < self.MIN_REL_VELOCITY:
 			self.B = 0.
 		else:
-			self.B = (150.*np.pi*muf*dp/6)*((1-epsf)/epsf) + (1.758*np.pi*rhof*(dp**2)/6)*abs(Vp - Uf)
+			self.B = (150.*np.pi*muf*dp/6)*((1-epsf)/epsf) + (1.75*np.pi*rhof*(dp**2)/6)*abs(Vp - Uf)
 
 	def update_drag_coefficient(self, Uf, Vp):
 		self.__init__(self.muf, self.rhof, self.epsf, self.dp, Uf, Vp)
