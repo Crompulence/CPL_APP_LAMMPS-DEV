@@ -68,7 +68,7 @@ def analytical_displacement(mObj):
 
     fdi = fObj.calculate_drag_force(Uf=Uf/epsf, Vp=0.)
     volume = (np.pi/6)*dp**3
-    fi = volume*rhop*g - volume*rhof*g + fdi
+    fi = volume*rhop*g - volume*rhof*g + fdi/epsf
     H = yhi-ylo
     N = H/s
     disp = 0.5*N*(N+1)*fi/kn
@@ -169,4 +169,4 @@ def test_displacement(Uf, dragModel, plot_results=False):
     compare_displacement(xy, xySol, tol=0.02)
     
 if __name__ == "__main__":
-    test_displacement(Uf=0.2, dragModel='DiFelice')
+    test_displacement(Uf=0.2, dragModel='DiFelice', plot_results=True)
