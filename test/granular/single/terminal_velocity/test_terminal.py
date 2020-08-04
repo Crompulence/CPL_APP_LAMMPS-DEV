@@ -62,7 +62,10 @@ def analytical_velocity_displacement(t, mObj):
 
     mp = rhop*(np.pi/6)*dp**3
     mf = rhof*(np.pi/6)*dp**3
-    kd = 3*np.pi*muf*dp*epsf
+    
+    # Note that kd cannot have an epsf term, as Uf = 0. is hardwired into the
+    # CFD dummy script.
+    kd = 3*np.pi*muf*dp
 
     xySol = ((mp - mf)*g/kd)*(t - (mp/kd)*(1 - np.exp(-kd*t/mp))) + (vy0*mp/kd)*(1 - np.exp(-kd*t/mp)) + y0
     vySol = ((mp - mf)*g/kd)*(1 - np.exp(-kd*t/mp)) + vy0*np.exp(-kd*t/mp)
@@ -149,11 +152,11 @@ def compare_displacement(t, xy, xySol, tol=0.01):
                 + ' solution of {:.6f} at time {:4f} within {:.2f}% relative error.'.format(xySol[i], t[i], tol*100))
 
 # Compare the velocity profile with time for a specified relative error.
-# Ignore the first entry at t = 0, which is usually v = 0, as this would lead
-# to division by zero with relative error analysis.
+# Ignore the first five entries at t = 0, which is usually v = 0, as this
+# would lead to division by zero with relative error analysis.
 def compare_velocity(t, vy, vySol, tol=0.01):
     for i in range(len(t)):
-        if i > 0:
+        if i > 5:
             err = abs((vySol[i] - vy[i])/vySol[i] <= tol)
             assert err, ('Velocity of {:.6f} does not match analytical'.format(vy[i])
                     + ' solution of {:.6f} at time {:4f} within {:.2f}% relative error.'.format(vySol[i], t[i], tol*100))
@@ -197,4 +200,4 @@ def test_displacement_velocity(dp, dragModel, plot_results=False):
     compare_terminal(t, vy, vyTer, tol=0.02)
 
 if __name__ == "__main__":
-    test_displacement_velocity(dp=0.05, dragModel='Stokes')
+    test_displacement_velocity(dp=0.05, dragModel='Stokes', plot_results=True)
