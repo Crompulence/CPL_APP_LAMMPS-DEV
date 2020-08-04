@@ -8,7 +8,7 @@ all:
 	cp -R src/USER-CPL $(LAMMPS_SRC_DIR)
 	cp ./config/Makefile.cpl $(LAMMPS_SRC_DIR)/MAKE
 	cd $(LAMMPS_SRC_DIR) && $(MAKE) no-USER-CPL && $(MAKE) yes-USER-CPL
-	#cd $(LAMMPS_SRC_DIR) && $(MAKE) yes-granular
+	cd $(LAMMPS_SRC_DIR) && $(MAKE) yes-granular
 	cd $(LAMMPS_SRC_DIR) && $(MAKE) cpl
 	rm -rf bin > /dev/null
 	mkdir bin
@@ -77,6 +77,6 @@ test-couette:
 
 test-granular:
 	cd test/granular/single/terminal_velocity && pytest -v ./test_terminal.py
-	cd test/granular/single/constant_velocity && pytest -v ./test_constant.py
-	cd test/granular/single/resting_wall && pytest -v ./test_resting.py
+# 	cd test/granular/single/constant_velocity && pytest -v ./test_constant.py
+# 	cd test/granular/single/resting_wall && pytest -v ./test_resting.py
 	cd test/granular/suzuki && pytest -v ./test_suzuki.py
