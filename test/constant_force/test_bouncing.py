@@ -157,7 +157,7 @@ def test_regression(build_run, mdprocs):
                                      datafile='./regression_data/thermo_output.txt')
 
         for i in range(z.shape[0]):
-            assert np.abs(z[i]-z_reg[i]) < 1e-12
-            assert np.abs(v[i]-v_reg[i]) < 1e-12
-            assert np.abs(f[i]-f_reg[i]) < 1e-12
+            assert np.abs((z[i]-z_reg[i])/z_reg[i]) < 1e-12
+            assert np.abs((v[i]-v_reg[i])/z_reg[i]) < 1e-12
+            assert np.abs((f[i]-f_reg[i])/z_reg[i]) < 1e-12
 
