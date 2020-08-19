@@ -1,7 +1,9 @@
 import re
 import PyFoam.Basics.DataStructures
 from PyFoam.RunDictionary.ParsedParameterFile import ParsedParameterFile as ppf
+from os import remove as rm
 from shutil import move as mv
+from shutil import copy as cp
 
 class OpenFOAM_Input(object):
     """
@@ -87,7 +89,7 @@ def OpenFOAM_Writer_0_File(file_name, boundaryFace, valueFace, isScalar=True, ax
 
     f = ppf(file_name)
     if isScalar:
-        f['boundaryField'][boundaryFace]['value']['uniform'] = valueFace
+        f['boundaryField'][boundaryFace]['value'] = 'uniform {}'.format(valueFace)
     else:
         f['boundaryField'][boundaryFace]['value']['uniform'][axis_val] = valueFace
 
@@ -145,3 +147,122 @@ def OpenFOAM_Writer_0_File(file_name, boundaryFace, valueFace, isScalar=True, ax
                         nf.write(l)
 
     mv(file_name + '.new', file_name)
+
+def OpenFOAM_Writer_BlockMeshDict(file_name, domainSize, gridConfig):
+    """
+
+    Write input parameters for domain size and grid configuration in the
+    blockMeshDict file.
+
+    """
+
+    # Save a backup of blockMeshDict
+    cp(file_name, file_name + '.bak')
+
+    # Read blockMeshDict
+    f = ppf(file_name)
+
+    # Set the vertices of the domain
+    xlo = domainSize[0]
+    xhi = domainSize[1]
+    ylo = domainSize[2]
+    yhi = domainSize[3]
+    zlo = domainSize[4]
+    zhi = domainSize[5]
+
+    f['vertices'][0] = [xlo, ylo, zlo]
+    f['vertices'][1] = [xhi, ylo, zlo]
+    f['vertices'][2] = [xhi, yhi, zlo]
+    f['vertices'][3] = [xlo, yhi, zlo]
+    f['vertices'][4] = [xlo, ylo, zhi]
+    f['vertices'][5] = [xhi, ylo, zhi]
+    f['vertices'][6] = [xhi, yhi, zhi]
+    f['vertices'][7] = [xlo, yhi, zhi]
+    
+    # Set the specified grid configuration
+    f['blocks'][2][0] = gridConfig[0]
+    f['blocks'][2][1] = gridConfig[1]
+    f['blocks'][2][2] = gridConfig[2]
+
+    f.writeFile()
+
+    # Format the written file to similar format as previous
+    with open(file_name + '.new', 'w') as nf:
+        nf.write('{}\n'.format(r'/*--------------------------------*- C++ -*----------------------------------*\ '))
+        nf.write('{}\n'.format(r'| =========                 |                                                 | '))
+        nf.write('{}\n'.format(r'| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           | '))
+        nf.write('{}\n'.format(r'|  \\    /   O peration     | Version:  2.2.2                                 | '))
+        nf.write('{}\n'.format(r'|   \\  /    A nd           | Web:      www.OpenFOAM.org                      | '))
+        nf.write('{}\n'.format(r'|    \\/     M anipulation  |                                                 | '))
+        nf.write('{}\n'.format(r'\*---------------------------------------------------------------------------*/ '))
+
+        with open(file_name, 'r') as of:
+            Foamfile_block = False
+            for l in of:
+                if 'FoamFile' in l:
+                    Foamfile_block = True
+
+                if Foamfile_block:
+                    if l.startswith(' '):
+                        nf.write('    ' + l.lstrip())
+                    else:
+                        nf.write(l)
+
+                    if l.startswith('}'):
+                        nf.write('{}\n'.format(r'// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //'))
+                        nf.write('\n')
+                        Foamfile_block = False
+
+                if 'convertToMeters' in l:
+                    nf.write(l)
+                    nf.write('\n')
+
+                if 'vertices' in l:
+                    nf.write(l)
+                    nf.write('(\n')
+                    for i in range(10):
+                        l = of.next()
+                        if i > 1:
+                            if i == 9:
+                                nf.write('    ' + l[:-3] + '\n')
+                            else:
+                                nf.write('    ' + l)
+                    nf.write(');\n')
+                    nf.write('\n')
+
+                if 'blocks' in l:
+                    nf.write(l)
+                    nf.write('(\n')
+                    nf.write('    ' + 'hex (0 1 2 3 4 5 6 7) ({:.0f} {:.0f} {:.0f}) simpleGrading (1 1 1)\n'.format(
+                        gridConfig[0], gridConfig[1], gridConfig[2]))
+                    nf.write(');\n')
+                    nf.write('\n')
+
+                if 'edges' in l:
+                    nf.write(l)
+                    nf.write('(\n')
+                    nf.write(');\n')
+                    nf.write('\n')
+
+                if 'boundary' in l:
+                    with open(file_name + '.bak', 'r') as bak:
+                        boundaryBlock = False
+                        for lb in bak:
+                            if 'boundary' in lb:
+                                boundaryBlock = True
+
+                            if 'mergePatchPairs' in lb:
+                                boundaryBlock = False
+
+                            if boundaryBlock:
+                                nf.write(lb)
+                
+                if 'mergePatchPairs' in l:
+                    nf.write(l)
+                    nf.write('(\n')
+                    nf.write(');\n')
+                    nf.write('\n')
+                    nf.write('{}\n'.format(r'// ************************************************************************* //'))
+
+    mv(file_name + '.new', file_name)
+    rm(file_name + '.bak')
