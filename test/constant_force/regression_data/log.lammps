@@ -1,4 +1,4 @@
-LAMMPS (23 Oct 2017)
+LAMMPS (3 Mar 2020)
 # This file runs a simple bouncing ball simulation in LAMMPS.
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 variable G equal 2.9e4
@@ -29,6 +29,7 @@ read_data	Bouncing_Ball.lj
   1 atoms
   reading velocities ...
   1 velocities
+  read_data CPU = 0.00043416 secs
 
 # Pre-fix settings ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 neighbor	0.001 bin # ~10% of diameter of largest particle

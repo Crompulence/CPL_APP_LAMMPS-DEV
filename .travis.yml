@@ -82,7 +82,7 @@ before_script:
     - sudo apt-get install python-scipy
 
 script:
-    # - make test-single
+    - make test-single
     - make test-simwrap
     - make test-couette
     - make test-granular
