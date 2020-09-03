@@ -7,9 +7,16 @@ import numpy as np
 import time
 
 # Add python scripts to path and import required classes
-sys.path.append('../python_scripts/')
-from LAMMPS_Input import LAMMPS_Input, LAMMPS_Writer
-from DragForce import DiFelice, Ergun
+sys.path.insert(0, "./cfd-dem-scripts/")
+try:
+    from LAMMPS_Input import LAMMPS_Input, LAMMPS_Writer
+    from DragForce import DiFelice, Ergun
+except ImportError:
+    cmd = "git clone https://github.com/adnansufian/cfd-dem-scripts.git ./cfd-dem-scripts"
+    downloadout = sp.check_output(cmd, shell=True)
+    sys.path.insert(0, "./cfd-dem-scripts")
+    from LAMMPS_Input import LAMMPS_Input, LAMMPS_Writer
+    from DragForce import DiFelice, Ergun
 
 # Run coupled simulation as subprocess
 def run_coupled(run_bash_script='run.sh'):
