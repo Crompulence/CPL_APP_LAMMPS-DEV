@@ -36,7 +36,7 @@ def run_coupled(run_bash_script='run.sh'):
 
 # Extract the input parameters from DEM script for LAMMPS and OpenFOAM case
 # directory. Check that they are consistent.
-def get_input_parameters(md_input_file='./lammps/suzuki.in'):    
+def get_input_parameters(md_input_file='./lammps/fluidised.in'):    
     mObj = LAMMPS_Input(md_input_file)
 
     return mObj
@@ -44,7 +44,7 @@ def get_input_parameters(md_input_file='./lammps/suzuki.in'):
 # Set the input parameters for the simulations. At present, only the particle
 # diameter and drag force model can be adjusted. Both these only apply to the
 # LAMMPS input.
-def set_input_parameters(Uf, dragModel, md_input_file='./lammps/suzuki.in'):
+def set_input_parameters(Uf, dragModel, md_input_file='./lammps/fluidised.in'):
     LAMMPS_Writer(md_input_file, 'fluid_velocity', Uf)
     LAMMPS_Writer(md_input_file, 'dragModel', dragModel)
 
@@ -83,7 +83,7 @@ def analytical_displacement(mObj):
     
     return xySol
 
-def read_print_data(xy0, print_file='./lammps/print_suzuki.txt'):
+def read_print_data(xy0, print_file='./lammps/print_fluidised.txt'):
     # Try reading the print file. StopIteration error occurs with 'CPL_init
     # has been called more than once. Returning same COMM' error during
     # coupled run causing the print_file to exist but be empty (and hence the
@@ -108,6 +108,35 @@ def read_print_data(xy0, print_file='./lammps/print_suzuki.txt'):
     xy = np.insert(xy, 0, xy0)
     
     return t, xy
+
+def critical_fluidisation_velocity(mObj, Umf_initial, delta_Umf=0.001):
+
+    dragModel = mObj.dragModel
+    dp = mObj.diameter
+    epsf = mObj.porosity
+    rhop = mObj.density
+    rhof = mObj.fluid_density
+    muf = mObj.dynamic_viscosity
+    g = mObj.gravity 
+
+    RHS = (1 - epsf)*(rhop - rhof)*g
+    Umf = Umf_initial
+    critical_Umf = False
+    while critical_Umf == False:
+        if dragModel == 'DiFelice':
+            Re = rhof*dp*Umf/muf
+            chi = 3.7 - 0.65*np.exp(-0.5*((1.5 - np.log10(Re))**2))
+            Cd = (0.63 + 4.8/np.sqrt(Re))**2
+            LHS = (3*Cd*rhof/(4*dp))*(1 - epsf)*(epsf**(-1-chi))*(Umf**2) 
+        elif dragModel == 'Ergun':
+            LHS = (150*muf/(dp**2))*((1-epsf)**2/(epsf**3))*Umf + (1.75*rhof/dp)*((1-epsf)/(epsf**3))*(Umf**2)
+
+        if LHS > RHS:
+            critical_Umf = True
+        else:
+            Umf += delta_Umf
+
+    return Umf
 
 # Plot displacement and velocity profile obtained from numerical simulation
 # and analytical solution. Save the file in the results directory (which is
@@ -135,27 +164,24 @@ def plot_displacement(t, xy, xySol, file_name='./fig'):
     plt.close()
 
 # Test final displacement matches analytical solution.
-def compare_displacement(xy, xySol, tol):
+def compare_displacement(xy, xySol, below_crit, tol):
     err = (abs(xySol -xy[-1])/xySol) <= tol
-    assert err, ('Final displacement of {:.6f} does not match analytical'.format(xy[-1])
-                 +' solution of {:.6f} within {:.2f}% relative error.'.format(xySol_upward, tol*100))
+    assert err==below_crit, ('Final displacement of {:.6f} does not match analytical'.format(xy[-1])
+                 +' solution of {:.6f} within {:.2f}% relative error.'.format(xySol, tol*100))
 
 
 # ----- Main ----- #
-dragModels = ['DiFelice', 'Ergun']
-Uf_values = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5]
+dragModels = ['Ergun']
+Uf_values = [1.60, 1.61, 1.62, 1.63, 1.64, 1.65]
 @pytest.mark.parametrize('Uf', Uf_values)
 @pytest.mark.parametrize('dragModel', dragModels)
-def test_displacement(Uf, dragModel, plot_results=False):
+def test_displacement(Uf, dragModel, plot_results=True):
 
     # Set input parameters
     set_input_parameters(Uf, dragModel)
 
     # Run coupled simulation
     run_coupled()
-    if not os.path.exists('lammps/print_suzuki.txt'):
-        print('Attempting to re-run coupled run.')
-        run_coupled()
 
     # Extract input parameters
     mObj = get_input_parameters()
@@ -167,13 +193,20 @@ def test_displacement(Uf, dragModel, plot_results=False):
     # Extract input parameters from lammps input script
     xySol = analytical_displacement(mObj)
 
+    # Determine the critical velocity
+    Umf = critical_fluidisation_velocity(mObj, Umf_initial=1.60)
+    if Uf < Umf:
+        below_crit = True
+    else:
+        below_crit = False
+
     # Plot the results
     if plot_results:
         plot_displacement(t, xy, xySol,
             file_name='./results/fig_Uf_{}_{}'.format(Uf, dragModel))
 
     # Test analytical solution
-    compare_displacement(xy, xySol, tol=0.02)
+    compare_displacement(xy, xySol, below_crit, tol=0.00001)
     
 if __name__ == "__main__":
-    test_displacement(Uf=0.2, dragModel='DiFelice', plot_results=True)
+    test_displacement(Uf=1.65, dragModel='Ergun', plot_results=True)

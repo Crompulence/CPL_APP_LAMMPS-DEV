@@ -7,9 +7,16 @@ import numpy as np
 import time
 
 # Add python scripts to path and import required classes
-sys.path.append('../../python_scripts/')
-from LAMMPS_Input import LAMMPS_Input, LAMMPS_Writer
-from MOCK_Input import MOCK_Input
+sys.path.insert(0, "./cfd-dem-scripts/")
+try:
+    from LAMMPS_Input import LAMMPS_Input, LAMMPS_Writer
+    from MOCK_Input import MOCK_Input
+except ImportError:
+    cmd = "git clone https://github.com/adnansufian/cfd-dem-scripts.git ./cfd-dem-scripts"
+    downloadout = sp.check_output(cmd, shell=True)
+    sys.path.insert(0, "./cfd-dem-scripts")
+    from LAMMPS_Input import LAMMPS_Input, LAMMPS_Writer
+    from MOCK_Input import MOCK_Input
 
 
 MD_EXEC = "lmp_cpl"
@@ -213,7 +220,7 @@ dragModels = ['Drag', 'Stokes']
 dp_values = [0.01, 0.02, 0.03, 0.04, 0.05]
 @pytest.mark.parametrize('dragModel', dragModels)
 @pytest.mark.parametrize('dp', dp_values)
-def test_displacement_velocity(dp, dragModel, plot_results=False):
+def test_displacement_velocity(dp, dragModel, plot_results=True):
 
     # Set input parameters
     set_input_parameters(dp, dragModel, MD_input)

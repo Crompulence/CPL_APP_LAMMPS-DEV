@@ -7,10 +7,16 @@ import numpy as np
 import time
 
 # Add python scripts to path and import required classes
-sys.path.append('../../python_scripts/')
-from LAMMPS_Input import LAMMPS_Input, LAMMPS_Writer
-from MOCK_Input import MOCK_Input
-from DragForce import DragForce, Stokes, DiFelice, Ergun
+sys.path.insert(0, "./cfd-dem-scripts/")
+try:
+    from LAMMPS_Input import LAMMPS_Input, LAMMPS_Writer
+    from DragForce import DiFelice, Ergun
+except ImportError:
+    cmd = "git clone https://github.com/adnansufian/cfd-dem-scripts.git ./cfd-dem-scripts"
+    downloadout = sp.check_output(cmd, shell=True)
+    sys.path.insert(0, "./cfd-dem-scripts")
+    from LAMMPS_Input import LAMMPS_Input, LAMMPS_Writer
+    from DragForce import DiFelice, Ergun
 
 # Run coupled simulation as subprocess
 def run_coupled(run_bash_script='run.sh'):
@@ -30,44 +36,37 @@ def run_coupled(run_bash_script='run.sh'):
 
 # Extract the input parameters from DEM script for LAMMPS and OpenFOAM case
 # directory. Check that they are consistent.
-def get_input_parameters(md_input_file='./lammps/resting.in', cfd_input_file='./CFD_dummy_resting.py'):    
+def get_input_parameters(md_input_file='./lammps/fluidised.in'):    
     mObj = LAMMPS_Input(md_input_file)
-    cObj = MOCK_Input(cfd_input_file)
-
-    # Calculate porosity and add to mObj
-    Vc = ((cObj.xyzL[0]-cObj.xyz_orig[0])/cObj.ncxyz[0])*((cObj.xyzL[1]-cObj.xyz_orig[1])/cObj.ncxyz[1])*((cObj.xyzL[2]-cObj.xyz_orig[2])/cObj.ncxyz[2])
-    mObj.epsf = (Vc - (np.pi/6)*(mObj.diameter**3))/Vc
 
     return mObj
 
 # Set the input parameters for the simulations. At present, only the particle
 # diameter and drag force model can be adjusted. Both these only apply to the
 # LAMMPS input.
-def set_input_parameters(dp, y0, dragModel, Uf, md_input_file='./lammps/resting.in'):
-    LAMMPS_Writer(md_input_file, 'diameter', dp)
-    LAMMPS_Writer(md_input_file, 'y0', y0)
-    LAMMPS_Writer(md_input_file, 'dragModel', dragModel)
+def set_input_parameters(Uf, dragModel, md_input_file='./lammps/fluidised.in'):
     LAMMPS_Writer(md_input_file, 'fluid_velocity', Uf)
+    LAMMPS_Writer(md_input_file, 'dragModel', dragModel)
 
-# Calculate the analytical displacement and velocity profile of the particle,
-# along with the terminal velocity. This is only applicable for the Stokes
-# drag law, at present.
+# Calculate the analytical displacement
 def analytical_displacement(mObj):
-
+    
     dragModel = mObj.dragModel
     muf = mObj.dynamic_viscosity
     rhof = mObj.fluid_density
     Uf = mObj.fluid_velocity
-    epsf = mObj.epsf
+    epsf = mObj.porosity
     dp = mObj.diameter
     rhop = mObj.density
     kn = mObj.kn
-    y0 = mObj.y0
-    g = -mObj.gravity  
+    ylo = mObj.ylo
+    yhi = mObj.yhi
+    s = mObj.lattice_scale
+    g = -mObj.gravity 
 
-    if dragModel == 'Drag' or dragModel == 'Stokes':
-        fObj = Stokes(muf=muf, epsf=epsf, dp=dp)
-    elif dragModel == 'DiFelice':
+    # Obtain the pressure gradient across sample, and the inlet pressure
+    # (assuming that the outlet pressure is zero)
+    if dragModel == 'DiFelice':
         fObj = DiFelice(muf=muf, rhof=rhof, epsf=epsf, dp=dp, Uf=Uf/epsf, Vp=0.)
     elif dragModel == 'Ergun':
         fObj = Ergun(muf=muf, rhof=rhof, epsf=epsf, dp=dp, Uf=Uf/epsf, Vp=0.)
@@ -76,14 +75,15 @@ def analytical_displacement(mObj):
 
     fdi = fObj.calculate_drag_force(Uf=Uf/epsf, Vp=0.)
     volume = (np.pi/6)*dp**3
-    fi = volume*rhop*g - volume*rhof*g + fdi
-    disp = fi/kn
-    xySol = y0 + disp
+    fi = volume*rhop*g - volume*rhof*g + fdi/epsf
+    H = yhi-ylo
+    N = H/s
+    disp = 0.5*N*(N+1)*fi/kn
+    xySol = (yhi - 0.5*dp) + disp
     
     return xySol
 
-# Read print data for the top particle on column
-def read_print_data(xy0, print_file='./lammps/print_resting.txt'):
+def read_print_data(xy0, print_file='./lammps/print_fluidised.txt'):
     # Try reading the print file. StopIteration error occurs with 'CPL_init
     # has been called more than once. Returning same COMM' error during
     # coupled run causing the print_file to exist but be empty (and hence the
@@ -106,14 +106,43 @@ def read_print_data(xy0, print_file='./lammps/print_resting.txt'):
     # Append initial values
     t = np.insert(t, 0, 0)
     xy = np.insert(xy, 0, xy0)
-
+    
     return t, xy
+
+def critical_fluidisation_velocity(mObj, Umf_initial, delta_Umf=0.001):
+
+    dragModel = mObj.dragModel
+    dp = mObj.diameter
+    epsf = mObj.porosity
+    rhop = mObj.density
+    rhof = mObj.fluid_density
+    muf = mObj.dynamic_viscosity
+    g = mObj.gravity 
+
+    RHS = (1 - epsf)*(rhop - rhof)*g
+    Umf = Umf_initial
+    critical_Umf = False
+    while critical_Umf == False:
+        if dragModel == 'DiFelice':
+            Re = rhof*dp*Umf/muf
+            chi = 3.7 - 0.65*np.exp(-0.5*((1.5 - np.log10(Re))**2))
+            Cd = (0.63 + 4.8/np.sqrt(Re))**2
+            LHS = (3*Cd*rhof/(4*dp))*(1 - epsf)*(epsf**(-1-chi))*(Umf**2) 
+        elif dragModel == 'Ergun':
+            LHS = (150*muf/(dp**2))*((1-epsf)**2/(epsf**3))*Umf + (1.75*rhof/dp)*((1-epsf)/(epsf**3))*(Umf**2)
+
+        if LHS > RHS:
+            critical_Umf = True
+        else:
+            Umf += delta_Umf
+
+    return Umf
 
 # Plot displacement and velocity profile obtained from numerical simulation
 # and analytical solution. Save the file in the results directory (which is
 # created if required) and also save the data used for plotting as .npz file.
 def plot_displacement(t, xy, xySol, file_name='./fig'):
-    # Import matplotlib
+    # import matplotlib
     import matplotlib.pyplot as plt
 
     # Plot displacement
@@ -134,28 +163,21 @@ def plot_displacement(t, xy, xySol, file_name='./fig'):
     np.savez(file_name + '.npz', t=t, xy=xy, xySol=xySol)
     plt.close()
 
-# Compare the displacement profile with time for a specified relative error.
-def compare_displacement(t, xy, xySol, tol=0.01):
-    err = abs((xySol - xy[-1])/xySol) <= tol
-    assert err, ('Displacement of {:.6f} does not match analytical'.format(xy[-1])
-            + ' solution of {:.6f} within {:.2f}% relative error.'.format(xySol, tol*100))
+# Test final displacement matches analytical solution.
+def compare_displacement(xy, xySol, below_crit, tol):
+    err = (abs(xySol -xy[-1])/xySol) <= tol
+    assert err==below_crit, ('Final displacement of {:.6f} does not match analytical'.format(xy[-1])
+                 +' solution of {:.6f} within {:.2f}% relative error.'.format(xySol, tol*100))
 
 # ----- Main ----- #
-# dragModels = ['Drag', 'Stokes', 'DiFelice', 'Ergun']
 dragModels = ['DiFelice']
-dp_values = [0.05, 0.06, 0.07, 0.08, 0.09, 0.10]
-y0_values = [0.0]
-Uf_values = [0., 40.]
+Uf_values = [1.85, 1.86, 1.87, 1.88, 1.89, 1.90]
 @pytest.mark.parametrize('Uf', Uf_values)
 @pytest.mark.parametrize('dragModel', dragModels)
-@pytest.mark.parametrize('y0', y0_values)
-@pytest.mark.parametrize('dp', dp_values)
-def test_displacement(dp, y0, dragModel, Uf, plot_results=False):
+def test_displacement(Uf, dragModel, plot_results=True):
 
     # Set input parameters
-    y0ini = y0
-    y0 = y0 + 0.5*dp
-    set_input_parameters(dp, y0, dragModel, Uf)
+    set_input_parameters(Uf, dragModel)
 
     # Run coupled simulation
     run_coupled()
@@ -164,18 +186,26 @@ def test_displacement(dp, y0, dragModel, Uf, plot_results=False):
     mObj = get_input_parameters()
 
     # Load print data
-    t, xy = read_print_data(mObj.y0)
+    xy0 = mObj.yhi - 0.5*mObj.diameter
+    t, xy = read_print_data(xy0)
     
     # Extract input parameters from lammps input script
     xySol = analytical_displacement(mObj)
 
+    # Determine the critical velocity
+    Umf = critical_fluidisation_velocity(mObj, Umf_initial=1.85)
+    if Uf < Umf:
+        below_crit = True
+    else:
+        below_crit = False
+
     # Plot the results
     if plot_results:
         plot_displacement(t, xy, xySol,
-            file_name='./results/fig_{}_dp_{}_Uf_{}_y0_{:.1f}'.format(dragModel, dp, Uf, y0ini))
+            file_name='./results/fig_Uf_{}_{}'.format(Uf, dragModel))
 
-    # Test displacement
-    compare_displacement(t, xy, xySol, tol=0.02)
+    # Test analytical solution
+    compare_displacement(xy, xySol, below_crit, tol=0.00001)
     
 if __name__ == "__main__":
-    test_displacement(dp=0.05, y0=0.00, kn=1.e5, dragModel='Stokes', Uf=0.0)
+    test_displacement(Uf=1.86, dragModel='DiFelice', plot_results=True)
