@@ -11,25 +11,70 @@ sys.path.append('../../python_scripts/')
 from LAMMPS_Input import LAMMPS_Input, LAMMPS_Writer
 from MOCK_Input import MOCK_Input
 
-# Run coupled simulation as subprocess
-def run_coupled(run_bash_script='run.sh'):
+
+MD_EXEC = "lmp_cpl"
+MD_input = "./lammps/terminal.in"
+CFD_EXEC = "./CFD_dummy_terminal.py"
+TEST_DIR = os.path.dirname(os.path.realpath(__file__))
+
+class cd:
+    """Context manager for changing the current working directory"""
+    def __init__(self, newPath):
+        self.newPath = os.path.expanduser(newPath)
+
+    def __enter__(self):
+        self.savedPath = os.getcwd()
+        os.chdir(self.newPath)
+
+    def __exit__(self, etype, value, traceback):
+        os.chdir(self.savedPath)
+
+def runcmd(cmd):
+
     try:
-        cmd = './' + run_bash_script
-        p = sp.Popen(cmd, 
-            stdout=sp.PIPE, 
-            stderr=sp.STDOUT, 
-            shell=True)
-        while p.poll() is None:
-            l = p.stdout.readline()
-            print(l.rstrip())
-        print(p.stdout.read())
-    except:
-        raise RuntimeError('Error running bash run script' + run_bash_script + ' in base directory.')
-    p.wait()
-    
+        run = sp.check_output(cmd, stderr=sp.STDOUT, shell=True)
+    except sp.CalledProcessError as e:
+        if e.output.startswith('error: {'):
+            get_subprocess_error(e.output)
+        raise
+
+    return run
+
+
+@pytest.fixture(scope="module")
+def clean_dir():
+
+    print("Cleaning directory")
+    #Try to setup code
+    with cd(TEST_DIR):
+        cmd = ("rm -f " + "./cpl/coupler_header" 
+                        + "./cpl/map_CFD" 
+                        + "./cpl/map_MD" 
+                        + "./lammps/log.lammps*" 
+                        + "./lammps/print_*.txt" 
+                        + " " + MD_EXEC.split("/")[-1])
+        clean = runcmd(cmd)
+        print(clean)
+
+    return clean
+
+
+def run_coupled():
+
+    print("Running case ", TEST_DIR)
+    #Try to run code
+    cmd = ('cplexec -m 1 "' + MD_EXEC 
+           + ' -in ' + MD_input + '" ' 
+           + ' -c 1 ' +  CFD_EXEC)
+    print(cmd)
+    with cd(TEST_DIR):
+        run = runcmd(cmd)
+
+    return run
+
 # Extract the input parameters from DEM script for LAMMPS and OpenFOAM case
 # directory. Check that they are consistent.
-def get_input_parameters(md_input_file='./lammps/terminal.in', cfd_input_file='./CFD_dummy_terminal.py'):    
+def get_input_parameters(md_input_file, cfd_input_file):    
     mObj = LAMMPS_Input(md_input_file)
     cObj = MOCK_Input(cfd_input_file)
 
@@ -42,7 +87,7 @@ def get_input_parameters(md_input_file='./lammps/terminal.in', cfd_input_file='.
 # Set the input parameters for the simulations. At present, only the particle
 # diameter and drag force model can be adjusted. Both these only apply to the
 # LAMMPS input.
-def set_input_parameters(dp, dragModel, md_input_file='./lammps/terminal.in'):
+def set_input_parameters(dp, dragModel, md_input_file):
     LAMMPS_Writer(md_input_file, 'diameter', dp)
     LAMMPS_Writer(md_input_file, 'dragModel', dragModel)
 
@@ -75,21 +120,15 @@ def analytical_velocity_displacement(t, mObj):
 
 # Read print data for the top particle on column
 def read_print_data(xy0, vy0, print_file='./lammps/print_terminal.txt'):
-    # Try reading the print file. StopIteration error occurs with 'CPL_init
-    # has been called more than once. Returning same COMM' error during
-    # coupled run causing the print_file to exist but be empty (and hence the
-    # skip_header error). Temporary work around is to re-run the coupled
-    # simulation after waiting for 3 seconds. Only attempt this re-run three
-    # times.
-    for i in range(3):
-        try:
-            data = np.genfromtxt(print_file, skip_header=1)
-            break
-        except StopIteration:
-            print("genfromtxt read error, waiting 3 secs and will try again")
-            time.sleep(3)
-            run_coupled()
-    
+
+    with cd(TEST_DIR):
+        for i in range(3):
+            try:
+                data = np.genfromtxt(print_file, skip_header=1)
+            except StopIteration:
+                print("genfromtxt read error, waiting 3 secs and will try again")
+                time.sleep(3)    
+
     # Extract data
     t = data[:,0]
     xy = data[:,1]
@@ -168,6 +207,7 @@ def compare_terminal(t, vy, vyTer, tol=0.01):
     assert err, ('Terminal velocity of {:.6f} does not match analytical'.format(vy[-1])
             + ' solution of {:.6f} within {:.2f}% relative error.'.format(vyTer[-1], tol*100))
 
+
 # ----- Main ----- #
 dragModels = ['Drag', 'Stokes']
 dp_values = [0.01, 0.02, 0.03, 0.04, 0.05]
@@ -176,13 +216,14 @@ dp_values = [0.01, 0.02, 0.03, 0.04, 0.05]
 def test_displacement_velocity(dp, dragModel, plot_results=False):
 
     # Set input parameters
-    set_input_parameters(dp, dragModel)
-    
+    set_input_parameters(dp, dragModel, MD_input)
+
     # Run coupled simulation
+    clean_dir()
     run_coupled()
 
     # Extract input parameters
-    mObj = get_input_parameters()
+    mObj = get_input_parameters(MD_input, CFD_EXEC)
 
     # Load print data
     t, xy, vy = read_print_data(mObj.y0, mObj.vy0)
