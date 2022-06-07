@@ -37,23 +37,6 @@ jobs:
           path: cpl-library
           
           
-      - name: View directory structure
-        run: | 
-          pwd
-          ls
-          cd ../
-          ls
-          cd ../
-          ls 
-          cd ../
-          ls
-          echo $GITHUB_WORKSPACE
-          cd $GITHUB_WORKSPACE
-          ls
-          cd ./cpl-library
-          ls
-          
-          
       - name: Build cpl-library
         working-directory: ./cpl-library
         run: | 
@@ -61,8 +44,7 @@ jobs:
           ls
           make
           source SOURCEME.sh
-          echo $CPL_PATH
-          echo $PYTHONPATH
+          #Contents of SOURCEME
           echo "CPL_PATH=$CPL_PATH" >> $GITHUB_ENV
           echo "CPL_BIN_PATH=$CPL_BIN_PATH" >> $GITHUB_ENV
           echo "CPL_LIBRARY_PATH=$CPL_LIBRARY_PATH" >> $GITHUB_ENV
@@ -72,12 +54,7 @@ jobs:
           echo "CPL_THIRD_PARTY=$CPL_THIRD_PARTY" >> $GITHUB_ENV
           echo "CPL_THIRD_PARTY_INC=$CPL_THIRD_PARTY_INC" >> $GITHUB_ENV
           echo "CPL_THIRD_PARTY_LIB=$CPL_THIRD_PARTY_LIB" >> $GITHUB_ENV
-
-      - name: Check if env variables still defined
-        run: | 
-          echo $CPL_PATH
-          echo $PYTHONPATH
-        
+       
       - name: Checkout LAMMPS
         uses: actions/checkout@v3
         with:
@@ -86,7 +63,6 @@ jobs:
           ref: stable
           
       - name: Build CPL LAMMPS 
-        working-directory: ./CPL_APP_LAMMPS-DEV
         run: | 
            echo $GITHUB_WORKSPACE/lammps > ./CODE_INST_DIR
            echo granular >> config/lammps_packages.in
@@ -110,8 +86,8 @@ jobs:
       - name: Install scientific packages
         run: pip install numpy scipy matplotlib
         
-#      - name: Test Single Particle
-#        if: always()
-#        run: |
-#          source SOURCEME.sh
-#          make test-single
+      - name: Test Single Particle
+        if: always()
+        run: |
+          source SOURCEME.sh
+          make test-single
