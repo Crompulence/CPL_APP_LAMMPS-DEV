@@ -29,8 +29,6 @@ jobs:
             
       - name: Checkout CPL APP
         uses: actions/checkout@v3
-        with:
-          path: CPL_APP_LAMMPS-DEV
 
       # Checks-out cpl-library repository
       - uses: actions/checkout@v3
@@ -43,6 +41,10 @@ jobs:
         run: | 
           pwd
           ls
+          cd ../
+          ls
+          cd ../
+          ls 
           cd ../
           ls
           echo $GITHUB_WORKSPACE
@@ -61,7 +63,17 @@ jobs:
           source SOURCEME.sh
           echo $CPL_PATH
           echo $PYTHONPATH
-          
+          "CPL_PATH=$CPL_PATH" >> $GITHUB_ENV
+          "CPL_BIN_PATH=$CPL_BIN_PATH" >> $GITHUB_ENV
+          "CPL_LIBRARY_PATH=$CPL_LIBRARY_PATH" >> $GITHUB_ENV
+          "CPL_INCLUDE_PATH=$CPL_INCLUDE_PATH" >> $GITHUB_ENV
+          "PYTHONPATH=$PYTHONPATH" >> $GITHUB_ENV
+          "CPLPY_PATH=$CPLPY_PATH" >> $GITHUB_ENV
+          "CPL_THIRD_PARTY=$CPL_THIRD_PARTY" >> $GITHUB_ENV
+          "CPL_THIRD_PARTY_INC=$CPL_THIRD_PARTY_INC" >> $GITHUB_ENV
+          "CPL_THIRD_PARTY_LIB=$CPL_THIRD_PARTY_LIB" >> $GITHUB_ENV
+
+
       - name: Check if env variables still defined
         run: | 
           echo $CPL_PATH
@@ -85,7 +97,8 @@ jobs:
            make patch-lammps
            make -j 8
            source SOURCEME.sh
-           
+           "LAMMPS_PATH=$LAMMPS_PATH" >> $GITHUB_ENV
+
       - name: Update pip
         run: python -m pip install --upgrade pip
 
