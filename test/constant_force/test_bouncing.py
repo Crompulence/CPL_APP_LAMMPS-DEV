@@ -1,4 +1,4 @@
-from __future__ import print_function
+
 import pytest
 from cplpy import run_test, prepare_config
 import subprocess as sp
@@ -23,7 +23,7 @@ def get_subprocess_error(e):
     print("subprocess ERROR")
     import json
     error = json.loads(e[7:])
-    print(error['code'], error['message'])
+    print((error['code'], error['message']))
 
 
 def runcmd(cmd):
@@ -37,7 +37,7 @@ def runcmd(cmd):
         run = sp.check_output(cmd, stderr=sp.STDOUT, shell=True)
 
     except sp.CalledProcessError as e:
-        if e.output.startswith('error: {'):
+        if e.output.startswith(b'error: {'):
             get_subprocess_error(e.output)
         raise
 
@@ -80,7 +80,7 @@ def clean_dir():
                                              + "./debug.vels" 
                                              + " " + MD_EXEC.split("/")[-1], shell=True)
         except sp.CalledProcessError as e:
-            if e.output.startswith('error: {'):
+            if e.output.startswith(b'error: {'):
                 get_subprocess_error(e.output)
             raise
 
@@ -91,7 +91,7 @@ def clean_dir():
 @pytest.fixture(scope="module")
 def build_case():
 
-    print("Building LAMMPS in ", TEST_DIR)
+    print(("Building LAMMPS in ", TEST_DIR))
     #Try to setup code
     with cd(TEST_DIR):
         try:
@@ -105,19 +105,19 @@ def build_case():
 
 
 @pytest.fixture(scope="module")
-def build_run():
+def build_run(clean_dir, build_case):
     try:
-        clean = clean_dir()
+        #clean = clean_dir()
         if os.path.isfile(MD_EXEC):
-            print("MD executable is ", MD_EXEC)
-        else:
-            build = build_case()
+            print(("MD executable is ", MD_EXEC))
+        #else:
+        #    build = build_case()
     except sp.CalledProcessError:
         print("Build Failed")
 
 def run_case(mdprocs):
 
-    print("Running case ", TEST_DIR)
+    print(("Running case ", TEST_DIR))
     #Try to run code
     cmd = ('cplexec -Mv -m ' + str(mdprocs) + ' "' + MD_EXEC + ' -in single.in" ' + ' -c 1 ' +  CFD_EXEC)
     #cmd = ('mpiexec -n ' + str(mdprocs) + ' ' + MD_EXEC + ' -in ./single.in' + ' : -n 1 python ' +  CFD_EXEC)
@@ -128,11 +128,10 @@ def run_case(mdprocs):
     return run
 
 @pytest.mark.parametrize("mdprocs", [1, 2, 4])
-def test_gravity(build_run, mdprocs):
+def test_gravity(clean_dir, build_run, mdprocs):
 
     #Check vs analystical solution for gravity
     import bouncing
-    clean_dir()
     run = run_case(mdprocs)
 
     with cd(TEST_DIR):
@@ -141,11 +140,10 @@ def test_gravity(build_run, mdprocs):
             assert np.abs(e) < 1e-11
 
 @pytest.mark.parametrize("mdprocs", [1, 2, 4])
-def test_regression(build_run, mdprocs):
+def test_regression(clean_dir, build_run, mdprocs):
 
     #Check vs analystical solution for gravity
     import bouncing as b
-    clean_dir()
     run = run_case(mdprocs)
 
     with cd(TEST_DIR):

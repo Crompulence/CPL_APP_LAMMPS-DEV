@@ -49,7 +49,7 @@ def check_LAMMPS_vs_Analytical(fdir, uwall=1., plotevolve=False):
         fig, ax = plt.subplots(1,1)
         plt.ion()
         plt.show()
-        recds = range(nsteps)
+        recds = list(range(nsteps))
     elif "summary" is plotevolve:
         import matplotlib.pyplot as plt
         fig, ax = plt.subplots(1,1)

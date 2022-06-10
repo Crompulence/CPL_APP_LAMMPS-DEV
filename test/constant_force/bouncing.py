@@ -10,7 +10,7 @@ def read_data(logfile='./log.lammps',
 
     #Get data from file
     import os
-    print(os.path.dirname(os.path.realpath(__file__)), os.getcwd())
+    print((os.path.dirname(os.path.realpath(__file__)), os.getcwd()))
     with open(logfile) as f:
         for l in f.readlines():
             if l.find("timestep") != -1:
@@ -51,7 +51,7 @@ def check_bouncing_error_vs_gravity(D=3.5e-4, g=9.81,
         za = analytical_gravity(z[m], v[m], t[m], ta, g=g)
         error.append([ta, (z[m:mp1]-za)/za])
         if plot:
-            print(i, mins)
+            print((i, mins))
             plt.plot(ta, za, 'ro')
             plt.plot(t, z, 'k-')
             plt.show()

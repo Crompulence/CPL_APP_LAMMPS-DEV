@@ -40,7 +40,7 @@ for time in range(100):
     recv_array, ierr = CPL.recv(recv_array)
 
     if time%10 == 0:
-        print("CFD time = ", time)
+        print(("CFD time = ", time))
 
 comm.Barrier()
 CPL.finalize()

@@ -28,8 +28,8 @@ def run_coupled(run_bash_script='run.sh'):
             shell=True)
         while p.poll() is None:
             l = p.stdout.readline()
-            print(l.rstrip())
-        print(p.stdout.read())
+            print((l.rstrip()))
+        print((p.stdout.read()))
     except:
         raise RuntimeError('Error running bash run script' + run_bash_script + ' in base directory.')
     p.wait()

@@ -68,7 +68,7 @@ def clean_dir():
 
 def run_coupled():
 
-    print("Running case ", TEST_DIR)
+    print(("Running case ", TEST_DIR))
     #Try to run code
     cmd = ('cplexec -m 1 "' + MD_EXEC 
            + ' -in ' + MD_input + '" ' 

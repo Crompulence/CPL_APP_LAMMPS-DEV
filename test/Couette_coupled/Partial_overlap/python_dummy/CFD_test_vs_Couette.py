@@ -71,7 +71,7 @@ recv_array, send_array = CPL.get_arrays(recv_size=4, send_size=3)
 
 for time in range(500):
 
-    print("CFD time = ", time)
+    print(("CFD time = ", time))
 
     # send data to update
     send_array[...] = 0.0
