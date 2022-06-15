@@ -64,7 +64,7 @@ def test_newtest(wallvel):
 
         #Run the case
         run.setup()
-        run.execute(blocking=True, print_output=True, out_to_file=False, extra_cmds="-M")
+        run.execute(blocking=True, print_output=True, out_to_file=False, extra_cmds="-M -p")
 
         #Check results are correct
         check_LAMMPS_vs_Analytical(rundir, uwall=wallvel)
