@@ -27,21 +27,25 @@ def get_subprocess_error(e):
 
 
 def runcmd(cmd):
-
-#    run = []
-#    for path in execute(cmd):
-#        print(path, end="")
-#        run.append(path)
     try:
-        #run = sp.Popen(cmd, stdout=sp.PIPE, stderr=None, shell=True)
-        run = sp.check_output(cmd, stderr=sp.STDOUT, shell=True)
-
+        p = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.PIPE, shell=True)
+        pcommout = p.communicate()
+        output = pcommout[0].decode("utf-8")
+        error = pcommout[1].decode("utf-8")
+        if p.returncode != 0: 
+            print("returncode", p.returncode)
+            print("Stdout = ", output)
+            print("Stderror = ", error)
+        #run = sp.check_output(cmd, stderr=sp.STDOUT, shell=True).decode("utf-8")
     except sp.CalledProcessError as e:
+        print("Stdout = ", e.stdout)
+        print("Stderror = ", e.stderr)
         if e.output.startswith(b'error: {'):
             get_subprocess_error(e.output)
         raise
 
-    return run
+    return output+error
+
 
 def execute(cmd, blocking=True):
     """
