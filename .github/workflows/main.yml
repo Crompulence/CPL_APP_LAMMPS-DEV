@@ -61,7 +61,7 @@ jobs:
         with:
           repository: lammps/lammps
           path: lammps
-          ref: stable
+          ref: release
           
       - name: Build CPL LAMMPS 
         run: | 
