@@ -1,13 +1,13 @@
 # Install/unInstall package files in LAMMPS
 # mode = 0/1/2 for uninstall/install/update
 
-# this is default Install.sh for all packages
-# if package has an auxiliary library or a file with a dependency,
-# then package dir has its own customized Install.sh
-
 mode=$1
 
 # arg1 = file, arg2 = file it depends on
+
+# enforce using portable C locale
+LC_ALL=C
+export LC_ALL
 
 action () {
   if (test $mode = 0) then
@@ -35,7 +35,6 @@ done
 if (test $1 = 1) then
 
   if (test -e ../Makefile.package) then
-    sed -i -e 's/[^ \t]*atc[^ \t]* //' ../Makefile.package
     sed -i -e 's|^PKG_INC =[ \t]*|&-I$(CPL_PATH)/include |' ../Makefile.package
     sed -i -e 's|^PKG_PATH =[ \t]*|&-L$(CPL_LIBRARY_PATH) -Wl,-rpath=$(CPL_LIBRARY_PATH) |' ../Makefile.package
     #sed -i -e 's|^PKG_LIB =[ \t]*|&-lcpl -lmpifort -lgfortran |' ../Makefile.package
