@@ -301,8 +301,9 @@ void FixCPLForce::pre_force(int Nfreq, int Nrepeat, int Nevery){
 
     //Would it be better to use region value of this force fix?
     char* regionstr = "cplforceregion";
-    int rid = domain->find_region (regionstr);
-    auto cplforceregion = domain->regions[rid];
+    //int rid = domain->find_region (regionstr);
+    //auto cplforceregion = domain->regions[rid];
+    auto cplforceregion = domain->get_region_by_id (regionstr);
 
     //Update CFD field buffer with latest recieved value
     fxyz->set_field(*cfdBuf);
@@ -387,8 +388,9 @@ void FixCPLForce::apply_force(int Nfreq, int Nrepeat, int Nevery){
     int groupbit = group->bitmask[cplforcegroup];
 
     char* regionstr = "cplforceregion";
-    int rid = domain->find_region (regionstr);
-    auto cplforceregion = domain->regions[rid];
+    //int rid = domain->find_region (regionstr);
+    //auto cplforceregion = domain->regions[rid];
+    auto cplforceregion = domain->get_region_by_id (regionstr);
 
     //std::cout << "pre set field " << fxyz->Nforce << " " << cfdBuf->shape(0) << " " << 
     //          cfdBuf->shape(1) << " " << cfdBuf->shape(2) << " " << cfdBuf->shape(3) << std::endl;
