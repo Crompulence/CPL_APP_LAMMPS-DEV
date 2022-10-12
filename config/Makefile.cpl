@@ -68,7 +68,7 @@ JPG_LIB =
 # library for loading shared objects (defaults to -ldl, should be empty on Windows)
 # uncomment to change the default
 
-# override DYN_LIB =
+override DYN_LIB = -lcpl -ldl
 
 # ---------------------------------------------------------------------
 # build rules and dependencies
