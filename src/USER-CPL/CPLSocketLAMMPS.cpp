@@ -263,10 +263,13 @@ void CPLSocketLAMMPS::setupFixMDtoCFD(LAMMPS_NS::LAMMPS *lammps, int sendbitflag
 
     // CFD BC region 
     //char cfdbcregionname[12] = "cfdbcregion";
-    int iregion = lammps->domain->find_region("cfdbcregion");
-    if (iregion < 0) lammps->error->all(FLERR,"Fix ID for iregion cfdbcregion does not exist");
-    cfdbcregion = lammps->domain->regions[iregion];
-
+    //int iregion = lammps->domain->find_region("cfdbcregion");
+    //if (iregion < 0) lammps->error->all(FLERR,"Fix ID for iregion cfdbcregion does not exist");
+    //cfdbcregion = lammps->domain->regions[iregion];
+    cfdbcregion = domain->get_region_by_id("cfdbcregion");
+    if (!cfdbcregion) {
+	    lammps->error->all(FLERR,"Fix ID for cfdbcregion does not exist");
+    }
     //////////////////////////////////////////
     //This code sets the compute
     //////////////////////////////////////////
@@ -475,9 +478,13 @@ void CPLSocketLAMMPS::setupFixCFDtoMD(LAMMPS_NS::LAMMPS *lammps,
                                    << regionarg[7] << " " << std::endl;
     delete [] regionarg;
 
-    int iregion = lammps->domain->find_region("cplforceregion");
-    if (iregion < 0) lammps->error->all(FLERR,"Fix ID for iregion cplforceregion does not exist");
-    cplforceregion = lammps->domain->regions[iregion];
+    //int iregion = lammps->domain->find_region("cplforceregion");
+    //if (iregion < 0) lammps->error->all(FLERR,"Fix ID for iregion cplforceregion does not exist");
+    //cplforceregion = lammps->domain->regions[iregion];
+    cplforceregion = domain->get_region_by_id("cplforceregion");
+    if (!cplforceregion) {
+	    lammps->error->all(FLERR,"Fix ID for cplforceregion does not exist");
+    }
 
     // CFD BC compute chunk 3d bins in y slice
     std::string cmd = "group cplforcegroup dynamic all region cplforceregion every 1";
