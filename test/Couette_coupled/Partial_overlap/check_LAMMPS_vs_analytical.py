@@ -122,7 +122,7 @@ def check_LAMMPS_vs_Analytical(fdir, uwall=1., plotevolve=False, tol=0.04):
         plt.savefig("LAMMPS_Validation_uwall" + str(uwall) + ".png", bbox_inches="tight")
 
     #Check average error less than 4%
-    #print(np.mean(np.abs(timeerror),0))
+    print(fdir, uwall, "ERROR per time = ", np.mean(np.abs(timeerror),0))
     assert np.all(np.mean(np.abs(timeerror[:,:-1]),0) < tol)
 
 
