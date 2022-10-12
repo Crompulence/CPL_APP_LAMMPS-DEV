@@ -20,7 +20,7 @@ def read_rec(body, no):
     u = np.array(u)
     return u
 
-def check_LAMMPS_vs_Analytical(fdir, uwall=1., plotevolve=False):
+def check_LAMMPS_vs_Analytical(fdir, uwall=1., plotevolve=False, tol=0.04):
 
     with open(fdir + "/profile.wall.2d", "r") as f:
         filestr = f.read()
@@ -123,11 +123,11 @@ def check_LAMMPS_vs_Analytical(fdir, uwall=1., plotevolve=False):
 
     #Check average error less than 4%
     #print(np.mean(np.abs(timeerror),0))
-    assert np.all(np.mean(np.abs(timeerror[:,:-1]),0) < 0.04)
+    assert np.all(np.mean(np.abs(timeerror[:,:-1]),0) < tol)
 
 
 if __name__ == "__main__":
     for uwall in [0.6,0.7,0.8,0.9,1.0]:
         fdir = "./run" + str(uwall)
-        check_LAMMPS_vs_Analytical(fdir, uwall=uwall, plotevolve="dynamic")
+        check_LAMMPS_vs_Analytical(fdir, uwall=uwall, plotevolve="dynamic", tol=0.08)
 
