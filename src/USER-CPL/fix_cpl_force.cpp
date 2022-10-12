@@ -459,9 +459,10 @@ void FixCPLForce::post_constraint_force(int Nfreq, int Nrepeat, int Nevery){
     int groupbit = group->bitmask[cplforcegroup];
 
     char* regionstr = "cplforceregion";
-    int rid = domain->find_region (regionstr);
-    auto cplforceregion = domain->regions[rid];
-
+    //int rid = domain->find_region (regionstr);
+    //auto cplforceregion = domain->regions[rid];
+    auto cplforceregion = domain->get_region_by_id(regionstr);
+	
     // Only recalculate post force everytime we recieve data
     // or Nevery as this accumulates data for send as required
     if ((update->ntimestep%Nevery == 0)) //| (fxyz->calc_postforce_everytime))
