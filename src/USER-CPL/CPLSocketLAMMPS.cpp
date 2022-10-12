@@ -266,7 +266,7 @@ void CPLSocketLAMMPS::setupFixMDtoCFD(LAMMPS_NS::LAMMPS *lammps, int sendbitflag
     //int iregion = lammps->domain->find_region("cfdbcregion");
     //if (iregion < 0) lammps->error->all(FLERR,"Fix ID for iregion cfdbcregion does not exist");
     //cfdbcregion = lammps->domain->regions[iregion];
-    cfdbcregion = domain->get_region_by_id("cfdbcregion");
+    cfdbcregion = lammps->domain->get_region_by_id("cfdbcregion");
     if (!cfdbcregion) {
 	    lammps->error->all(FLERR,"Fix ID for cfdbcregion does not exist");
     }
@@ -481,7 +481,7 @@ void CPLSocketLAMMPS::setupFixCFDtoMD(LAMMPS_NS::LAMMPS *lammps,
     //int iregion = lammps->domain->find_region("cplforceregion");
     //if (iregion < 0) lammps->error->all(FLERR,"Fix ID for iregion cplforceregion does not exist");
     //cplforceregion = lammps->domain->regions[iregion];
-    cplforceregion = domain->get_region_by_id("cplforceregion");
+    cplforceregion = lammps->domain->get_region_by_id("cplforceregion");
     if (!cplforceregion) {
 	    lammps->error->all(FLERR,"Fix ID for cplforceregion does not exist");
     }
