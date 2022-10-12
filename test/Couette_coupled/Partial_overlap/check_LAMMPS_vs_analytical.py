@@ -13,7 +13,7 @@ def find_nearest(array, value):
     return array[idx]
 
 def read_rec(body, no):
-    step, Ny, r = [int(a) for a in body[0].split()]
+    step, Ny, r = [int(np.round(a)) for a in body[0].split()]
     u = []
     for i in range(1+no*(Ny+1), Ny+1+no*(Ny+1)):
         u.append([float(a) for a in body[i].split()])
