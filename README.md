@@ -23,7 +23,14 @@ First, change directory to CPL_APP_LAMMPS-DEV,
 Next, the packages of interest can be tweaked in the config file, 
 
     vi ./config/lammps_packages.in
+    
+    
+Then to install these packages, run
 
+    cd config
+    ./enable-packages.sh make   
+
+which should turn on packages from lammps_packages.in.
 Once you are happy with this, and you can use MPI_port to link the two codes, simply type
 
     make
