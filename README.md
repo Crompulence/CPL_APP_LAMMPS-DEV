@@ -24,18 +24,18 @@ Next, the packages of interest can be tweaked in the config file,
 
     vi ./config/lammps_packages.in
 
-Once you are happy with this, simply typing 
+Once you are happy with this, and you can use MPI_port to link the two codes, simply type
 
     make
 
-in the top level should copy USER-CPL to the lammps directory and build LAMMPS with you packages, copying the coupled excutable back to the bin folder in CPL_APP_LAMMPS-DEV. 
+in the top level should copy USER-CPL to the lammps directory and build LAMMPS with you packages, copying the coupled excutable back to the bin folder in CPL_APP_LAMMPS-DEV.
 
-Note that this process assumes you can use MPI_port to link the two codes. If you want to run using MPMD (i.e. mpiexec -n 1 lmp_cpl : -n 1 cfd) with both codes sharing an MPI_COMM_WORLD, then you need to patch LAMMPS to remove any reference to MPI_COMM_WORLD. This can be done using 
+Note if you cannot use MPI_port to link the two codes, then you will need to run using MPMD (i.e. mpiexec -n 1 lmp_cpl : -n 1 cfd) with both codes sharing an MPI_COMM_WORLD, then you need to patch LAMMPS to remove any reference to MPI_COMM_WORLD. This can be done using'make patch-lammps' before calling make, as follows:
 
-    make patch-lammp
+    make patch-lammps
     make
 
-before calling make, note that this requires that the latest version of LAMMPS is manually checked to see how the patch should work, a constantly evolving process which may mean the patch will not be applied successfully. The key changes can be applied manually, by going into /path/to/lammps/directory/src and adjusting the main.cpp file. The aim is to  simply replace MPI_COMM_WORLD with the communicator returned by CPL::init(CPL::md_realm, comm). An example of this patch is included at the bottom of this README as an example of the key changes.
+Note that this requires that the latest version of LAMMPS is manually checked to see how the patch should work, a constantly evolving process which may mean the patch will not be applied successfully. The key changes can be applied manually, by going into /path/to/lammps/directory/src and adjusting the main.cpp file. The aim is to  simply replace MPI_COMM_WORLD with the communicator returned by CPL::init(CPL::md_realm, comm). An example of this patch is included at the bottom of this README as an example of the key changes.
 
 For a full discussion of this APP and CPL library itself, plese see the website www.cpl-library.org as well as the associated [wiki](http://www.cpl-library.org/wiki/index.php/Main_Page).
 
