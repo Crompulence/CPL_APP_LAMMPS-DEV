@@ -13,7 +13,7 @@ def find_nearest(array, value):
     return array[idx]
 
 def read_rec(body, no):
-    step, Ny, r = [int(np.round(a)) for a in body[0].split()]
+    step, Ny, r = [int(np.round(float(a))) for a in body[0].split()]
     u = []
     for i in range(1+no*(Ny+1), Ny+1+no*(Ny+1)):
         u.append([float(a) for a in body[i].split()])
@@ -127,7 +127,7 @@ def check_LAMMPS_vs_Analytical(fdir, uwall=1., plotevolve=False, tol=0.04):
 
 
 if __name__ == "__main__":
-    for uwall in [0.6,0.7,0.8,0.9,1.0]:
+    for uwall in [0.6,1.0]:
         fdir = "./run" + str(uwall)
         check_LAMMPS_vs_Analytical(fdir, uwall=uwall, plotevolve="dynamic", tol=0.08)
 

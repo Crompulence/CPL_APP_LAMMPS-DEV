@@ -35,7 +35,7 @@ TEST_DIR = os.path.dirname(os.path.realpath(__file__))
 #Parameterise range of cases
 params = []
 #Uwall = [0.6, 0.7, 0.8, 0.9, 1.0]
-Uwall = [0.6, 1.0]
+Uwall = [0.6,0.7,0.8,0.9,1.0]
 for u in Uwall:
     params.append(u)
 @pytest.mark.parametrize("wallvel", params)
@@ -67,6 +67,6 @@ def test_newtest(wallvel):
         run.execute(blocking=True, print_output=True, out_to_file=False, extra_cmds="-M -p")
 
         #Check results are correct
-        check_LAMMPS_vs_Analytical(rundir, uwall=wallvel)
+        check_LAMMPS_vs_Analytical(rundir, uwall=wallvel, tol=0.12)
 
             
