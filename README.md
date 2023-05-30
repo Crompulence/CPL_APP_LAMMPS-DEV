@@ -19,11 +19,14 @@ First, change directory to CPL_APP_LAMMPS-DEV,
  and create a file called CODE_INST_DIR which will tell the APP which LAMMPS to install USER-CPL for, 
 
     echo "/path/to/lammps/directory/" > CODE_INST_DIR
+    
+Next, source the SOURCME.sh file. NB this is the SOURCEME.sh file which sits inside CPL_APP_LAMMPS-DEV and is different to the other SOURCEME.sh files which sit inside cpl-library and CPL_APP_OPENFOAM.
+
+    $  source SOURCEME.sh    
 
 Next, the packages of interest can be tweaked in the config file, 
 
     vi ./config/lammps_packages.in
-    
     
 Then to install these packages, run
 
