@@ -20,7 +20,7 @@ First, change directory to CPL_APP_LAMMPS-DEV,
 
     echo "/path/to/lammps/directory/" > CODE_INST_DIR
     
-Next, source the SOURCME.sh file. NB this is the SOURCEME.sh file which sits inside CPL_APP_LAMMPS-DEV and is different to the other SOURCEME.sh files which sit inside cpl-library and CPL_APP_OPENFOAM.
+Next, source the SOURCEME.sh file. NB this is the SOURCEME.sh file which sits inside the CPL_APP_LAMMPS-DEV directory and is different to the other two SOURCEME.sh files which sit inside the directories cpl-library and CPL_APP_OPENFOAM.
 
     $  source SOURCEME.sh    
 
