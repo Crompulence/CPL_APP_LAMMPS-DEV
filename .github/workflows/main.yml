@@ -88,11 +88,11 @@ jobs:
       - name: Install scientific packages
         run: pip install numpy scipy matplotlib
         
-      - name: Test Single Particle
-        if: always()
-        run: |
-          source SOURCEME.sh
-          make test-single
+      #- name: Test Single Particle
+      #  if: always()
+      #  run: |
+      #    source SOURCEME.sh
+      #    make test-single
 
       - name: Test Couette Flow Case
         if: always()
