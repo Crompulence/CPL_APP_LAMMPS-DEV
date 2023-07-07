@@ -22,7 +22,7 @@ module load cpl-lammps
 #module load openfoam/com/v2106
 #module load cray-fftw
 #module load cray-python
-#source /work/y23/shared/cpl-openfoam-lammps/cpl-library/SOURCEME.sh
-#source /work/y23/shared/cpl-openfoam-lammps/CPL_APP_OPENFOAM/SOURCEME.sh
+#source /work/y23/y23/gavincpl/cpl-library/SOURCEME.sh
+#source /work/y23/y23/gavincpl/CPL_APP_OPENFOAM/SOURCEME.sh
 
 srun ${SHARED_ARGS} --het-group=0 --nodes=1 --tasks-per-node=1 lmp_cpl -in ./one_wall_imaginary_sliding_coupled.in :  --het-group=1 --nodes=1 --tasks-per-node=1 python ./python_dummy/CFD_test_vs_Couette.py
