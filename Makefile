@@ -14,6 +14,13 @@ all:
 	mkdir bin
 	cp -f $(LAMMPS_SRC_DIR)/lmp_cpl ./bin
 
+rebuild:
+	rsync -avP src/USER-CPL/* $(LAMMPS_SRC_DIR)
+	cd $(LAMMPS_SRC_DIR) && $(MAKE) cpl
+	rm -rf bin > /dev/null
+	mkdir bin
+	cp -f $(LAMMPS_SRC_DIR)/lmp_cpl ./bin
+
 patch-lammps:
 	python ./config/patch_main.py $(LAMMPS_SRC_DIR)
 
