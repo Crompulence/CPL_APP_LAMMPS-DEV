@@ -250,6 +250,12 @@ void FixCPLForce::setup(int vflag)
         throw std::runtime_error(cmd);
     }
 
+    //Arrays are -666 flag so no need to setup fxyz
+    if (CPL::overlap() == 0){
+        irepeat = 0;
+        return;
+    }
+
     //Set CPLForce min/max to local processor limits using values from CPL library 
 	double min[3]; double max[3];
     std::vector<int> cnstFPortion(6);
@@ -274,6 +280,37 @@ void FixCPLForce::setup(int vflag)
 	max[2] += dz;
     fxyz->set_minmax(min, max);
 
+
+
+    //If constraint region portion not on this processor, 
+    //set minimum to top of processor domain
+//    if (cnstFPortion[2] < 0 & cnstFPortion[3] < 0){
+//        fxyz->set_dxyz(dx, dy, dz);
+//    } else { 
+//	    CPL::map_cell2coord(cnstFPortion[0], 
+//                            cnstFPortion[2], 
+//                            cnstFPortion[4], min);
+//	    CPL::map_cell2coord(cnstFPortion[1], 
+//                            cnstFPortion[3], 
+//                            cnstFPortion[5], max);
+//	    max[0] += dx;
+//	    max[1] += dy;
+//	    max[2] += dz;
+//        fxyz->set_minmax(min, max);
+//    }
+
+//    //If constraint region portion not on this processor, 
+//    //set minimum to top of processor domain
+//    if (cnstFPortion[2] < 0 & cnstFPortion[3] < 0){
+//        max[0] = lmp->domain->subhi[0] - dx;
+//        max[1] = lmp->domain->subhi[1] - dy;
+//        max[2] = lmp->domain->subhi[2] - dz;
+//        min[0] = lmp->domain->sublo[0];
+//        min[1] = lmp->domain->sublo[1];
+//        min[2] = lmp->domain->sublo[2];
+//    }
+
+
     //Call apply for first step
     //apply(1, 1, 1);
     irepeat = 0;
@@ -282,6 +319,8 @@ void FixCPLForce::setup(int vflag)
 
 
 void FixCPLForce::pre_force(int Nfreq, int Nrepeat, int Nevery){
+
+    if (CPL::overlap() == 0) return;
 
     double **x = atom->x;
     double **v = atom->v;
@@ -371,6 +410,13 @@ void FixCPLForce::pre_force(int Nfreq, int Nrepeat, int Nevery){
 
 void FixCPLForce::apply_force(int Nfreq, int Nrepeat, int Nevery){
 
+    if (CPL::overlap() == 0) {
+        //std::cout << "CPL::overlap() " <<  CPL::overlap() << std::endl;
+        return;
+    //} else {
+    //    std::cout << "apply_force here" << std::endl;
+    }
+
     double **x = atom->x;
     double **v = atom->v;
     double **f = atom->f;
@@ -441,6 +487,8 @@ void FixCPLForce::apply_force(int Nfreq, int Nrepeat, int Nevery){
 
 
 void FixCPLForce::post_constraint_force(int Nfreq, int Nrepeat, int Nevery){
+
+    if (CPL::overlap() == 0) return;
 
     double **x = atom->x;
     double **v = atom->v;

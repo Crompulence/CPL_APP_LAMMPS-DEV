@@ -83,6 +83,11 @@ void CPLSocketLAMMPS::initMD(LAMMPS_NS::LAMMPS *lammps) {
     double *globaldomain = lammps->domain->prd;
     double dummydensity = -666.0;
 
+    //Add error check here
+//    if (npxyz_md[1] != 1){
+//        lammps->error->all(FLERR," Multiple y procs causes error in LAMMPS. Aborting.");
+//    }
+
     // Set up new cartesian communicator with same coordinates as lammps
     // interal cartesian communicator (based on mycoords)
     MPI_Comm icomm_grid;
@@ -205,6 +210,10 @@ void CPLSocketLAMMPS::setupFixMDtoCFD(LAMMPS_NS::LAMMPS *lammps, int sendbitflag
 
     //Allocate buffers
     allocateBuffers(lammps, sendbitflag);
+
+//    std::cout << " velBCRegion cells x " << velBCRegion[0] << " " << velBCRegion[3]
+//              << " velBCRegion cells y " << velBCRegion[1] << " " << velBCRegion[4]
+//              << " velBCRegion cells z " << velBCRegion[2] << " " << velBCRegion[5] << std::endl;
 
     double botLeft[3];
     CPL::map_cell2coord(velBCRegion[0] , velBCRegion[2], velBCRegion[4], botLeft);
@@ -415,15 +424,19 @@ void CPLSocketLAMMPS::setupFixCFDtoMD(LAMMPS_NS::LAMMPS *lammps,
                                       std::shared_ptr<std::string> forcetype, 
                                       std::vector<std::shared_ptr<std::string>> forcetype_args) {
 
+//    std::cout << " cnstFRegion cells x " << cnstFRegion[0] << " " << cnstFRegion[3]
+//              << " cnstFRegion cells y " << cnstFRegion[1] << " " << cnstFRegion[4]
+//              << " cnstFRegion cells z " << cnstFRegion[2] << " " << cnstFRegion[5] << std::endl;
+
     double botLeft[3];
     CPL::map_cell2coord(cnstFRegion[0] , cnstFRegion[2], cnstFRegion[4], botLeft);
 
     double topRight[3];
     CPL::map_cell2coord(cnstFRegion[1], cnstFRegion[3], cnstFRegion[5], topRight);
 
-    std::cout << "cnstFRegion before shift x " << botLeft[0] << " " << topRight[0] << " "
-              << "cnstFRegion before shift y " << botLeft[1] << " " << topRight[1] << " "
-              << "cnstFRegion before shift z " << botLeft[2] << " " << topRight[2]  << std::endl;
+//    std::cout << "cnstFRegion before shift x " << botLeft[0] << " " << topRight[0] << " "
+//              << "cnstFRegion before shift y " << botLeft[1] << " " << topRight[1] << " "
+//              << "cnstFRegion before shift z " << botLeft[2] << " " << topRight[2]  << std::endl;
 
     //This is needed as the velocity constraint needs to be 
     //applied about half a cell above region to work correctly
@@ -560,6 +573,8 @@ void CPLSocketLAMMPS::setupFixCFDtoMD(LAMMPS_NS::LAMMPS *lammps,
 
 //Pack general using bitflag
 void CPLSocketLAMMPS::pack(const LAMMPS_NS::LAMMPS *lammps, int sendbitflag) {
+
+        if (CPL::overlap() == 0) return;
 
         int *npxyz_md = lammps->comm->procgrid;
 	    int nc_velBCRegion[3];
