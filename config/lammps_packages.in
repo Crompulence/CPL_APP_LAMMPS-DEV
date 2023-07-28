@@ -1,9 +1,12 @@
 user-cpl
 opt
 molecule
-user-misc
+extra-compute
+extra-dump
 mpiio
 misc
 kspace
 rigid
 granular
+manybody
+python
